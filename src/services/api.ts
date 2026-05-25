@@ -8,7 +8,18 @@ declare module "axios" {
   }
 }
 
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+function resolveApiBaseUrl() {
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
+  if (!configuredBaseUrl) {
+    return "/api";
+  }
+
+  const normalizedBaseUrl = configuredBaseUrl.replace(/\/$/, "");
+  return normalizedBaseUrl.endsWith("/api") ? normalizedBaseUrl : `${normalizedBaseUrl}/api`;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 export const AUTH_REQUIRED_EVENT = "nimbus:auth-required";
 
 export const api = axios.create({

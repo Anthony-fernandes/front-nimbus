@@ -1,56 +1,37 @@
-# Stratos Suite Frontend — Versão integrada ao backend
+# Stratos Suite Frontend
 
-## O que foi implementado
+Frontend React/Vite preparado para Vercel consumindo o backend Django por
+`VITE_API_BASE_URL`.
 
-- API client centralizado em `src/lib/api.ts`.
-- Login real via backend Django JWT.
-- Persistência de sessão em `localStorage`.
-- Refresh token automático.
-- Logout.
-- Proteção das telas internas pelo `AppShell`.
-- Listagens principais conectadas ao backend:
-  - Dashboard;
-  - Clientes;
-  - Projetos;
-  - Chamados;
-  - Equipe;
-  - Sprints;
-  - Kanban;
-  - Backlog;
-  - Atividades.
-- Formulários principais salvando na API real:
-  - cliente;
-  - membro/equipe;
-  - projeto;
-  - chamado;
-  - sprint;
-  - atividade;
-  - item de backlog.
-- Nova rota `/backlog/new`.
-- Build executado com sucesso.
-- Layout, identidade visual, componentes, cores e estrutura visual preservados.
+## Como rodar localmente
 
-## Como rodar
+Crie um `.env.local` com a URL do backend local:
 
-Antes, rode o backend em `http://localhost:8000`.
+```txt
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+Depois rode:
 
 ```bash
 npm install
 npm run dev
 ```
 
-A variável já está configurada no `.env`:
+## Vercel
+
+Cadastre a variavel abaixo no projeto da Vercel:
 
 ```txt
-VITE_API_BASE_URL=http://localhost:8000/api
+VITE_API_BASE_URL=https://back-nimbus.onrender.com
 ```
 
-## Login demo
+O client central de API adiciona `/api` automaticamente quando necessario.
 
-```txt
-Usuário: admin
-Senha: admin123
-```
+## Autenticacao
+
+- `401` e `403` limpam a sessao local.
+- O `AppShell` redireciona para `/login` quando a API exige nova autenticacao.
 
 ## Build validado
 
