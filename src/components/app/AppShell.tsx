@@ -1,0 +1,133 @@
+import { ReactNode, useEffect, useState } from "react";
+import { Bell, Command, LogOut, Plus, Search } from "lucide-react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+
+import { Button } from "@/components/ui/button";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import type { User } from "@/lib/types";
+import {
+  getCreateRoute,
+  getHomeRoute,
+  getUserInitials,
+  isClientRoute,
+  isClientUser,
+} from "@/lib/auth";
+import {
+  AUTH_REQUIRED_EVENT,
+  fetchCurrentUser,
+  getStoredUser,
+  isAuthenticated,
+  logout,
+} from "@/services/authService";
+import { AppSidebar } from "./AppSidebar";
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [user, setUser] = useState<User | null>(() => getStoredUser<User>());
+  const initials = getUserInitials(user);
+  const createRoute = getCreateRoute(pathname, user);
+  const clientUser = isClientUser(user);
+  const showCreateButton = !clientUser || isClientRoute(pathname);
+
+  useEffect(() => {
+    let active = true;
+
+    async function syncSession() {
+      if (typeof window !== "undefined" && !isAuthenticated()) {
+        navigate({ to: "/login" });
+        return;
+      }
+
+      const currentUser = user || (await fetchCurrentUser().catch(() => null));
+      if (!active) return;
+
+      if (!currentUser) {
+        navigate({ to: "/login" });
+        return;
+      }
+
+      setUser(currentUser);
+
+      if (isClientUser(currentUser) && !isClientRoute(pathname)) {
+        navigate({ to: getHomeRoute(currentUser) });
+      }
+    }
+
+    void syncSession();
+
+    return () => {
+      active = false;
+    };
+  }, [navigate, pathname, user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handleAuthRequired = () => {
+      setUser(null);
+      navigate({ to: "/login" });
+    };
+
+    window.addEventListener(AUTH_REQUIRED_EVENT, handleAuthRequired);
+    return () => {
+      window.removeEventListener(AUTH_REQUIRED_EVENT, handleAuthRequired);
+    };
+  }, [navigate]);
+
+  return (
+    <SidebarProvider>
+      <div className="dark flex min-h-screen w-full bg-background text-foreground">
+        <AppSidebar user={user} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="glass-strong sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border px-4">
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+            <div className="hidden min-w-[280px] cursor-text items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 md:flex md:h-9">
+              <Search className="h-4 w-4" />
+              <span className="flex-1">
+                {clientUser
+                  ? "Buscar chamados e projetos..."
+                  : "Buscar chamados, projetos e pessoas..."}
+              </span>
+              <kbd className="hidden items-center gap-0.5 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground md:inline-flex">
+                <Command className="h-2.5 w-2.5" />K
+              </kbd>
+            </div>
+            <div className="flex-1" />
+            {showCreateButton && (
+              <Button
+                asChild
+                size="sm"
+                className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+              >
+                <a href={createRoute}>
+                  <Plus className="h-4 w-4" /> {clientUser ? "Abrir chamado" : "Novo"}
+                </a>
+              </Button>
+            )}
+            <button className="relative grid h-9 w-9 place-items-center rounded-lg transition-colors hover:bg-muted/50">
+              <Bell className="h-4 w-4" />
+              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-destructive animate-pulse-glow" />
+            </button>
+            <button
+              title="Sair"
+              onClick={async () => {
+                await logout();
+                navigate({ to: "/login" });
+              }}
+              className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+              {initials}
+            </div>
+          </header>
+          <main className="flex-1 overflow-x-hidden p-6">{children}</main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
