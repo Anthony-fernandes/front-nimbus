@@ -17,12 +17,19 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PermissionBlocksRouteImport } from './routes/permission-blocks'
+import { Route as OrgRouteImport } from './routes/org'
+import { Route as NotificationPreferencesRouteImport } from './routes/notification-preferences'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as ForumRouteImport } from './routes/forum'
+import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
+import { Route as DoubtsRouteImport } from './routes/doubts'
 import { Route as DashboardBuilderRouteImport } from './routes/dashboard-builder'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ClientRouteImport } from './routes/client'
+import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BacklogRouteImport } from './routes/backlog'
 import { Route as AprovacoesRouteImport } from './routes/aprovacoes'
 import { Route as ActivitiesRouteImport } from './routes/activities'
@@ -42,6 +49,9 @@ import { Route as ProjetosNovoRouteImport } from './routes/projetos.novo'
 import { Route as ProjetosIdRouteImport } from './routes/projetos.$id'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
+import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
+import { Route as ForumIdRouteImport } from './routes/forum.$id'
+import { Route as DoubtsIdRouteImport } from './routes/doubts.$id'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as ClientsIdRouteImport } from './routes/clients.$id'
 import { Route as ClientTicketsRouteImport } from './routes/client.tickets'
@@ -107,9 +117,24 @@ const PermissionBlocksRoute = PermissionBlocksRouteImport.update({
   path: '/permission-blocks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrgRoute = OrgRouteImport.update({
+  id: '/org',
+  path: '/org',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationPreferencesRoute = NotificationPreferencesRouteImport.update({
+  id: '/notification-preferences',
+  path: '/notification-preferences',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeRoute = KnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KanbanRoute = KanbanRouteImport.update({
@@ -120,6 +145,21 @@ const KanbanRoute = KanbanRouteImport.update({
 const InboxRoute = InboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForumRoute = ForumRouteImport.update({
+  id: '/forum',
+  path: '/forum',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailTemplatesRoute = EmailTemplatesRouteImport.update({
+  id: '/email-templates',
+  path: '/email-templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DoubtsRoute = DoubtsRouteImport.update({
+  id: '/doubts',
+  path: '/doubts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardBuilderRoute = DashboardBuilderRouteImport.update({
@@ -135,6 +175,11 @@ const ClientsRoute = ClientsRouteImport.update({
 const ClientRoute = ClientRouteImport.update({
   id: '/client',
   path: '/client',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BacklogRoute = BacklogRouteImport.update({
@@ -231,6 +276,21 @@ const ProjectsIdRoute = ProjectsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => ProjectsRoute,
+} as any)
+const KnowledgeIdRoute = KnowledgeIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => KnowledgeRoute,
+} as any)
+const ForumIdRoute = ForumIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ForumRoute,
+} as any)
+const DoubtsIdRoute = DoubtsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DoubtsRoute,
 } as any)
 const ClientsNewRoute = ClientsNewRouteImport.update({
   id: '/new',
@@ -359,12 +419,19 @@ export interface FileRoutesByFullPath {
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
   '/backlog': typeof BacklogRouteWithChildren
+  '/chat': typeof ChatRoute
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/dashboard-builder': typeof DashboardBuilderRoute
+  '/doubts': typeof DoubtsRouteWithChildren
+  '/email-templates': typeof EmailTemplatesRoute
+  '/forum': typeof ForumRouteWithChildren
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
+  '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
+  '/notification-preferences': typeof NotificationPreferencesRoute
+  '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -384,6 +451,9 @@ export interface FileRoutesByFullPath {
   '/client/tickets': typeof ClientTicketsRouteWithChildren
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
+  '/doubts/$id': typeof DoubtsIdRoute
+  '/forum/$id': typeof ForumIdRoute
+  '/knowledge/$id': typeof KnowledgeIdRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/projects/new': typeof ProjectsNewRoute
   '/projetos/$id': typeof ProjetosIdRouteWithChildren
@@ -418,12 +488,19 @@ export interface FileRoutesByTo {
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
   '/backlog': typeof BacklogRouteWithChildren
+  '/chat': typeof ChatRoute
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/dashboard-builder': typeof DashboardBuilderRoute
+  '/doubts': typeof DoubtsRouteWithChildren
+  '/email-templates': typeof EmailTemplatesRoute
+  '/forum': typeof ForumRouteWithChildren
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
+  '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
+  '/notification-preferences': typeof NotificationPreferencesRoute
+  '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -443,6 +520,9 @@ export interface FileRoutesByTo {
   '/client/tickets': typeof ClientTicketsRouteWithChildren
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
+  '/doubts/$id': typeof DoubtsIdRoute
+  '/forum/$id': typeof ForumIdRoute
+  '/knowledge/$id': typeof KnowledgeIdRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/projects/new': typeof ProjectsNewRoute
   '/projetos/$id': typeof ProjetosIdRouteWithChildren
@@ -478,12 +558,19 @@ export interface FileRoutesById {
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
   '/backlog': typeof BacklogRouteWithChildren
+  '/chat': typeof ChatRoute
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/dashboard-builder': typeof DashboardBuilderRoute
+  '/doubts': typeof DoubtsRouteWithChildren
+  '/email-templates': typeof EmailTemplatesRoute
+  '/forum': typeof ForumRouteWithChildren
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
+  '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
+  '/notification-preferences': typeof NotificationPreferencesRoute
+  '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -503,6 +590,9 @@ export interface FileRoutesById {
   '/client/tickets': typeof ClientTicketsRouteWithChildren
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
+  '/doubts/$id': typeof DoubtsIdRoute
+  '/forum/$id': typeof ForumIdRoute
+  '/knowledge/$id': typeof KnowledgeIdRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/projects/new': typeof ProjectsNewRoute
   '/projetos/$id': typeof ProjetosIdRouteWithChildren
@@ -539,12 +629,19 @@ export interface FileRouteTypes {
     | '/activities'
     | '/aprovacoes'
     | '/backlog'
+    | '/chat'
     | '/client'
     | '/clients'
     | '/dashboard-builder'
+    | '/doubts'
+    | '/email-templates'
+    | '/forum'
     | '/inbox'
     | '/kanban'
+    | '/knowledge'
     | '/login'
+    | '/notification-preferences'
+    | '/org'
     | '/permission-blocks'
     | '/projects'
     | '/reports'
@@ -564,6 +661,9 @@ export interface FileRouteTypes {
     | '/client/tickets'
     | '/clients/$id'
     | '/clients/new'
+    | '/doubts/$id'
+    | '/forum/$id'
+    | '/knowledge/$id'
     | '/projects/$id'
     | '/projects/new'
     | '/projetos/$id'
@@ -598,12 +698,19 @@ export interface FileRouteTypes {
     | '/activities'
     | '/aprovacoes'
     | '/backlog'
+    | '/chat'
     | '/client'
     | '/clients'
     | '/dashboard-builder'
+    | '/doubts'
+    | '/email-templates'
+    | '/forum'
     | '/inbox'
     | '/kanban'
+    | '/knowledge'
     | '/login'
+    | '/notification-preferences'
+    | '/org'
     | '/permission-blocks'
     | '/projects'
     | '/reports'
@@ -623,6 +730,9 @@ export interface FileRouteTypes {
     | '/client/tickets'
     | '/clients/$id'
     | '/clients/new'
+    | '/doubts/$id'
+    | '/forum/$id'
+    | '/knowledge/$id'
     | '/projects/$id'
     | '/projects/new'
     | '/projetos/$id'
@@ -657,12 +767,19 @@ export interface FileRouteTypes {
     | '/activities'
     | '/aprovacoes'
     | '/backlog'
+    | '/chat'
     | '/client'
     | '/clients'
     | '/dashboard-builder'
+    | '/doubts'
+    | '/email-templates'
+    | '/forum'
     | '/inbox'
     | '/kanban'
+    | '/knowledge'
     | '/login'
+    | '/notification-preferences'
+    | '/org'
     | '/permission-blocks'
     | '/projects'
     | '/reports'
@@ -682,6 +799,9 @@ export interface FileRouteTypes {
     | '/client/tickets'
     | '/clients/$id'
     | '/clients/new'
+    | '/doubts/$id'
+    | '/forum/$id'
+    | '/knowledge/$id'
     | '/projects/$id'
     | '/projects/new'
     | '/projetos/$id'
@@ -717,12 +837,19 @@ export interface RootRouteChildren {
   ActivitiesRoute: typeof ActivitiesRouteWithChildren
   AprovacoesRoute: typeof AprovacoesRoute
   BacklogRoute: typeof BacklogRouteWithChildren
+  ChatRoute: typeof ChatRoute
   ClientRoute: typeof ClientRouteWithChildren
   ClientsRoute: typeof ClientsRouteWithChildren
   DashboardBuilderRoute: typeof DashboardBuilderRoute
+  DoubtsRoute: typeof DoubtsRouteWithChildren
+  EmailTemplatesRoute: typeof EmailTemplatesRoute
+  ForumRoute: typeof ForumRouteWithChildren
   InboxRoute: typeof InboxRoute
   KanbanRoute: typeof KanbanRoute
+  KnowledgeRoute: typeof KnowledgeRouteWithChildren
   LoginRoute: typeof LoginRoute
+  NotificationPreferencesRoute: typeof NotificationPreferencesRoute
+  OrgRoute: typeof OrgRoute
   PermissionBlocksRoute: typeof PermissionBlocksRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
   ReportsRoute: typeof ReportsRoute
@@ -800,11 +927,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PermissionBlocksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/org': {
+      id: '/org'
+      path: '/org'
+      fullPath: '/org'
+      preLoaderRoute: typeof OrgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notification-preferences': {
+      id: '/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/notification-preferences'
+      preLoaderRoute: typeof NotificationPreferencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge': {
+      id: '/knowledge'
+      path: '/knowledge'
+      fullPath: '/knowledge'
+      preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kanban': {
@@ -819,6 +967,27 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forum': {
+      id: '/forum'
+      path: '/forum'
+      fullPath: '/forum'
+      preLoaderRoute: typeof ForumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-templates': {
+      id: '/email-templates'
+      path: '/email-templates'
+      fullPath: '/email-templates'
+      preLoaderRoute: typeof EmailTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/doubts': {
+      id: '/doubts'
+      path: '/doubts'
+      fullPath: '/doubts'
+      preLoaderRoute: typeof DoubtsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard-builder': {
@@ -840,6 +1009,13 @@ declare module '@tanstack/react-router' {
       path: '/client'
       fullPath: '/client'
       preLoaderRoute: typeof ClientRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/backlog': {
@@ -974,6 +1150,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/projects/$id'
       preLoaderRoute: typeof ProjectsIdRouteImport
       parentRoute: typeof ProjectsRoute
+    }
+    '/knowledge/$id': {
+      id: '/knowledge/$id'
+      path: '/$id'
+      fullPath: '/knowledge/$id'
+      preLoaderRoute: typeof KnowledgeIdRouteImport
+      parentRoute: typeof KnowledgeRoute
+    }
+    '/forum/$id': {
+      id: '/forum/$id'
+      path: '/$id'
+      fullPath: '/forum/$id'
+      preLoaderRoute: typeof ForumIdRouteImport
+      parentRoute: typeof ForumRoute
+    }
+    '/doubts/$id': {
+      id: '/doubts/$id'
+      path: '/$id'
+      fullPath: '/doubts/$id'
+      preLoaderRoute: typeof DoubtsIdRouteImport
+      parentRoute: typeof DoubtsRoute
     }
     '/clients/new': {
       id: '/clients/new'
@@ -1247,6 +1444,39 @@ const ClientsRouteChildren: ClientsRouteChildren = {
 const ClientsRouteWithChildren =
   ClientsRoute._addFileChildren(ClientsRouteChildren)
 
+interface DoubtsRouteChildren {
+  DoubtsIdRoute: typeof DoubtsIdRoute
+}
+
+const DoubtsRouteChildren: DoubtsRouteChildren = {
+  DoubtsIdRoute: DoubtsIdRoute,
+}
+
+const DoubtsRouteWithChildren =
+  DoubtsRoute._addFileChildren(DoubtsRouteChildren)
+
+interface ForumRouteChildren {
+  ForumIdRoute: typeof ForumIdRoute
+}
+
+const ForumRouteChildren: ForumRouteChildren = {
+  ForumIdRoute: ForumIdRoute,
+}
+
+const ForumRouteWithChildren = ForumRoute._addFileChildren(ForumRouteChildren)
+
+interface KnowledgeRouteChildren {
+  KnowledgeIdRoute: typeof KnowledgeIdRoute
+}
+
+const KnowledgeRouteChildren: KnowledgeRouteChildren = {
+  KnowledgeIdRoute: KnowledgeIdRoute,
+}
+
+const KnowledgeRouteWithChildren = KnowledgeRoute._addFileChildren(
+  KnowledgeRouteChildren,
+)
+
 interface ProjectsIdRouteChildren {
   ProjectsIdEditRoute: typeof ProjectsIdEditRoute
 }
@@ -1392,12 +1622,19 @@ const rootRouteChildren: RootRouteChildren = {
   ActivitiesRoute: ActivitiesRouteWithChildren,
   AprovacoesRoute: AprovacoesRoute,
   BacklogRoute: BacklogRouteWithChildren,
+  ChatRoute: ChatRoute,
   ClientRoute: ClientRouteWithChildren,
   ClientsRoute: ClientsRouteWithChildren,
   DashboardBuilderRoute: DashboardBuilderRoute,
+  DoubtsRoute: DoubtsRouteWithChildren,
+  EmailTemplatesRoute: EmailTemplatesRoute,
+  ForumRoute: ForumRouteWithChildren,
   InboxRoute: InboxRoute,
   KanbanRoute: KanbanRoute,
+  KnowledgeRoute: KnowledgeRouteWithChildren,
   LoginRoute: LoginRoute,
+  NotificationPreferencesRoute: NotificationPreferencesRoute,
+  OrgRoute: OrgRoute,
   PermissionBlocksRoute: PermissionBlocksRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
   ReportsRoute: ReportsRoute,
@@ -1419,13 +1656,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
