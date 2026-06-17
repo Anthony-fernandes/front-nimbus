@@ -439,7 +439,6 @@ export function DashboardHome({ screen = "viewer" }: { screen?: DashboardHomeScr
     type: "custom",
   });
   const [librarySearch, setLibrarySearch] = useState("");
-  const [builderViewport, setBuilderViewport] = useState<BuilderViewport>("desktop");
   const [builderSidebarTab, setBuilderSidebarTab] = useState<BuilderSidebarTab>("dashboard");
 
   useEffect(() => {
@@ -877,11 +876,9 @@ export function DashboardHome({ screen = "viewer" }: { screen?: DashboardHomeScr
       createOpen={createOpen}
       createForm={createForm}
       librarySearch={librarySearch}
-      builderViewport={builderViewport}
       builderSidebarTab={builderSidebarTab}
       filteredTemplateGroups={filteredTemplateGroups}
       onBuilderSidebarTabChange={setBuilderSidebarTab}
-      onBuilderViewportChange={setBuilderViewport}
       onLibrarySearchChange={setLibrarySearch}
       onSelectDashboard={(value) => {
         if (editing && isDashboardDirty) {
@@ -955,11 +952,9 @@ function DashboardWorkspace({
   createOpen,
   createForm,
   librarySearch,
-  builderViewport,
   builderSidebarTab,
   filteredTemplateGroups,
   onBuilderSidebarTabChange,
-  onBuilderViewportChange,
   onLibrarySearchChange,
   onSelectDashboard,
   onCreateOpenChange,
@@ -1007,11 +1002,9 @@ function DashboardWorkspace({
   createOpen: boolean;
   createForm: CreateDashboardForm;
   librarySearch: string;
-  builderViewport: BuilderViewport;
   builderSidebarTab: BuilderSidebarTab;
   filteredTemplateGroups: Array<{ id: string; label: string; templates: DashboardComponentTemplate[] }>;
   onBuilderSidebarTabChange: (tab: BuilderSidebarTab) => void;
-  onBuilderViewportChange: (viewport: BuilderViewport) => void;
   onLibrarySearchChange: (value: string) => void;
   onSelectDashboard: (value: string) => void;
   onCreateOpenChange: (open: boolean) => void;
@@ -1040,9 +1033,6 @@ function DashboardWorkspace({
   const isEditorScreen = screen === "builder";
   const currentDashboard = dashboardInView || selectedDashboard || activeDashboard;
   const dashboardPickerValue = selectedDashboard?.id || dashboardInView?.id || "";
-  const activeBuilderViewport =
-    BUILDER_VIEWPORTS.find((viewport) => viewport.id === builderViewport) || BUILDER_VIEWPORTS[0];
-
   return (
     <AppShell>
       {isEditorScreen ? (
@@ -1080,26 +1070,7 @@ function DashboardWorkspace({
                   </span>
                 ) : null}
 
-                <div className="flex items-center gap-0.5 rounded-md border border-border bg-surface p-0.5 min-[980px]:ml-auto">
-                  {BUILDER_VIEWPORTS.map((viewport) => {
-                    const Icon = viewport.icon;
-                    const active = builderViewport === viewport.id;
-                    return (
-                      <button
-                        key={viewport.id}
-                        type="button"
-                        onClick={() => onBuilderViewportChange(viewport.id)}
-                        className={cn(
-                          "grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:text-foreground",
-                          active && "bg-surface-2 text-foreground",
-                        )}
-                        title={viewport.label}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                      </button>
-                    );
-                  })}
-                </div>
+                <div className="min-[980px]:ml-auto" />
               </div>
 
               <div className="flex flex-wrap items-center gap-1.5 border-t border-border/70 pt-2">
@@ -1242,7 +1213,7 @@ function DashboardWorkspace({
                 <>
                   <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(circle, rgba(148,163,184,0.35) 1px, transparent 1px)", backgroundSize: "18px 18px" }} />
                   <div className="relative p-6">
-                    <div className={cn("mx-auto w-full transition-all duration-300", activeBuilderViewport.maxWidth)}>
+                    <div className="mx-auto w-full">
                       <div className="overflow-hidden rounded-xl border border-border bg-surface/40 shadow-2xl">
                         <div className="flex h-7 items-center gap-1.5 border-b border-border bg-surface/60 px-3">
                           <span className="h-2 w-2 rounded-full bg-destructive/50" />
@@ -1272,9 +1243,8 @@ function DashboardWorkspace({
                             />
                         </div>
                       </div>
-                      <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>Grid 12 colunas · layout responsivo</span>
-                        <span>{activeBuilderViewport.label}</span>
+                      <div className="mt-3 text-[11px] text-muted-foreground">
+                        Grid 12 colunas · arraste para reposicionar · alças nos cantos para redimensionar
                       </div>
                     </div>
                   </div>
@@ -1749,7 +1719,7 @@ function DashboardBuilderCanvas({
         ref={canvasRef}
         className="relative rounded-xl border border-border bg-background/20 p-3"
         onDragOver={(event) => {
-          const payload = readBuilderDragPayload(event);
+          const payload = _activeDragPayload;
           if (!payload) {
             return;
           }
@@ -1771,7 +1741,7 @@ function DashboardBuilderCanvas({
           }
         }}
         onDrop={(event) => {
-          const payload = readBuilderDragPayload(event);
+          const payload = _activeDragPayload ?? readBuilderDragPayload(event);
           const previewRect =
             dropPreview
             || (payload ? resolveGridRect(event.clientX, event.clientY, payload.w, payload.h) : null);
@@ -1779,6 +1749,7 @@ function DashboardBuilderCanvas({
           event.preventDefault();
           setDropPreview(null);
           setDraggingComponentId(null);
+          _activeDragPayload = null;
 
           if (!payload || !previewRect) {
             return;
@@ -1820,6 +1791,7 @@ function DashboardBuilderCanvas({
               onDragEnd={() => {
                 setDraggingComponentId(null);
                 setDropPreview(null);
+                _activeDragPayload = null;
               }}
               className={cn("group relative min-h-0", draggingComponentId === component.id && "opacity-50")}
               style={{
@@ -4199,7 +4171,11 @@ function getTemplateGridSize(templateType: DashboardComponentConfig["type"]) {
   };
 }
 
+// browsers block dataTransfer.getData() during dragover for security — use a module var instead
+let _activeDragPayload: BuilderDragDescriptor | null = null;
+
 function writeBuilderDragPayload(event: ReactDragEvent, payload: BuilderDragDescriptor) {
+  _activeDragPayload = payload;
   const serialized = JSON.stringify(payload);
   event.dataTransfer.effectAllowed = payload.kind === "component" ? "move" : "copyMove";
   event.dataTransfer.setData("application/x-stratos-dashboard-builder", serialized);
