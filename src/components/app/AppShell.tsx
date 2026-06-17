@@ -22,6 +22,7 @@ import {
   logout,
 } from "@/services/authService";
 import { AppSidebar } from "./AppSidebar";
+import { GlobalSearch } from "./GlobalSearch";
 
 function canCreateFromPath(pathname: string, user: User | null) {
   if (!user) {
@@ -67,6 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [user, setUser] = useState<User | null>(() => getStoredUser<User>());
+  const [searchOpen, setSearchOpen] = useState(false);
   const initials = getUserInitials(user);
   const createRoute = getCreateRoute(pathname, user);
   const clientUser = isClientUser(user);
@@ -108,6 +110,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [navigate, pathname, user]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return undefined;
     }
@@ -125,12 +138,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       <div className="dark flex min-h-screen w-full bg-background text-foreground">
         <AppSidebar user={user} />
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="glass-strong sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border px-4">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-            <div className="hidden min-w-[280px] cursor-text items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 md:flex md:h-9">
+            <div className="hidden min-w-[280px] cursor-text items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 md:flex md:h-9" onClick={() => setSearchOpen(true)}>
               <Search className="h-4 w-4" />
               <span className="flex-1">
                 {clientUser
