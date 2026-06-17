@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ClientScopeNotice } from "@/components/client/ClientScopeNotice";
+import { TicketStatusTimeline } from "@/components/tickets/TicketStatusTimeline";
 import { TicketTimeline } from "@/components/tickets/TicketTimeline";
 import { Button } from "@/components/ui/button";
 import { buildTicketTimeline, getTicketPriorityClass, getTicketStatusClass } from "@/lib/tickets";
@@ -204,6 +205,8 @@ function ClientTicketDetailPage() {
           </div>
 
           <aside className="space-y-4">
+            <TicketStatusTimeline ticket={ticket} />
+
             <section className="glass rounded-2xl p-5 shadow-card">
               <h3 className="mb-3 text-sm font-semibold">Detalhes</h3>
               <div className="space-y-2 text-sm">

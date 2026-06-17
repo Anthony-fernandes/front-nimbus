@@ -51,10 +51,20 @@ function ClientPortalPage() {
     );
   }
 
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
   const totalTickets = tickets.length;
-  const openTickets = tickets.filter((ticket) => ticket.status !== "Finalizado").length;
-  const waitingTickets = tickets.filter((ticket) => ticket.status === "Aguardando cliente").length;
-  const finishedTickets = tickets.filter((ticket) => /finaliz|conclu/i.test(ticket.status || "")).length;
+  const openTickets = tickets.filter((t) => t.status !== "Finalizado" && t.status !== "Cancelado" && t.status !== "Reprovado").length;
+  const awaitingResponseTickets = tickets.filter(
+    (t) => t.status === "Aguardando cliente" || t.status === "Validacao / Avaliacao",
+  ).length;
+  const resolvedThisMonth = tickets.filter(
+    (t) =>
+      t.status === "Finalizado" &&
+      t.finished_at != null &&
+      t.finished_at >= startOfMonth,
+  ).length;
   const recentTickets = tickets.slice(0, 5);
 
   return (
@@ -79,10 +89,10 @@ function ClientPortalPage() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard label="Total de chamados" value={String(totalTickets)} icon={Ticket} accent="accent" />
           <StatCard label="Chamados abertos" value={String(openTickets)} icon={Ticket} accent="primary" />
-          <StatCard label="Aguardando voce" value={String(waitingTickets)} icon={Clock} accent="warning" />
+          <StatCard label="Aguardando sua resposta" value={String(awaitingResponseTickets)} icon={Clock} accent="warning" />
           <StatCard
-            label="Finalizados"
-            value={String(finishedTickets)}
+            label="Resolvidos este mes"
+            value={String(resolvedThisMonth)}
             icon={CheckCircle2}
             accent="success"
           />
