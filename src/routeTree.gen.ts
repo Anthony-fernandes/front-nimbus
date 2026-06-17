@@ -31,6 +31,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ClientRouteImport } from './routes/client'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BacklogRouteImport } from './routes/backlog'
+import { Route as WebhooksRouteImport } from './routes/webhooks'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AprovacoesRouteImport } from './routes/aprovacoes'
 import { Route as ActivitiesRouteImport } from './routes/activities'
@@ -186,6 +187,11 @@ const ChatRoute = ChatRouteImport.update({
 const BacklogRoute = BacklogRouteImport.update({
   id: '/backlog',
   path: '/backlog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WebhooksRoute = WebhooksRouteImport.update({
+  id: '/webhooks',
+  path: '/webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditRoute = AuditRouteImport.update({
@@ -447,6 +453,7 @@ export interface FileRoutesByFullPath {
   '/teams': typeof TeamsRouteWithChildren
   '/ticket-categories': typeof TicketCategoriesRoute
   '/tickets': typeof TicketsRouteWithChildren
+  '/webhooks': typeof WebhooksRoute
   '/activities/$id': typeof ActivitiesIdRouteWithChildren
   '/activities/new': typeof ActivitiesNewRoute
   '/atividades/$id': typeof AtividadesIdRouteWithChildren
@@ -517,6 +524,7 @@ export interface FileRoutesByTo {
   '/teams': typeof TeamsRouteWithChildren
   '/ticket-categories': typeof TicketCategoriesRoute
   '/tickets': typeof TicketsRouteWithChildren
+  '/webhooks': typeof WebhooksRoute
   '/activities/$id': typeof ActivitiesIdRouteWithChildren
   '/activities/new': typeof ActivitiesNewRoute
   '/atividades/$id': typeof AtividadesIdRouteWithChildren
@@ -588,6 +596,7 @@ export interface FileRoutesById {
   '/teams': typeof TeamsRouteWithChildren
   '/ticket-categories': typeof TicketCategoriesRoute
   '/tickets': typeof TicketsRouteWithChildren
+  '/webhooks': typeof WebhooksRoute
   '/activities/$id': typeof ActivitiesIdRouteWithChildren
   '/activities/new': typeof ActivitiesNewRoute
   '/atividades/$id': typeof AtividadesIdRouteWithChildren
@@ -660,6 +669,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/ticket-categories'
     | '/tickets'
+    | '/webhooks'
     | '/activities/$id'
     | '/activities/new'
     | '/atividades/$id'
@@ -730,6 +740,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/ticket-categories'
     | '/tickets'
+    | '/webhooks'
     | '/activities/$id'
     | '/activities/new'
     | '/atividades/$id'
@@ -800,6 +811,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/ticket-categories'
     | '/tickets'
+    | '/webhooks'
     | '/activities/$id'
     | '/activities/new'
     | '/atividades/$id'
@@ -871,6 +883,7 @@ export interface RootRouteChildren {
   TeamsRoute: typeof TeamsRouteWithChildren
   TicketCategoriesRoute: typeof TicketCategoriesRoute
   TicketsRoute: typeof TicketsRouteWithChildren
+  WebhooksRoute: typeof WebhooksRoute
   AtividadesIdRoute: typeof AtividadesIdRouteWithChildren
   AtividadesNovaRoute: typeof AtividadesNovaRoute
   ChamadosIdRoute: typeof ChamadosIdRouteWithChildren
@@ -1050,6 +1063,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/webhooks': {
+      id: '/webhooks'
+      path: '/webhooks'
+      fullPath: '/webhooks'
+      preLoaderRoute: typeof WebhooksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activities': {
@@ -1664,6 +1684,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeamsRoute: TeamsRouteWithChildren,
   TicketCategoriesRoute: TicketCategoriesRoute,
   TicketsRoute: TicketsRouteWithChildren,
+  WebhooksRoute: WebhooksRoute,
   AtividadesIdRoute: AtividadesIdRouteWithChildren,
   AtividadesNovaRoute: AtividadesNovaRoute,
   ChamadosIdRoute: ChamadosIdRouteWithChildren,

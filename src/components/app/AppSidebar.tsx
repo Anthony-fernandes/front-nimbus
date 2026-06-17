@@ -24,6 +24,7 @@ import {
   Ticket,
   Users,
   UsersRound,
+  Webhook,
 } from "lucide-react";
 
 import {
@@ -182,6 +183,12 @@ function getInternalMenu(user: User | null | undefined) {
       url: "/audit",
       icon: ScrollText,
       visible: hasPermission(user, "settings.view") || getUserRole(user) === "ADMIN",
+    },
+    {
+      title: "Webhooks",
+      url: "/webhooks",
+      icon: Webhook,
+      visible: getUserRole(user) === "ADMIN",
     },
   ].filter((item) => item.visible);
 

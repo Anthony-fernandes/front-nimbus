@@ -806,6 +806,10 @@ function canAccessInternalPath(user: Partial<User> | null | undefined, pathname:
     return { allowed: hasAnyPermission(user, ["settings.view", "settings.edit"]) || getUserRole(user) === "ADMIN", fallbackTo: getDeniedFallback(user) };
   }
 
+  if (pathname.startsWith("/webhooks")) {
+    return { allowed: getUserRole(user) === "ADMIN", fallbackTo: getDeniedFallback(user) };
+  }
+
   if (pathname.startsWith("/kanban") || pathname.startsWith("/backlog") || pathname.startsWith("/activities")) {
     if (pathname.endsWith("/new") || pathname.endsWith("/nova")) {
       return { allowed: hasPermission(user, "activities.create"), fallbackTo: getDeniedFallback(user) };
