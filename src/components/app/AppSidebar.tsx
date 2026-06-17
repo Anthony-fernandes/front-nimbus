@@ -11,6 +11,7 @@ import {
   Inbox,
   LayoutDashboard,
   ListTodo,
+  Mail,
   MessageCircle,
   MessagesSquare,
   PencilRuler,
@@ -161,6 +162,12 @@ function getInternalMenu(user: User | null | undefined) {
         "permissionBlocks.manage",
         "users.managePermissions",
       ]),
+    },
+    {
+      title: "Email Templates",
+      url: "/email-templates",
+      icon: Mail,
+      visible: hasPermission(user, "settings.edit") || getUserRole(user) === "ADMIN",
     },
   ].filter((item) => item.visible);
 
