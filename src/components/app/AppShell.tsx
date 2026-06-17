@@ -1,8 +1,10 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Bell, Command, LogOut, Plus, Search } from "lucide-react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
+import { getUnreadCount } from "@/services/notificationService";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import type { User } from "@/lib/types";
 import {
@@ -151,10 +153,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </a>
               </Button>
             ) : null}
-            <button className="relative grid h-9 w-9 place-items-center rounded-lg transition-colors hover:bg-muted/50">
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-destructive animate-pulse-glow" />
-            </button>
+            {!clientUser ? <NotificationBell /> : null}
             <button
               title="Sair"
               onClick={async () => {
@@ -173,5 +172,29 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </div>
     </SidebarProvider>
+  );
+}
+
+function NotificationBell() {
+  const { data: unread = 0 } = useQuery({
+    queryKey: ["notifications-unread"],
+    queryFn: () => getUnreadCount(),
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+  });
+
+  return (
+    <Link
+      to="/inbox"
+      title="Caixa de entrada"
+      className="relative grid h-9 w-9 place-items-center rounded-lg transition-colors hover:bg-muted/50"
+    >
+      <Bell className="h-4 w-4" />
+      {unread > 0 ? (
+        <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-semibold text-destructive-foreground">
+          {unread > 99 ? "99+" : unread}
+        </span>
+      ) : null}
+    </Link>
   );
 }

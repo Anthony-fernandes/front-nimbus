@@ -19,10 +19,12 @@ import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PermissionBlocksRouteImport } from './routes/permission-blocks'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as KanbanRouteImport } from './routes/kanban'
+import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as DashboardBuilderRouteImport } from './routes/dashboard-builder'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ClientRouteImport } from './routes/client'
 import { Route as BacklogRouteImport } from './routes/backlog'
+import { Route as AprovacoesRouteImport } from './routes/aprovacoes'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as AccessDeniedRouteImport } from './routes/access-denied'
 import { Route as IndexRouteImport } from './routes/index'
@@ -115,6 +117,11 @@ const KanbanRoute = KanbanRouteImport.update({
   path: '/kanban',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardBuilderRoute = DashboardBuilderRouteImport.update({
   id: '/dashboard-builder',
   path: '/dashboard-builder',
@@ -133,6 +140,11 @@ const ClientRoute = ClientRouteImport.update({
 const BacklogRoute = BacklogRouteImport.update({
   id: '/backlog',
   path: '/backlog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AprovacoesRoute = AprovacoesRouteImport.update({
+  id: '/aprovacoes',
+  path: '/aprovacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivitiesRoute = ActivitiesRouteImport.update({
@@ -345,10 +357,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
+  '/aprovacoes': typeof AprovacoesRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/dashboard-builder': typeof DashboardBuilderRoute
+  '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/login': typeof LoginRoute
   '/permission-blocks': typeof PermissionBlocksRoute
@@ -402,10 +416,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
+  '/aprovacoes': typeof AprovacoesRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/dashboard-builder': typeof DashboardBuilderRoute
+  '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/login': typeof LoginRoute
   '/permission-blocks': typeof PermissionBlocksRoute
@@ -460,10 +476,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
+  '/aprovacoes': typeof AprovacoesRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/dashboard-builder': typeof DashboardBuilderRoute
+  '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/login': typeof LoginRoute
   '/permission-blocks': typeof PermissionBlocksRoute
@@ -519,10 +537,12 @@ export interface FileRouteTypes {
     | '/'
     | '/access-denied'
     | '/activities'
+    | '/aprovacoes'
     | '/backlog'
     | '/client'
     | '/clients'
     | '/dashboard-builder'
+    | '/inbox'
     | '/kanban'
     | '/login'
     | '/permission-blocks'
@@ -576,10 +596,12 @@ export interface FileRouteTypes {
     | '/'
     | '/access-denied'
     | '/activities'
+    | '/aprovacoes'
     | '/backlog'
     | '/client'
     | '/clients'
     | '/dashboard-builder'
+    | '/inbox'
     | '/kanban'
     | '/login'
     | '/permission-blocks'
@@ -633,10 +655,12 @@ export interface FileRouteTypes {
     | '/'
     | '/access-denied'
     | '/activities'
+    | '/aprovacoes'
     | '/backlog'
     | '/client'
     | '/clients'
     | '/dashboard-builder'
+    | '/inbox'
     | '/kanban'
     | '/login'
     | '/permission-blocks'
@@ -691,10 +715,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessDeniedRoute: typeof AccessDeniedRoute
   ActivitiesRoute: typeof ActivitiesRouteWithChildren
+  AprovacoesRoute: typeof AprovacoesRoute
   BacklogRoute: typeof BacklogRouteWithChildren
   ClientRoute: typeof ClientRouteWithChildren
   ClientsRoute: typeof ClientsRouteWithChildren
   DashboardBuilderRoute: typeof DashboardBuilderRoute
+  InboxRoute: typeof InboxRoute
   KanbanRoute: typeof KanbanRoute
   LoginRoute: typeof LoginRoute
   PermissionBlocksRoute: typeof PermissionBlocksRoute
@@ -788,6 +814,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KanbanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard-builder': {
       id: '/dashboard-builder'
       path: '/dashboard-builder'
@@ -814,6 +847,13 @@ declare module '@tanstack/react-router' {
       path: '/backlog'
       fullPath: '/backlog'
       preLoaderRoute: typeof BacklogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aprovacoes': {
+      id: '/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/aprovacoes'
+      preLoaderRoute: typeof AprovacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activities': {
@@ -1350,10 +1390,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessDeniedRoute: AccessDeniedRoute,
   ActivitiesRoute: ActivitiesRouteWithChildren,
+  AprovacoesRoute: AprovacoesRoute,
   BacklogRoute: BacklogRouteWithChildren,
   ClientRoute: ClientRouteWithChildren,
   ClientsRoute: ClientsRouteWithChildren,
   DashboardBuilderRoute: DashboardBuilderRoute,
+  InboxRoute: InboxRoute,
   KanbanRoute: KanbanRoute,
   LoginRoute: LoginRoute,
   PermissionBlocksRoute: PermissionBlocksRoute,

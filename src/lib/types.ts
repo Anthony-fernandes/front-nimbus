@@ -340,6 +340,12 @@ export type Ticket = {
   approval_required?: boolean;
   approval?: TicketApproval;
   approval_status?: string;
+  approval_route?: string;
+  approval_reason?: string;
+  current_approver?: string | null;
+  current_approver_name?: string;
+  converted_activity?: string | null;
+  conversion_reason?: string;
   approved_by?: string;
   approved_by_name?: string;
   approved_at?: string;
@@ -426,8 +432,92 @@ export type User = {
   resolved_permissions?: PermissionMap;
   permissions_json?: string[];
   is_active?: boolean;
+  department?: string | null;
+  department_name?: string;
+  position?: string | null;
+  position_name?: string;
+  supervisor?: string | null;
+  supervisor_name?: string;
+  manager?: string | null;
+  manager_name?: string;
+  approval_mode?: string;
+  is_service_desk_approver?: boolean;
   created_at?: string;
   updated_at?: string;
+};
+
+export type Department = {
+  id: string;
+  name: string;
+  description?: string;
+  manager?: string | null;
+  manager_name?: string;
+  member_count?: number;
+  active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Position = {
+  id: string;
+  name: string;
+  description?: string;
+  auto_approval?: boolean;
+  active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type NotificationCategory =
+  | "Chamados"
+  | "Aprovacoes"
+  | "Projetos"
+  | "Atividades"
+  | "Comentarios"
+  | "Sistema";
+
+export type AppNotification = {
+  id: string;
+  recipient?: string;
+  actor?: string | null;
+  actor_name?: string;
+  category?: NotificationCategory | string;
+  event?: string;
+  origin?: string;
+  title: string;
+  message?: string;
+  link?: string;
+  entity_type?: string;
+  entity_id?: string;
+  is_read?: boolean;
+  is_favorite?: boolean;
+  is_archived?: boolean;
+  read_at?: string | null;
+  email_sent?: boolean;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type NotificationPreference = {
+  id?: string;
+  email_enabled?: boolean;
+  inbox_enabled?: boolean;
+  disabled_events?: string[];
+  email_disabled_events?: string[];
+  digest_frequency?: string;
+};
+
+export type TicketApprovalEntry = {
+  id: string;
+  ticket?: string;
+  approver?: string | null;
+  approver_name?: string;
+  decision?: "PENDENTE" | "APROVADO" | "REPROVADO" | "AJUSTES" | string;
+  route?: string;
+  comment?: string;
+  decided_at?: string | null;
+  created_at?: string;
 };
 
 export type PermissionBlock = {

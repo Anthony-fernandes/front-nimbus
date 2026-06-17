@@ -2,8 +2,10 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Blocks,
+  ClipboardCheck,
   Columns3,
   FolderKanban,
+  Inbox,
   LayoutDashboard,
   ListTodo,
   PencilRuler,
@@ -49,6 +51,17 @@ type MenuItem = {
 function getInternalMenu(user: User | null | undefined) {
   const workspace: MenuItem[] = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard, visible: true },
+    { title: "Caixa de entrada", url: "/inbox", icon: Inbox, visible: true },
+    {
+      title: "Aprovacoes",
+      url: "/aprovacoes",
+      icon: ClipboardCheck,
+      visible: hasAnyPermission(user, [
+        "tickets.approve",
+        "tickets.viewAll",
+        "tickets.viewAssigned",
+      ]),
+    },
     {
       title: "Chamados",
       url: "/tickets",
