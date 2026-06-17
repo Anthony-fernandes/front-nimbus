@@ -9,8 +9,15 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRoleLabel } from "@/lib/auth";
-import { getPermissionLabel } from "@/lib/permissions";
+import {
+  flattenGrantedPermissions,
+  getPermissionBlocks,
+  getPermissionLabel,
+  getPermissionSummary,
+  hasAnyPermission,
+} from "@/lib/permissions";
 import { listActivities } from "@/services/activityService";
+import { getStoredUser } from "@/services/authService";
 import { listProjects } from "@/services/projectService";
 import { listSprints } from "@/services/sprintService";
 import { listTickets } from "@/services/ticketService";
@@ -18,7 +25,7 @@ import { deleteUser, getUser } from "@/services/userService";
 import { formatCurrency } from "@/services/utils";
 
 export const Route = createFileRoute("/teams/$id")({
-  head: () => ({ meta: [{ title: "Detalhes do usuário · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Detalhes do usuario · Stratos Suite" }] }),
   component: MemberDetail,
 });
 
@@ -26,13 +33,23 @@ function MemberDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const userQuery = useQuery({ queryKey: ["user", id], queryFn: () => getUser(id) });
+  const currentUser = getStoredUser();
+  const canViewUsers = hasAnyPermission(currentUser, [
+    "users.view",
+    "users.manage",
+    "users.managePermissions",
+  ]);
+  const userQuery = useQuery({
+    queryKey: ["user", id],
+    queryFn: () => getUser(id),
+    enabled: canViewUsers,
+  });
   const results = useQueries({
     queries: [
-      { queryKey: ["user-tickets", id], queryFn: () => listTickets() },
-      { queryKey: ["user-projects", id], queryFn: () => listProjects() },
-      { queryKey: ["user-sprints", id], queryFn: () => listSprints() },
-      { queryKey: ["user-activities", id], queryFn: () => listActivities() },
+      { queryKey: ["user-tickets", id], queryFn: () => listTickets(), enabled: canViewUsers },
+      { queryKey: ["user-projects", id], queryFn: () => listProjects(), enabled: canViewUsers },
+      { queryKey: ["user-sprints", id], queryFn: () => listSprints(), enabled: canViewUsers },
+      { queryKey: ["user-activities", id], queryFn: () => listActivities(), enabled: canViewUsers },
     ],
   });
 
@@ -52,7 +69,7 @@ function MemberDetail() {
     return (
       <AppShell>
         <div className="rounded-2xl p-6 text-sm text-muted-foreground glass">
-          Carregando usuário...
+          Carregando usuario...
         </div>
       </AppShell>
     );
@@ -62,7 +79,7 @@ function MemberDetail() {
     return (
       <AppShell>
         <div className="rounded-2xl p-6 text-sm text-destructive glass">
-          Usuário não encontrado.
+          Usuario nao encontrado.
         </div>
       </AppShell>
     );
@@ -72,15 +89,25 @@ function MemberDetail() {
     user.name ||
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.username ||
-    "Usuário";
+    "Usuario";
   const available = user.total_hours ?? 0;
   const used = user.used_hours ?? 0;
+  const canEditUsers = hasAnyPermission(currentUser, ["users.managePermissions", "users.manage"]);
+  const canDeleteUsers = hasAnyPermission(currentUser, ["users.delete", "users.manage"]);
+  const permissionBlocks = getPermissionBlocks(user);
+  const grantedPermissionKeys = flattenGrantedPermissions(user.granted_permissions).concat(
+    user.granted_permissions ? [] : user.permissions_json || [],
+  ).filter((value, index, list) => list.indexOf(value) === index);
+  const deniedPermissionKeys = flattenGrantedPermissions(user.denied_permissions);
+  const permissionSummary = getPermissionSummary(user).filter(
+    (item) => item.granted || item.deniedDirectly,
+  );
 
   return (
     <AppShell>
       <div className="max-w-7xl space-y-5">
         <PageHeader
-          crumbs={[{ label: "Usuários", to: "/teams" }, { label: name }]}
+          crumbs={[{ label: "Usuarios", to: "/teams" }, { label: name }]}
           title={
             <span className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary text-sm font-semibold text-primary-foreground">
@@ -101,18 +128,22 @@ function MemberDetail() {
           }
           actions={
             <>
-              <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                <a href={`/teams/${id}/edit`}>
-                  <Pencil className="h-3.5 w-3.5" /> Editar
-                </a>
-              </Button>
-              <ConfirmDelete
-                onConfirm={async () => {
-                  await deleteUser(id);
-                  toast.success("Usuário excluído");
-                  navigate({ to: "/teams" });
-                }}
-              />
+              {canEditUsers ? (
+                <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                  <a href={`/teams/${id}/edit`}>
+                    <Pencil className="h-3.5 w-3.5" /> Editar
+                  </a>
+                </Button>
+              ) : null}
+              {canDeleteUsers ? (
+                <ConfirmDelete
+                  onConfirm={async () => {
+                    await deleteUser(id);
+                    toast.success("Usuario excluido");
+                    navigate({ to: "/teams" });
+                  }}
+                />
+              ) : null}
             </>
           }
         />
@@ -172,7 +203,7 @@ function MemberDetail() {
               </TabsContent>
 
               <TabsContent value="sprints" className="space-y-2">
-                {sprints.length === 0 && <EmptyPanel text="Nenhuma sprint como responsável." />}
+                {sprints.length === 0 && <EmptyPanel text="Nenhuma sprint como responsavel." />}
                 {sprints.map((sprint) => (
                   <Link
                     key={sprint.id}
@@ -213,11 +244,11 @@ function MemberDetail() {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  {user.email || "Não informado"}
+                  {user.email || "Nao informado"}
                 </li>
                 <li className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  {user.phone || "Não informado"}
+                  {user.phone || "Nao informado"}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-muted-foreground">Custo/hora:</span>
@@ -230,25 +261,102 @@ function MemberDetail() {
               <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
                 <Shield className="h-4 w-4" /> Permissoes
               </h3>
-              <ul className="space-y-1.5 text-sm">
-                {(user.permissions_json || []).length ? (
-                  (user.permissions_json || []).map((permission) => (
-                    <li key={permission} className="flex items-center gap-2 text-muted-foreground">
-                      <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                      {getPermissionLabel(permission)}
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-muted-foreground">
-                    Nenhuma permissao extra cadastrada.
-                  </li>
-                )}
-              </ul>
+
+              <div className="space-y-4 text-sm">
+                <PermissionSection
+                  title="Blocos aplicados"
+                  emptyText="Nenhum bloco aplicado."
+                  items={permissionBlocks.map((block) => block.name)}
+                  tone="primary"
+                />
+                <PermissionSection
+                  title="Permissoes extras"
+                  emptyText="Nenhuma permissao extra cadastrada."
+                  items={grantedPermissionKeys.map(getPermissionLabel)}
+                  tone="success"
+                />
+                <PermissionSection
+                  title="Permissoes removidas"
+                  emptyText="Nenhuma permissao removida."
+                  items={deniedPermissionKeys.map(getPermissionLabel)}
+                  tone="destructive"
+                />
+
+                <div>
+                  <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">
+                    Permissoes finais
+                  </div>
+                  <div className="space-y-2">
+                    {permissionSummary.length ? (
+                      permissionSummary.map((item) => (
+                        <div
+                          key={item.permission}
+                          className="rounded-xl border border-border bg-muted/20 px-3 py-2"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span>{item.label}</span>
+                            <span
+                              className={
+                                item.granted
+                                  ? "rounded-md bg-success/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-success"
+                                  : "rounded-md bg-destructive/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-destructive"
+                              }
+                            >
+                              {item.granted ? "Permitido" : "Negado"}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-muted-foreground">Nenhuma permissao final ativa.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </aside>
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function PermissionSection({
+  title,
+  items,
+  emptyText,
+  tone,
+}: {
+  title: string;
+  items: string[];
+  emptyText: string;
+  tone: "primary" | "success" | "destructive";
+}) {
+  const toneClass =
+    tone === "primary"
+      ? "bg-primary/10 text-primary"
+      : tone === "success"
+        ? "bg-success/10 text-success"
+        : "bg-destructive/10 text-destructive";
+
+  return (
+    <div>
+      <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="flex flex-wrap gap-2">
+        {items.length ? (
+          items.map((item) => (
+            <span
+              key={`${title}-${item}`}
+              className={`rounded-md px-2 py-1 text-[11px] ${toneClass}`}
+            >
+              {item}
+            </span>
+          ))
+        ) : (
+          <span className="text-muted-foreground">{emptyText}</span>
+        )}
+      </div>
+    </div>
   );
 }
 

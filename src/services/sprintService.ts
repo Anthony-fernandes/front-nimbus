@@ -31,7 +31,7 @@ export async function saveSprint(data: SprintFormData, mode: "create" | "edit", 
 
   const payload = {
     name: data.name,
-    project: null,
+    project: data.project || null,
     lead: data.lead || null,
     goal: data.goal || "",
     status: data.status || "Planejada",
@@ -46,6 +46,7 @@ export async function saveSprint(data: SprintFormData, mode: "create" | "edit", 
 export function toSprintFormData(sprint: Sprint): Partial<SprintFormData> {
   return {
     name: sprint.name,
+    project: sprint.project || "",
     lead: sprint.lead || "",
     startAt: sprint.start_at || "",
     endAt: sprint.end_at || "",

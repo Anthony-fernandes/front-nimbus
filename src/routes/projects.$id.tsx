@@ -445,7 +445,7 @@ function ProjectDetail() {
         <PageHeader
           crumbs={[{ label: "Projetos", to: "/projects" }, { label: project.name }]}
           title={project.name}
-          subtitle={`${project.client_name || "Não informado"} - ${project.owner_name || "Não informado"}`}
+          subtitle={`${project.organization_name || project.client_name || "Nao informado"} - ${project.owner_name || project.leader_name || "Nao informado"}`}
           badges={
             <span
               className={`rounded px-2 py-1 text-[11px] ${getProjectStatusBadgeClass(project.status || "Não informado")}`}
@@ -550,7 +550,7 @@ function ProjectDetail() {
                   </div>
                 </div>
                 <ProjectDetailPanel
-                  clientName={project.client_name || "Não informado"}
+                  clientName={project.organization_name || project.client_name || "Nao informado"}
                   startAt={project.start_at}
                   dueAt={project.due_at}
                   status={project.status || "Não informado"}
@@ -1059,7 +1059,7 @@ function ProjectDetailPanel({
   status: string;
 }) {
   const details = [
-    { label: "Cliente", value: clientName },
+    { label: "Organizacao atendida", value: clientName },
     { label: "Início", value: formatDateSafe(startAt) },
     { label: "Término", value: formatDateSafe(dueAt) },
   ];

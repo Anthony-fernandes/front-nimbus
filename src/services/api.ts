@@ -91,8 +91,6 @@ api.interceptors.response.use(
     }
 
     if (status === 403) {
-      clearSession();
-      notifyAuthRequired();
       return Promise.reject(error);
     }
 

@@ -25,7 +25,7 @@ import {
   type TicketStatusConfigFormData,
 } from "@/components/forms/TicketStatusConfigForm";
 import { Button } from "@/components/ui/button";
-import { canManageTicketCategories, hasPermission } from "@/lib/permissions";
+import { canManageTicketCategories, hasAnyPermission } from "@/lib/permissions";
 import type { ActivityTag, TicketWorkflowStatusConfig, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -48,8 +48,14 @@ export const Route = createFileRoute("/settings")({
 function SettingsPage() {
   const queryClient = useQueryClient();
   const currentUser = getStoredUser<User>();
+  const canViewSettings = hasAnyPermission(currentUser, [
+    "settings.view",
+    "settings.edit",
+    "categories.view",
+    "categories.manage",
+  ]);
   const canManageWorkflow =
-    hasPermission(currentUser, "settings.manage")
+    hasAnyPermission(currentUser, ["settings.edit", "categories.manage", "categories.edit"])
     || canManageTicketCategories(currentUser);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
@@ -59,10 +65,12 @@ function SettingsPage() {
   const { data: statusConfigs = [] } = useQuery({
     queryKey: ["ticket-workflow-status-configs"],
     queryFn: () => listTicketWorkflowStatuses(),
+    enabled: canViewSettings,
   });
   const { data: activityTags = [] } = useQuery({
     queryKey: ["activity-tag-configs"],
     queryFn: () => listActivityTags(),
+    enabled: canViewSettings,
   });
 
   const selectedStatus = useMemo(

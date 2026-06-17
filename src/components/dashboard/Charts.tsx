@@ -25,6 +25,12 @@ type TechPoint = {
   chamados: number;
 };
 
+type CapacityPoint = {
+  name: string;
+  capacidade: number;
+  utilizado: number;
+};
+
 type BurndownPoint = {
   day: string;
   ideal: number;
@@ -104,6 +110,29 @@ export function StatusPie({ data }: { data: StatusPoint[] }) {
           {data.map((entry, index) => <Cell key={index} fill={entry.color} />)}
         </Pie>
       </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function CapacityChart({ data }: { data: CapacityPoint[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={data} layout="vertical" margin={{ left: 8, right: 12 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.30 0.02 265 / 0.4)" />
+        <XAxis type="number" stroke="oklch(0.68 0.025 260)" fontSize={11} tickLine={false} axisLine={false} />
+        <YAxis
+          dataKey="name"
+          type="category"
+          width={88}
+          stroke="oklch(0.68 0.025 260)"
+          fontSize={11}
+          tickLine={false}
+          axisLine={false}
+        />
+        <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "oklch(0.27 0.03 265 / 0.3)" }} />
+        <Bar dataKey="capacidade" fill="oklch(0.68 0.025 260)" radius={[0, 8, 8, 0]} />
+        <Bar dataKey="utilizado" fill="oklch(0.72 0.18 155)" radius={[0, 8, 8, 0]} />
+      </BarChart>
     </ResponsiveContainer>
   );
 }

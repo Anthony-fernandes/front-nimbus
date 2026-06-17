@@ -8,6 +8,8 @@ import { AppShell } from "@/components/app/AppShell";
 import type { Ticket } from "@/lib/types";
 import { listTickets, updateTicket } from "@/services/ticketService";
 
+const EMPTY_TICKETS: Ticket[] = [];
+
 export const Route = createFileRoute("/kanban")({
   head: () => ({ meta: [{ title: "Kanban · Stratos Suite" }] }),
   component: KanbanPage,
@@ -40,7 +42,7 @@ function initials(names?: string[]) {
 
 function KanbanPage() {
   const queryClient = useQueryClient();
-  const { data: tickets = [] } = useQuery({
+  const { data: tickets = EMPTY_TICKETS } = useQuery({
     queryKey: ["kanban-tickets"],
     queryFn: () => listTickets(),
   });
@@ -103,7 +105,7 @@ function KanbanPage() {
 
   return (
     <AppShell>
-      <div className="space-y-5">
+      <div className="flex h-[calc(100dvh-6.5rem)] flex-col gap-5">
         <div className="flex items-end justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Kanban</h1>
@@ -132,11 +134,11 @@ function KanbanPage() {
             </a>
           </div>
         </div>
-        <div className="-mx-2 grid auto-cols-[18rem] grid-flow-col gap-4 overflow-x-auto px-2 pb-4">
+        <div className="-mx-2 flex min-h-0 flex-1 gap-4 overflow-x-auto px-2 pb-4">
           {groupedTickets.map((column) => (
             <div
               key={column.name}
-              className={`glass flex max-h-[calc(100vh-12rem)] flex-col rounded-2xl p-3 ${activeColumn === column.name ? "border-primary/50 ring-1 ring-primary/30" : ""}`}
+              className={`glass flex h-full min-h-0 w-72 shrink-0 flex-col rounded-2xl p-3 ${activeColumn === column.name ? "border-primary/50 ring-1 ring-primary/30" : ""}`}
               onDragOver={(event) => {
                 event.preventDefault();
                 if (draggedTicketId) {
@@ -171,7 +173,7 @@ function KanbanPage() {
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
               </div>
-              <div className="space-y-2 overflow-y-auto pr-1">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                 {column.cards.map((card) => (
                   <div
                     key={card.id}

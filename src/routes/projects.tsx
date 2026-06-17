@@ -49,7 +49,7 @@ function ProjectsPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Projetos</h1>
             <p className="text-sm text-muted-foreground">
-              Portfólio · {isLoading ? "carregando..." : `${projects.length} projetos`}
+              Portfolio · {isLoading ? "carregando..." : `${projects.length} projetos`}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -84,24 +84,24 @@ function ProjectsPage() {
           </div>
         </div>
 
-        {isError && (
+        {isError ? (
           <div className="glass rounded-2xl p-4 text-sm text-destructive">
-            Não foi possível carregar os projetos.
+            Nao foi possivel carregar os projetos.
           </div>
-        )}
+        ) : null}
 
-        {!isLoading && projects.length === 0 && (
+        {!isLoading && projects.length === 0 ? (
           <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">
             Nenhum projeto cadastrado.
           </div>
-        )}
+        ) : null}
 
         <div className="glass overflow-hidden rounded-2xl shadow-card">
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground hover:bg-transparent">
                 <TableHead className="px-4 py-2.5">Projeto</TableHead>
-                <TableHead className="px-2 py-2.5">Cliente</TableHead>
+                <TableHead className="px-2 py-2.5">Organizacao atendida</TableHead>
                 <TableHead className="px-2 py-2.5">Status</TableHead>
                 <TableHead className="px-2 py-2.5">Progresso</TableHead>
                 <TableHead className="px-2 py-2.5">Equipe</TableHead>
@@ -122,12 +122,12 @@ function ProjectsPage() {
                         {project.name}
                       </Link>
                       <div className="text-[11px] text-muted-foreground">
-                        {project.owner_name || "Sem responsável"}
+                        {project.owner_name || project.leader_name || "Sem lider definido"}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="px-2 py-3 text-muted-foreground">
-                    {project.client_name || "Cliente não informado"}
+                    {project.organization_name || project.client_name || "Nao informado"}
                   </TableCell>
                   <TableCell className="px-2 py-3">
                     <span className="rounded-md bg-muted/60 px-2 py-1 text-[11px] text-muted-foreground">

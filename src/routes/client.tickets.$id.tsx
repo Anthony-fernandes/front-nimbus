@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Clock, RotateCcw, Ticket } from "lucide-react";
+import { Clock, RotateCcw, Ticket } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -12,9 +12,6 @@ import { buildTicketTimeline, getTicketPriorityClass, getTicketStatusClass } fro
 import type { User } from "@/lib/types";
 import { getUserClientId } from "@/lib/auth";
 import { getStoredUser } from "@/services/authService";
-import { listActivities } from "@/services/activityService";
-import { listSprints } from "@/services/sprintService";
-import { listTicketCategories } from "@/services/ticketCategoryService";
 import { createTicketTimelineComment, listTicketTimeline } from "@/services/ticketTimelineService";
 import { getTicket, transitionTicket } from "@/services/ticketService";
 import { formatDate, formatDateTime } from "@/services/utils";
@@ -33,21 +30,6 @@ function ClientTicketDetailPage() {
   const { data: ticket, isLoading } = useQuery({
     queryKey: ["client-ticket-detail", id],
     queryFn: () => getTicket(id),
-    enabled: Boolean(clientId),
-  });
-  const { data: categories = [] } = useQuery({
-    queryKey: ["ticket-categories"],
-    queryFn: () => listTicketCategories(),
-    enabled: Boolean(clientId),
-  });
-  const { data: activities = [] } = useQuery({
-    queryKey: ["client-ticket-activities", id],
-    queryFn: () => listActivities({ ticket: id }),
-    enabled: Boolean(clientId),
-  });
-  const { data: sprints = [] } = useQuery({
-    queryKey: ["client-ticket-sprints"],
-    queryFn: () => listSprints(),
     enabled: Boolean(clientId),
   });
   const { data: timelineEvents = [] } = useQuery({
@@ -90,7 +72,7 @@ function ClientTicketDetailPage() {
       ...ticket,
       timeline: [...(ticket.timeline || []), ...timelineEvents],
     },
-    { categories, activities, sprints },
+    {},
   ).filter((event) => event.visibility !== "internal");
 
   const handleTransition = async (nextStatus: string, internalNotes: string) => {
@@ -159,11 +141,7 @@ function ClientTicketDetailPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Stat icon={Ticket} label="Codigo" value={ticket.code || id.slice(0, 8)} />
           <Stat icon={Clock} label="Prazo" value={formatDate(ticket.due_at)} />
-          <Stat
-            icon={CheckCircle2}
-            label="Atividades ligadas"
-            value={String(activities.length)}
-          />
+          <Stat icon={Clock} label="Atualizado em" value={formatDate(ticket.updated_at)} />
         </div>
 
         {canValidate && (
@@ -234,15 +212,6 @@ function ClientTicketDetailPage() {
                 <DataRow label="SLA" value={ticket.sla || "8h"} />
                 <DataRow label="Aberto em" value={formatDateTime(ticket.opened_at || ticket.created_at)} />
                 <DataRow label="Finalizado em" value={formatDateTime(ticket.finished_at)} />
-              </div>
-            </section>
-
-            <section className="glass rounded-2xl p-5 shadow-card">
-              <h3 className="mb-3 text-sm font-semibold">Andamento técnico</h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>{activities.length} atividade(s) relacionada(s).</div>
-                <div>{ticket.technician_names?.length || 0} técnico(s) envolvidos.</div>
-                <div>{ticket.requires_client_validation ? "Este chamado exige sua validação." : "Sem validação obrigatória."}</div>
               </div>
             </section>
 

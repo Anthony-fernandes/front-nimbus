@@ -24,6 +24,9 @@ type ClientTicketRequestPayload = {
   description: string;
   client: string;
   requester: string;
+  requesterUser?: string;
+  requesterContactName?: string;
+  requesterContactPhone?: string;
   categoryId?: string;
   categoryName?: string;
   category?: TicketCategory | null;
@@ -138,9 +141,9 @@ function buildLegacyPayload(data: TicketFormData) {
   return {
     title: data.title,
     description: data.description || "",
-    client: data.client || null,
+    client: data.organization || null,
     project: null,
-    requester: data.requester || "",
+    requester: "",
     category: data.category || "Suporte geral",
     type: data.type || "Solicitacao",
     priority: data.priority || "Pendente",
@@ -162,7 +165,9 @@ function buildLegacyPayload(data: TicketFormData) {
 function buildExtendedPayload(data: TicketFormData) {
   return {
     ...buildLegacyPayload(data),
-    requester_name: data.requester || "",
+    requester_user: data.requesterUser || null,
+    contact_responsible_name: data.contactResponsibleName || "",
+    contact_responsible_phone: data.contactResponsiblePhone || "",
     category_id: data.categoryId || null,
     origin: data.origin || "Interno",
     approval_required: Boolean(data.approvalRequired),
@@ -251,7 +256,9 @@ export async function createClientTicketRequest(payload: ClientTicketRequestPayl
     description: payload.description.trim(),
     client: payload.client,
     requester: payload.requester,
-    requester_name: payload.requester,
+    requester_user: payload.requesterUser || null,
+    contact_responsible_name: payload.requesterContactName || payload.requester || "",
+    contact_responsible_phone: payload.requesterContactPhone || "",
     category: payload.category?.name || payload.categoryName || payload.categoryId || "",
     category_id: payload.category?.id || payload.categoryId || null,
     type: payload.type || categoryDefaults.type,
@@ -450,8 +457,10 @@ export function toTicketFormData(ticket: Ticket): Partial<TicketFormData> {
   return {
     title: ticket.title,
     description: ticket.description || "",
-    client: ticket.client || "",
-    requester: ticket.requester_name || ticket.requester || "",
+    organization: ticket.client || ticket.organization_id || "",
+    requesterUser: ticket.requester_user || "",
+    contactResponsibleName: ticket.contact_responsible_name || "",
+    contactResponsiblePhone: ticket.contact_responsible_phone || "",
     category: ticket.category_id || ticket.category || "",
     categoryId: ticket.category_id || "",
     type: ticket.type || "Solicitacao",

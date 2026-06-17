@@ -1,17 +1,17 @@
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Clock, FolderKanban, Ticket, TriangleAlert } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Clock, Ticket } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ClientScopeNotice } from "@/components/client/ClientScopeNotice";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { getTicketStatusClass } from "@/lib/tickets";
 import { getUserClientId, getUserClientName } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import { getTicketStatusClass } from "@/lib/tickets";
 import type { User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
 import { getClient } from "@/services/clientService";
-import { listProjects } from "@/services/projectService";
 import { listTickets } from "@/services/ticketService";
 import { formatDate } from "@/services/utils";
 
@@ -25,6 +25,7 @@ function ClientPortalPage() {
   const user = getStoredUser<User>();
   const clientId = getUserClientId(user);
   const clientName = getUserClientName(user) || "Sua conta";
+  const canCreateTickets = hasPermission(user, "tickets.create");
 
   const { data: account } = useQuery({
     queryKey: ["client-portal-account", clientId],
@@ -35,12 +36,6 @@ function ClientPortalPage() {
   const { data: tickets = [] } = useQuery({
     queryKey: ["client-portal-tickets", clientId],
     queryFn: () => listTickets({ client: clientId }),
-    enabled: Boolean(clientId),
-  });
-
-  const { data: projects = [] } = useQuery({
-    queryKey: ["client-portal-projects", clientId],
-    queryFn: () => listProjects({ client: clientId }),
     enabled: Boolean(clientId),
   });
 
@@ -56,12 +51,11 @@ function ClientPortalPage() {
     );
   }
 
+  const totalTickets = tickets.length;
   const openTickets = tickets.filter((ticket) => ticket.status !== "Finalizado").length;
   const waitingTickets = tickets.filter((ticket) => ticket.status === "Aguardando cliente").length;
-  const activeProjects = projects.filter((project) => !/concl/i.test(project.status || "")).length;
-  const riskProjects = projects.filter((project) => Number(project.progress ?? 0) < 50).length;
+  const finishedTickets = tickets.filter((ticket) => /finaliz|conclu/i.test(ticket.status || "")).length;
   const recentTickets = tickets.slice(0, 5);
-  const highlightedProjects = projects.slice(0, 3);
 
   return (
     <AppShell>
@@ -71,24 +65,30 @@ function ClientPortalPage() {
           title="Acompanhamento da sua conta"
           subtitle={account ? `${account.name} · ${account.sector || "Operacao em andamento"}` : clientName}
           actions={
-            <a
-              href="/client/tickets/new"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-gradient-primary px-4 text-sm font-medium text-primary-foreground shadow-glow transition hover:opacity-90"
-            >
-              Abrir chamado
-            </a>
+            canCreateTickets ? (
+              <a
+                href="/client/tickets/new"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-gradient-primary px-4 text-sm font-medium text-primary-foreground shadow-glow transition hover:opacity-90"
+              >
+                Abrir chamado
+              </a>
+            ) : null
           }
         />
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard label="Total de chamados" value={String(totalTickets)} icon={Ticket} accent="accent" />
           <StatCard label="Chamados abertos" value={String(openTickets)} icon={Ticket} accent="primary" />
           <StatCard label="Aguardando voce" value={String(waitingTickets)} icon={Clock} accent="warning" />
-          <StatCard label="Projetos ativos" value={String(activeProjects)} icon={FolderKanban} accent="accent" />
-          <StatCard label="Projetos em alerta" value={String(riskProjects)} icon={TriangleAlert} accent="destructive" />
+          <StatCard
+            label="Finalizados"
+            value={String(finishedTickets)}
+            icon={CheckCircle2}
+            accent="success"
+          />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <div className="glass rounded-2xl p-5 shadow-card xl:col-span-2">
+        <div className="glass rounded-2xl p-5 shadow-card">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="font-semibold">Ultimos chamados</h3>
@@ -130,48 +130,6 @@ function ClientPortalPage() {
                 </Link>
               ))}
             </div>
-          </div>
-
-          <div className="glass rounded-2xl p-5 shadow-card">
-            <div className="mb-4">
-              <h3 className="font-semibold">Projetos em destaque</h3>
-              <p className="text-xs text-muted-foreground">Escopo conectado a sua conta</p>
-            </div>
-
-            <div className="space-y-3">
-              {highlightedProjects.length === 0 && (
-                <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
-                  Nenhum projeto vinculado.
-                </div>
-              )}
-              {highlightedProjects.map((project) => (
-                <Link
-                  key={project.id}
-                  to="/client/projects/$id"
-                  params={{ id: project.id }}
-                  className="block rounded-xl border border-border bg-muted/20 p-4 transition-colors hover:border-primary/40"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-medium">{project.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {project.status || "Planejado"}
-                      </div>
-                    </div>
-                    <span className="text-sm font-semibold text-primary">
-                      {project.progress ?? 0}%
-                    </span>
-                  </div>
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-gradient-primary"
-                      style={{ width: `${project.progress ?? 0}%` }}
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </AppShell>

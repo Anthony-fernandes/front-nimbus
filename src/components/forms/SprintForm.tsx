@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatSprintStatusLabel } from "@/lib/labels";
+import { listProjects } from "@/services/projectService";
 import { saveSprint } from "@/services/sprintService";
 import { listUsers } from "@/services/userService";
 
@@ -26,6 +27,7 @@ type SelectOption = {
 
 export type SprintFormData = {
   name: string;
+  project: string;
   lead: string;
   startAt: string;
   endAt: string;
@@ -36,6 +38,7 @@ export type SprintFormData = {
 
 const empty: SprintFormData = {
   name: "",
+  project: "",
   lead: "",
   startAt: "",
   endAt: "",
@@ -79,8 +82,18 @@ export function SprintForm({
     queryKey: ["form-users"],
     queryFn: () => listUsers(),
   });
+  const { data: projects = [] } = useQuery({
+    queryKey: ["form-projects"],
+    queryFn: () => listProjects(),
+  });
 
   const userOptions = users.map(toUserOption);
+  const projectOptions = projects.map((project) => ({
+    value: project.id,
+    label: project.organization_name || project.client_name
+      ? `${project.name} · ${project.organization_name || project.client_name}`
+      : project.name,
+  }));
 
   const set = <K extends keyof SprintFormData>(key: K, value: SprintFormData[K]) =>
     setData((current) => ({ ...current, [key]: value }));
@@ -88,8 +101,8 @@ export function SprintForm({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!data.name.trim()) {
-      toast.error("Preencha o nome da sprint.");
+    if (!data.name.trim() || !data.project) {
+      toast.error("Preencha o nome da sprint e selecione o projeto.");
       return;
     }
 
@@ -130,6 +143,18 @@ export function SprintForm({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Projeto"
+              hint="A sprint herda o contexto da organizacao a partir do projeto."
+              required
+            >
+              <Selectable
+                value={data.project}
+                onChange={(value) => set("project", value)}
+                options={projectOptions}
+                placeholder="Selecionar projeto"
+              />
+            </Field>
             <Field label="Responsavel">
               <Selectable
                 value={data.lead}

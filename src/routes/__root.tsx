@@ -36,6 +36,7 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const errorDetails = import.meta.env.DEV ? error?.message || String(error) : "";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -46,6 +47,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        {errorDetails ? (
+          <p className="mt-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-left text-xs text-muted-foreground">
+            {errorDetails}
+          </p>
+        ) : null}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {

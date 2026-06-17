@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Bell, Command, LogOut, Plus, Search } from "lucide-react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
@@ -7,11 +7,11 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import type { User } from "@/lib/types";
 import {
   getCreateRoute,
-  getHomeRoute,
   getUserInitials,
   isClientRoute,
   isClientUser,
 } from "@/lib/auth";
+import { canAccessPath, hasPermission } from "@/lib/permissions";
 import {
   AUTH_REQUIRED_EVENT,
   fetchCurrentUser,
@@ -21,6 +21,46 @@ import {
 } from "@/services/authService";
 import { AppSidebar } from "./AppSidebar";
 
+function canCreateFromPath(pathname: string, user: User | null) {
+  if (!user) {
+    return false;
+  }
+
+  if (isClientUser(user)) {
+    return isClientRoute(pathname) && hasPermission(user, "tickets.create");
+  }
+
+  if (pathname === "/") {
+    return hasPermission(user, "tickets.create");
+  }
+
+  if (pathname.startsWith("/projects")) {
+    return hasPermission(user, "projects.create");
+  }
+
+  if (pathname.startsWith("/sprints")) {
+    return hasPermission(user, "sprints.create");
+  }
+
+  if (pathname.startsWith("/activities") || pathname.startsWith("/backlog")) {
+    return hasPermission(user, "activities.create");
+  }
+
+  if (pathname.startsWith("/teams")) {
+    return hasPermission(user, "users.create") || hasPermission(user, "users.manage");
+  }
+
+  if (pathname.startsWith("/clients")) {
+    return hasPermission(user, "clients.create");
+  }
+
+  if (pathname.startsWith("/tickets")) {
+    return hasPermission(user, "tickets.create");
+  }
+
+  return false;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -28,7 +68,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const initials = getUserInitials(user);
   const createRoute = getCreateRoute(pathname, user);
   const clientUser = isClientUser(user);
-  const showCreateButton = !clientUser || isClientRoute(pathname);
+  const showCreateButton = useMemo(
+    () => canCreateFromPath(pathname, user),
+    [pathname, user],
+  );
 
   useEffect(() => {
     let active = true;
@@ -49,8 +92,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       setUser(currentUser);
 
-      if (isClientUser(currentUser) && !isClientRoute(pathname)) {
-        navigate({ to: getHomeRoute(currentUser) });
+      const access = canAccessPath(currentUser, pathname);
+      if (!access.allowed && pathname !== "/access-denied") {
+        navigate({ to: "/access-denied" });
       }
     }
 
@@ -88,7 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Search className="h-4 w-4" />
               <span className="flex-1">
                 {clientUser
-                  ? "Buscar chamados e projetos..."
+                  ? "Buscar meus chamados..."
                   : "Buscar chamados, projetos e pessoas..."}
               </span>
               <kbd className="hidden items-center gap-0.5 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground md:inline-flex">
@@ -96,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </kbd>
             </div>
             <div className="flex-1" />
-            {showCreateButton && (
+            {showCreateButton ? (
               <Button
                 asChild
                 size="sm"
@@ -106,7 +150,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Plus className="h-4 w-4" /> {clientUser ? "Abrir chamado" : "Novo"}
                 </a>
               </Button>
-            )}
+            ) : null}
             <button className="relative grid h-9 w-9 place-items-center rounded-lg transition-colors hover:bg-muted/50">
               <Bell className="h-4 w-4" />
               <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-destructive animate-pulse-glow" />

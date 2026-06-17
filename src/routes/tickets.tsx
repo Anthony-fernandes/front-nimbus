@@ -62,6 +62,8 @@ import {
   canApproveTickets,
   canCategorizeTickets,
   canFinalizeTickets,
+  hasAnyPermission,
+  hasPermission,
 } from "@/lib/permissions";
 import {
   canTransitionTicket,
@@ -131,9 +133,17 @@ function TicketsPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [dialogState, setDialogState] = useState<TicketWorkflowDialogState>(null);
   const [workflowSaving, setWorkflowSaving] = useState(false);
+  const canViewTickets = hasAnyPermission(currentUser, [
+    "tickets.viewAll",
+    "tickets.viewAssigned",
+    "tickets.viewTeam",
+    "tickets.viewOwn",
+    "tickets.create",
+  ]);
   const { data: tickets = [], isLoading, isError } = useQuery({
     queryKey: ["tickets"],
     queryFn: () => listTickets(),
+    enabled: canViewTickets,
   });
   const { data: categories = [] } = useQuery({
     queryKey: ["ticket-categories"],
@@ -155,11 +165,13 @@ function TicketsPage() {
   const canApprove = canApproveTickets(currentUser);
   const canCategorize = canCategorizeTickets(currentUser);
   const canFinalize = canFinalizeTickets(currentUser);
+  const canCreateTickets = hasPermission(currentUser, "tickets.create");
+  const canEditTickets = hasPermission(currentUser, "tickets.edit");
   const workflowPermissions = {
     canApprove,
     canCategorize,
     canFinalize,
-    canEdit: true,
+    canEdit: canEditTickets,
   };
   const technicianUsers = useMemo(
     () => users.filter((user) => !isClientUser(user)),
@@ -180,7 +192,10 @@ function TicketsPage() {
     [tickets],
   );
   const clientOptions = useMemo(
-    () => buildSortedOptions(tickets.map((ticket) => ticket.client_name || ticket.client || "")),
+    () =>
+      buildSortedOptions(
+        tickets.map((ticket) => ticket.organization_name || ticket.client_name || ticket.client || ""),
+      ),
     [tickets],
   );
   const technicianOptions = useMemo(
@@ -306,14 +321,16 @@ function TicketsPage() {
               {isLoading ? "Carregando central..." : `${tickets.length} chamados na central`}
             </p>
           </div>
-          <Button
-            asChild
-            className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-          >
-            <a href="/tickets/new">
-              <Plus className="h-4 w-4" /> Novo chamado
-            </a>
-          </Button>
+          {canCreateTickets ? (
+            <Button
+              asChild
+              className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+            >
+              <a href="/tickets/new">
+                <Plus className="h-4 w-4" /> Novo chamado
+              </a>
+            </Button>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -366,7 +383,7 @@ function TicketsPage() {
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Buscar por ID, titulo, cliente, categoria, tecnico ou status..."
+                  placeholder="Buscar por ID, titulo, organizacao, categoria, tecnico ou status..."
                   className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
                 />
                 {searchTerm ? (
@@ -427,7 +444,7 @@ function TicketsPage() {
                           renderOption={(value) => formatPriorityLabel(value)}
                         />
                         <FilterSelectField
-                          label="Cliente"
+                          label="Organizacao atendida"
                           value={filters.client}
                           onChange={(value) => updateFilter("client", value)}
                           options={clientOptions}
@@ -580,7 +597,7 @@ function TicketsPage() {
                 <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-2.5 text-left font-medium">ID</th>
                   <th className="px-2 py-2.5 text-left font-medium">Titulo</th>
-                  <th className="px-2 py-2.5 text-left font-medium">Cliente</th>
+                  <th className="px-2 py-2.5 text-left font-medium">Organizacao atendida</th>
                   <th className="px-2 py-2.5 text-left font-medium">Categoria</th>
                   <th className="px-2 py-2.5 text-left font-medium">Prioridade</th>
                   <th className="px-2 py-2.5 text-left font-medium">Status</th>
@@ -632,7 +649,7 @@ function TicketsPage() {
                           </Link>
                         </td>
                         <td className="px-2 py-3 text-muted-foreground">
-                          {ticket.client_name || ticket.client || "—"}
+                          {ticket.organization_name || ticket.client_name || ticket.client || "—"}
                         </td>
                         <td className="px-2 py-3 text-muted-foreground">
                           {ticket.category_name || ticket.category || "Sem categoria"}

@@ -40,6 +40,8 @@ import {
   canApproveTickets,
   canCategorizeTickets,
   canFinalizeTickets,
+  hasAnyPermission,
+  hasPermission,
 } from "@/lib/permissions";
 import {
   buildTicketTimeline,
@@ -96,31 +98,47 @@ function TicketDetail() {
   const [dialogState, setDialogState] = useState<TicketWorkflowDialogState>(null);
   const [workflowSaving, setWorkflowSaving] = useState(false);
   const [confirmGenerateActivityOpen, setConfirmGenerateActivityOpen] = useState(false);
+  const canViewTickets = hasAnyPermission(currentUser, [
+    "tickets.viewAll",
+    "tickets.viewAssigned",
+    "tickets.viewTeam",
+    "tickets.viewOwn",
+  ]);
 
-  const ticketQuery = useQuery({ queryKey: ["ticket", id], queryFn: () => getTicket(id) });
+  const ticketQuery = useQuery({
+    queryKey: ["ticket", id],
+    queryFn: () => getTicket(id),
+    enabled: canViewTickets,
+  });
   const activitiesQuery = useQuery({
     queryKey: ["ticket-activities", id],
     queryFn: () => listActivities({ ticket: id }),
+    enabled: canViewTickets,
   });
   const categoriesQuery = useQuery({
     queryKey: ["ticket-categories"],
     queryFn: () => listTicketCategories(),
+    enabled: canViewTickets,
   });
   const sprintsQuery = useQuery({
     queryKey: ["sprints"],
     queryFn: () => listSprints(),
+    enabled: canViewTickets,
   });
   const timelineQuery = useQuery({
     queryKey: ["ticket-timeline", id],
     queryFn: () => listTicketTimeline(id),
+    enabled: canViewTickets,
   });
   const usersQuery = useQuery({
     queryKey: ["workflow-users"],
     queryFn: () => listUsers(),
+    enabled: canViewTickets,
   });
   const statusConfigsQuery = useQuery({
     queryKey: ["ticket-workflow-status-configs"],
     queryFn: () => listTicketWorkflowStatuses(),
+    enabled: canViewTickets,
   });
 
   if (pathname !== `/tickets/${id}`) {
@@ -169,11 +187,12 @@ function TicketDetail() {
   const canApprove = canApproveTickets(currentUser);
   const canCategorize = canCategorizeTickets(currentUser);
   const canFinalize = canFinalizeTickets(currentUser);
+  const canEditTickets = hasPermission(currentUser, "tickets.edit");
   const workflowPermissions = {
     canApprove,
     canCategorize,
     canFinalize,
-    canEdit: true,
+    canEdit: canEditTickets,
   };
   const technicianUsers = useMemo(
     () => users.filter((user) => !isClientUser(user)),
@@ -334,7 +353,7 @@ function TicketDetail() {
               <span>{ticket.title}</span>
             </span>
           }
-          subtitle={`${ticket.client_name || "Sem cliente"} · ${ticket.requester || "Sem solicitante"} · aberto em ${formatDate(ticket.opened_at)}`}
+          subtitle={`${ticket.organization_name || ticket.client_name || "Sem organizacao"} · ${ticket.requester_user_name || ticket.requester || "Sem solicitante"} · aberto em ${formatDate(ticket.opened_at)}`}
           badges={
             <span className="flex flex-wrap items-center gap-2">
               <span
@@ -436,7 +455,7 @@ function TicketDetail() {
               <dl className="grid gap-3 sm:grid-cols-2">
                 <DataRow label="Tipo" value={ticket.type || "Solicitacao"} />
                 <DataRow label="Urgencia" value={ticket.urgency || "Media"} />
-                <DataRow label="Origem" value={ticket.origin || "Portal Cliente"} />
+                <DataRow label="Origem" value={ticket.origin || "Portal da organizacao"} />
                 <DataRow label="Criado em" value={formatDateTime(ticket.opened_at || ticket.created_at)} />
               </dl>
               <div className="rounded-xl border border-border bg-muted/15 p-4 text-sm leading-relaxed">
@@ -481,7 +500,7 @@ function TicketDetail() {
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <DataRow
-                  label="Tecnico responsavel"
+                  label="Responsavel tecnico"
                   value={ticket.responsible_technician_name || ticket.technician_names?.[0] || "-"}
                 />
                 <DataRow
@@ -584,8 +603,15 @@ function TicketDetail() {
           <aside className="space-y-4">
             <SectionCard title="Cabeçalho do chamado">
               <div className="space-y-2 text-sm">
-                <DataRow label="Cliente" value={ticket.client_name || "-"} />
-                <DataRow label="Solicitante" value={ticket.requester || "-"} />
+                <DataRow
+                  label="Organizacao atendida"
+                  value={ticket.organization_name || ticket.client_name || "-"}
+                />
+                <DataRow label="Solicitante" value={ticket.requester_user_name || ticket.requester || "-"} />
+                <DataRow
+                  label="Contato responsavel"
+                  value={formatContactResponsible(ticket)}
+                />
                 <DataRow label="Status" value={formatTicketStatusLabel(ticket.status || "Aberto")} />
                 <DataRow label="Aberto em" value={formatDateTime(ticket.opened_at || ticket.created_at)} />
                 <DataRow label="Prazo" value={formatDate(ticket.due_at)} />
@@ -735,6 +761,17 @@ function getActionIcon(action: TicketWorkflowActionDefinition) {
 
 function formatNullableDateTime(value?: string | null) {
   return value ? formatDateTime(value) : "";
+}
+
+function formatContactResponsible(ticket: Ticket) {
+  const name = ticket.contact_responsible_name || "";
+  const phone = ticket.contact_responsible_phone || "";
+
+  if (name && phone) {
+    return `${name} · ${phone}`;
+  }
+
+  return name || phone || "-";
 }
 
 function SectionCard({

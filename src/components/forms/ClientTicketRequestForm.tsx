@@ -1,47 +1,31 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Paperclip, Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field, FormSection } from "@/components/app/Field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  CLIENT_TICKET_TYPE_OPTIONS,
-  findTicketCategory,
-  getCategoryDefaults,
-  TICKET_URGENCY_OPTIONS,
-} from "@/lib/tickets";
 import { getUserClientId, getUserDisplayName } from "@/lib/auth";
 import type { TicketAttachment, User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
-import { listTicketCategories } from "@/services/ticketCategoryService";
 import { createClientTicketRequest } from "@/services/ticketService";
 
 type ClientTicketFormData = {
   title: string;
   description: string;
-  categoryId: string;
-  type: string;
-  urgency: string;
+  contactName: string;
+  contactPhone: string;
   attachments: TicketAttachment[];
 };
 
 const initialState: ClientTicketFormData = {
   title: "",
   description: "",
-  categoryId: "",
-  type: "Solicitacao",
-  urgency: "Media",
+  contactName: "",
+  contactPhone: "",
   attachments: [],
 };
 
@@ -50,20 +34,14 @@ export function ClientTicketRequestForm() {
   const queryClient = useQueryClient();
   const user = getStoredUser<User>();
   const clientId = getUserClientId(user);
-  const requester = useMemo(() => user?.email || getUserDisplayName(user), [user]);
-  const [data, setData] = useState(initialState);
-  const [saving, setSaving] = useState(false);
-
-  const { data: categories = [] } = useQuery({
-    queryKey: ["ticket-categories"],
-    queryFn: () => listTicketCategories(),
+  const requesterName = useMemo(() => getUserDisplayName(user), [user]);
+  const requesterPhone = user?.phone || "";
+  const [data, setData] = useState<ClientTicketFormData>({
+    ...initialState,
+    contactName: requesterName,
+    contactPhone: requesterPhone,
   });
-
-  const selectedCategory = useMemo(
-    () => findTicketCategory(categories, data.categoryId),
-    [categories, data.categoryId],
-  );
-  const categoryDefaults = getCategoryDefaults(selectedCategory);
+  const [saving, setSaving] = useState(false);
 
   const setField = <K extends keyof ClientTicketFormData>(
     key: K,
@@ -74,12 +52,12 @@ export function ClientTicketRequestForm() {
     event.preventDefault();
 
     if (!clientId) {
-      toast.error("Seu usuário ainda não está vinculado a um cliente.");
+      toast.error("Seu usuario ainda nao esta vinculado a uma organizacao.");
       return;
     }
 
-    if (!data.title.trim() || !data.description.trim() || !data.categoryId) {
-      toast.error("Preencha título, descrição e categoria.");
+    if (!data.title.trim() || !data.description.trim()) {
+      toast.error("Preencha titulo e descricao.");
       return;
     }
 
@@ -89,12 +67,10 @@ export function ClientTicketRequestForm() {
         title: data.title,
         description: data.description,
         client: clientId,
-        requester,
-        categoryId: data.categoryId,
-        categoryName: selectedCategory?.name,
-        category: selectedCategory,
-        type: data.type,
-        urgency: data.urgency,
+        requester: requesterName,
+        requesterUser: user?.id,
+        requesterContactName: data.contactName || requesterName,
+        requesterContactPhone: data.contactPhone || requesterPhone,
         attachments: data.attachments,
       });
       await queryClient.invalidateQueries({ queryKey: ["client-tickets-list", clientId] });
@@ -103,7 +79,7 @@ export function ClientTicketRequestForm() {
       navigate({ to: "/client/tickets" });
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Não foi possível abrir o chamado.",
+        error instanceof Error ? error.message : "Nao foi possivel abrir o chamado.",
       );
     } finally {
       setSaving(false);
@@ -115,10 +91,10 @@ export function ClientTicketRequestForm() {
       <div className="space-y-5 lg:col-span-2">
         <FormSection
           title="Abrir chamado"
-          description="Informe apenas os dados da solicitação. A equipe faz a categorização técnica depois."
+          description="Informe apenas os dados da solicitacao. Os campos internos serao definidos pela equipe tecnica."
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Título" required className="sm:col-span-2">
+            <Field label="Titulo" required className="sm:col-span-2">
               <Input
                 value={data.title}
                 onChange={(event) => setField("title", event.target.value)}
@@ -127,68 +103,26 @@ export function ClientTicketRequestForm() {
               />
             </Field>
             <Field label="Solicitante">
-              <Input value={requester} disabled />
+              <Input value={requesterName} disabled />
             </Field>
-            <Field label="Categoria" required>
-              <Select
-                value={data.categoryId || undefined}
-                onValueChange={(value) => {
-                  const category = findTicketCategory(categories, value);
-                  const defaults = getCategoryDefaults(category);
-                  setData((current) => ({
-                    ...current,
-                    categoryId: value,
-                    type:
-                      current.type && current.type !== "Solicitacao"
-                        ? current.type
-                        : defaults.type,
-                  }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Field label="Organizacao atendida">
+              <Input value={user?.organization_name || user?.client_name || "Minha organizacao"} disabled />
             </Field>
-            <Field label="Tipo" required>
-              <Select value={data.type} onValueChange={(value) => setField("type", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CLIENT_TICKET_TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Field label="Contato responsavel">
+              <Input
+                value={data.contactName}
+                onChange={(event) => setField("contactName", event.target.value)}
+                placeholder="Nome do contato responsavel"
+              />
             </Field>
-            <Field label="Urgência" required>
-              <Select
-                value={data.urgency}
-                onValueChange={(value) => setField("urgency", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar urgência" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TICKET_URGENCY_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Field label="Telefone do contato">
+              <Input
+                value={data.contactPhone}
+                onChange={(event) => setField("contactPhone", event.target.value)}
+                placeholder="(00) 00000-0000"
+              />
             </Field>
-            <Field label="Descrição" required className="sm:col-span-2">
+            <Field label="Descricao" required className="sm:col-span-2">
               <Textarea
                 value={data.description}
                 onChange={(event) => setField("description", event.target.value)}
@@ -203,7 +137,7 @@ export function ClientTicketRequestForm() {
                 <div className="flex-1 text-sm">
                   <div className="font-medium">Adicionar anexos</div>
                   <div className="text-xs text-muted-foreground">
-                    A interface já aceita anexos. Se a API ainda não persistir, o chamado continua sem quebrar.
+                    Os anexos seguem disponiveis para complementar a abertura do chamado.
                   </div>
                 </div>
                 <input
@@ -229,25 +163,12 @@ export function ClientTicketRequestForm() {
       </div>
 
       <div className="space-y-5">
-        <FormSection title="Regras da categoria">
-          <dl className="space-y-2 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-xs text-muted-foreground">SLA padrao</dt>
-              <dd>{selectedCategory?.sla || "8h"}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-xs text-muted-foreground">Tipo sugerido</dt>
-              <dd>{categoryDefaults.type}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-xs text-muted-foreground">Aprovação</dt>
-              <dd>{categoryDefaults.approvalRequired ? "Necessária" : "Não obrigatória"}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-xs text-muted-foreground">Pode virar atividade</dt>
-              <dd>{categoryDefaults.allowProjectActivity ? "Sim" : "Não"}</dd>
-            </div>
-          </dl>
+        <FormSection title="Fluxo do portal do cliente">
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>O sistema usa seu usuario logado como solicitante do chamado.</p>
+            <p>Organizacao atendida, origem e status inicial sao definidos automaticamente.</p>
+            <p>A categorizacao interna e os demais campos tecnicos ficam restritos ao portal interno.</p>
+          </div>
         </FormSection>
 
         <div className="sticky top-20 rounded-2xl p-3 shadow-card glass">

@@ -1,10 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
+  Blocks,
   Columns3,
   FolderKanban,
   LayoutDashboard,
   ListTodo,
+  PencilRuler,
   Rocket,
   Settings,
   Sparkles,
@@ -31,32 +33,129 @@ import {
   getUserClientName,
   getUserDisplayName,
   getUserInitials,
+  getUserRole,
   isClientUser,
 } from "@/lib/auth";
+import { hasAnyPermission, hasPermission } from "@/lib/permissions";
 import type { User } from "@/lib/types";
 
-const internalMain = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Chamados", url: "/tickets", icon: Ticket },
-  { title: "Projetos", url: "/projects", icon: FolderKanban },
-  { title: "Sprints", url: "/sprints", icon: Rocket },
-  { title: "Kanban", url: "/kanban", icon: Columns3 },
-  { title: "Backlog", url: "/backlog", icon: ListTodo },
-];
+type MenuItem = {
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboard;
+  visible: boolean;
+};
 
-const internalOrg = [
-  { title: "Clientes", url: "/clients", icon: Users },
-  { title: "Usuários", url: "/teams", icon: UsersRound },
-  { title: "Categorias", url: "/ticket-categories", icon: Tags },
-  { title: "Relatorios", url: "/reports", icon: BarChart3 },
-  { title: "Configurações", url: "/settings", icon: Settings },
-];
+function getInternalMenu(user: User | null | undefined) {
+  const workspace: MenuItem[] = [
+    { title: "Dashboard", url: "/", icon: LayoutDashboard, visible: true },
+    {
+      title: "Chamados",
+      url: "/tickets",
+      icon: Ticket,
+      visible: hasAnyPermission(user, [
+        "tickets.viewAll",
+        "tickets.viewAssigned",
+        "tickets.viewTeam",
+        "tickets.viewOwn",
+        "tickets.create",
+      ]),
+    },
+    {
+      title: "Projetos",
+      url: "/projects",
+      icon: FolderKanban,
+      visible: hasPermission(user, "projects.view"),
+    },
+    {
+      title: "Sprints",
+      url: "/sprints",
+      icon: Rocket,
+      visible: hasPermission(user, "sprints.view"),
+    },
+    {
+      title: "Kanban",
+      url: "/kanban",
+      icon: Columns3,
+      visible: hasAnyPermission(user, ["activities.view", "projects.view", "sprints.view"]),
+    },
+    {
+      title: "Backlog",
+      url: "/backlog",
+      icon: ListTodo,
+      visible: hasAnyPermission(user, ["activities.view", "projects.view"]),
+    },
+  ].filter((item) => item.visible);
 
-const clientMain = [
-  { title: "Portal", url: "/client", icon: LayoutDashboard },
-  { title: "Chamados", url: "/client/tickets", icon: Ticket },
-  { title: "Projetos", url: "/client/projects", icon: FolderKanban },
-];
+  const management: MenuItem[] = [
+    {
+      title: "Organizacoes",
+      url: "/clients",
+      icon: Users,
+      visible: hasPermission(user, "clients.view"),
+    },
+    {
+      title: "Usuarios",
+      url: "/teams",
+      icon: UsersRound,
+      visible: hasAnyPermission(user, ["users.view", "users.manage", "users.managePermissions"]),
+    },
+    {
+      title: "Categorias",
+      url: "/ticket-categories",
+      icon: Tags,
+      visible: hasAnyPermission(user, ["categories.view", "categories.manage"]),
+    },
+    {
+      title: "Relatorios",
+      url: "/reports",
+      icon: BarChart3,
+      visible: hasPermission(user, "reports.view"),
+    },
+    {
+      title: "Configuracoes",
+      url: "/settings",
+      icon: Settings,
+      visible: hasAnyPermission(user, ["settings.view", "settings.edit", "categories.view"]),
+    },
+    {
+      title: "Editor dashboards",
+      url: "/dashboard-builder",
+      icon: PencilRuler,
+      visible: getUserRole(user) === "ADMIN" || hasPermission(user, "settings.edit"),
+    },
+    {
+      title: "Blocos de permissoes",
+      url: "/permission-blocks",
+      icon: Blocks,
+      visible: hasAnyPermission(user, [
+        "permissionBlocks.view",
+        "permissionBlocks.manage",
+        "users.managePermissions",
+      ]),
+    },
+  ].filter((item) => item.visible);
+
+  return { workspace, management };
+}
+
+function getClientMenu(user: User | null | undefined) {
+  return [
+    { title: "Portal", url: "/client", icon: LayoutDashboard, visible: true },
+    {
+      title: "Meus chamados",
+      url: "/client/tickets",
+      icon: Ticket,
+      visible: hasAnyPermission(user, ["tickets.viewOwn", "tickets.viewOrganization"]),
+    },
+    {
+      title: "Novo chamado",
+      url: "/client/tickets/new",
+      icon: Ticket,
+      visible: hasPermission(user, "tickets.create"),
+    },
+  ].filter((item) => item.visible);
+}
 
 export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const { state } = useSidebar();
@@ -64,7 +163,8 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const path = useRouterState({ select: (router) => router.location.pathname });
   const user = externalUser || null;
   const clientUser = isClientUser(user);
-  const mainItems = clientUser ? clientMain : internalMain;
+  const internalMenu = getInternalMenu(user);
+  const clientMenu = getClientMenu(user);
   const displayName = getUserDisplayName(user);
   const initials = getUserInitials(user);
   const clientName = getUserClientName(user);
@@ -77,27 +177,27 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
           <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-primary shadow-glow">
             <Sparkles className="h-4.5 w-4.5 text-primary-foreground" strokeWidth={2.5} />
           </div>
-          {!collapsed && (
+          {!collapsed ? (
             <div className="leading-tight">
               <div className="text-sm font-semibold tracking-tight">
                 Nimbus<span className="text-gradient">.io</span>
               </div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                {clientUser ? "Portal do cliente" : "Workspace"}
+                {clientUser ? "Portal do cliente" : "Portal interno"}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          {!collapsed && (
+          {!collapsed ? (
             <SidebarGroupLabel>{clientUser ? "Minha area" : "Workspace"}</SidebarGroupLabel>
-          )}
+          ) : null}
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
+              {(clientUser ? clientMenu : internalMenu.workspace).map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
                     <Link to={item.url} className="group">
@@ -111,12 +211,12 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {!clientUser && (
+        {!clientUser && internalMenu.management.length ? (
           <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Organizacao</SidebarGroupLabel>}
+            {!collapsed ? <SidebarGroupLabel>Gestao</SidebarGroupLabel> : null}
             <SidebarGroupContent>
               <SidebarMenu>
-                {internalOrg.map((item) => (
+                {internalMenu.management.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
                       <Link to={item.url}>
@@ -129,12 +229,12 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed ? (
-          <div className="m-1 rounded-xl glass p-3">
+          <div className="glass m-1 rounded-xl p-3">
             <div className="flex items-center gap-2.5">
               <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
                 {initials}
@@ -142,10 +242,10 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{displayName}</div>
                 <div className="truncate text-[11px] text-muted-foreground">
-                  {clientUser ? clientName || "Conta do cliente" : "Workspace interno"}
+                  {clientUser ? clientName || "Conta da organizacao" : "Workspace interno"}
                 </div>
               </div>
-              <span className="h-2 w-2 rounded-full bg-success animate-pulse-glow" />
+              <span className="h-2 w-2 animate-pulse-glow rounded-full bg-success" />
             </div>
           </div>
         ) : (

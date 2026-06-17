@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ClientScopeNotice } from "@/components/client/ClientScopeNotice";
 import { formatTicketStatusLabel, formatUrgencyLabel } from "@/lib/labels";
+import { hasPermission } from "@/lib/permissions";
 import { getTicketStatusClass } from "@/lib/tickets";
 import { getUserClientId } from "@/lib/auth";
 import type { User } from "@/lib/types";
@@ -22,6 +23,7 @@ function ClientTicketsPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const user = getStoredUser<User>();
   const clientId = getUserClientId(user);
+  const canCreateTickets = hasPermission(user, "tickets.create");
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["client-tickets-list", clientId],
@@ -49,12 +51,14 @@ function ClientTicketsPage() {
           title="Meus chamados"
           subtitle={isLoading ? "Carregando chamados..." : `${tickets.length} chamados da sua conta`}
           actions={
-            <a
-              href="/client/tickets/new"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-gradient-primary px-4 text-sm font-medium text-primary-foreground shadow-glow transition hover:opacity-90"
-            >
-              <Plus className="mr-1.5 h-4 w-4" /> Abrir chamado
-            </a>
+            canCreateTickets ? (
+              <a
+                href="/client/tickets/new"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-gradient-primary px-4 text-sm font-medium text-primary-foreground shadow-glow transition hover:opacity-90"
+              >
+                <Plus className="mr-1.5 h-4 w-4" /> Abrir chamado
+              </a>
+            ) : null
           }
         />
 

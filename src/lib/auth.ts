@@ -1,7 +1,7 @@
 import type { User } from "@/lib/types";
 
 export type HomeRoute = "/" | "/client";
-export type AppUserRole = "ADMIN" | "MANAGER" | "TECHNICIAN" | "CLIENT";
+export type AppUserRole = "ADMIN" | "TECHNICIAN" | "CLIENT";
 
 export type CreateRoute =
   | "/activities/new"
@@ -38,6 +38,10 @@ function getRelationName(value: unknown) {
   return null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export function normalizeUserRole(role: unknown): AppUserRole | undefined {
   const normalized = slugifyRole(role);
 
@@ -50,7 +54,17 @@ export function normalizeUserRole(role: unknown): AppUserRole | undefined {
       return "ADMIN";
     case "MANAGER":
     case "GESTOR":
-      return "MANAGER";
+    case "GESTAO":
+    case "COORDENACAO":
+    case "COORDENADOR":
+    case "PROJECT_LEAD":
+    case "LIDER_PROJETO":
+    case "LIDER_DE_PROJETO":
+    case "LEAD":
+    case "SUPERVISOR":
+    case "COLLABORATOR":
+    case "COLABORADOR":
+      return "TECHNICIAN";
     case "TECH":
     case "TECNICO":
     case "TECHNICIAN":
@@ -60,6 +74,12 @@ export function normalizeUserRole(role: unknown): AppUserRole | undefined {
     case "CLIENT":
     case "CLIENTE":
     case "CUSTOMER":
+    case "REQUESTER":
+    case "SOLICITANTE":
+    case "OBSERVER":
+    case "OBSERVADOR":
+    case "APPROVER":
+    case "APROVADOR":
       return "CLIENT";
     default:
       return normalized ? (normalized as AppUserRole) : undefined;
@@ -74,14 +94,12 @@ export function getRoleLabel(role: unknown) {
   switch (normalizeUserRole(role)) {
     case "ADMIN":
       return "Administrador";
-    case "MANAGER":
-      return "Gestor";
+    case "TECHNICIAN":
+      return "Tecnico";
     case "CLIENT":
       return "Cliente";
-    case "TECHNICIAN":
-      return "Técnico";
     default:
-      return "Usuário";
+      return "Usuario";
   }
 }
 
@@ -90,14 +108,22 @@ export function normalizeUser(user: User | null | undefined): User | null {
 
   const client = getRelationId(user.client);
   const clientId = getRelationId(user.client_id) || client;
-  const clientName = user.client_name || getRelationName(user.client) || null;
+  const organizationId = getRelationId(user.organization_id) || clientId;
+  const clientName =
+    user.client_name || user.organization_name || getRelationName(user.client) || null;
+  const organizationLinks = Array.isArray(user.organization_links)
+    ? user.organization_links.filter((link) => isRecord(link))
+    : [];
 
   return {
     ...user,
     role: normalizeUserRole(user.role) || user.role,
-    client: client || clientId,
-    client_id: clientId || client,
+    client: client || clientId || organizationId,
+    client_id: clientId || client || organizationId,
     client_name: clientName || undefined,
+    organization_id: organizationId || client || clientId,
+    organization_name: clientName || undefined,
+    organization_links: organizationLinks,
   };
 }
 
@@ -107,7 +133,7 @@ export function getUserDisplayName(user: Partial<User> | null | undefined) {
     [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
     user?.username ||
     user?.email ||
-    "Usuário"
+    "Usuario"
   );
 }
 
@@ -126,16 +152,52 @@ export function isClientUser(user: Partial<User> | null | undefined) {
   return getUserRole(user) === "CLIENT";
 }
 
+export function isInternalUser(user: Partial<User> | null | undefined) {
+  const role = getUserRole(user);
+  return role === "ADMIN" || role === "TECHNICIAN";
+}
+
 export function isClientRoute(pathname: string) {
   return pathname === "/client" || pathname.startsWith("/client/");
 }
 
 export function getUserClientId(user: Partial<User> | null | undefined) {
-  return getRelationId(user?.client) || getRelationId(user?.client_id) || null;
+  return (
+    getRelationId(user?.client)
+    || getRelationId(user?.client_id)
+    || getRelationId(user?.organization_id)
+    || null
+  );
 }
 
 export function getUserClientName(user: Partial<User> | null | undefined) {
-  return user?.client_name || null;
+  return user?.client_name || user?.organization_name || null;
+}
+
+export function getUserOrganizationIds(user: Partial<User> | null | undefined) {
+  const normalized = normalizeUser(user as User | null);
+  const links = Array.isArray(normalized?.organization_links)
+    ? normalized.organization_links
+    : [];
+  const ids = new Set<string>();
+
+  const primaryId = getUserClientId(normalized);
+  if (primaryId) {
+    ids.add(primaryId);
+  }
+
+  links.forEach((link) => {
+    const relationId =
+      getRelationId(link)
+      || (isRecord(link) ? getRelationId(link.organization) : null)
+      || (isRecord(link) ? getRelationId(link.organization_id) : null);
+
+    if (relationId) {
+      ids.add(relationId);
+    }
+  });
+
+  return Array.from(ids);
 }
 
 export function hasClientScope(user: Partial<User> | null | undefined) {

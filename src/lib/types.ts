@@ -1,3 +1,5 @@
+import type { PermissionMap } from "@/lib/permissions";
+
 export type ChecklistItem = {
   text: string;
   done: boolean;
@@ -49,6 +51,15 @@ export type ActivityTag = {
   updatedAt?: string;
   usage_count?: number;
 };
+
+export type OrganizationType =
+  | "CLIENTE_EMPRESA"
+  | "CLIENTE_PESSOA"
+  | "EMPRESA_INTERNA"
+  | "SETOR_INTERNO"
+  | "DEPARTAMENTO"
+  | "FILIAL"
+  | "OUTRO";
 
 export type TicketStatus =
   | "Aberto"
@@ -218,13 +229,30 @@ export type SprintMovementLog = {
   movedBy?: string | null;
 };
 
-export type Client = {
+export type OrganizationLink = {
+  id: string;
+  organization: string;
+  organization_id?: string;
+  organization_name?: string;
+  role?: string;
+  active?: boolean;
+};
+
+export type Organization = {
   id: string;
   name: string;
+  organization_type?: OrganizationType | string;
+  type?: OrganizationType | string;
+  document?: string;
   email?: string;
   phone?: string;
+  address?: string;
   sector?: string;
   contact_name?: string;
+  active?: boolean;
+  parent?: string | null;
+  organization_parent_id?: string | null;
+  organization_parent_name?: string;
   plan?: string;
   mrr?: string | number;
   health?: string;
@@ -236,16 +264,30 @@ export type Client = {
   updated_at?: string;
 };
 
+export type Client = Organization;
+
 export type Project = {
   id: string;
   name: string;
   description?: string;
   client?: string;
   client_name?: string;
+  organization_id?: string;
+  organization_name?: string;
   owner?: string | null;
   owner_name?: string;
+  leader_name?: string;
+  contact_principal?: string | null;
+  contact_principal_name?: string;
   team?: string[];
   team_names?: string[];
+  member_links?: Array<{
+    id: string;
+    user: string;
+    user_name?: string;
+    role?: string;
+    active?: boolean;
+  }>;
   status?: string;
   progress?: number;
   budget?: string | number;
@@ -268,10 +310,19 @@ export type Ticket = {
   description?: string;
   client?: string;
   client_name?: string;
+  organization_id?: string;
+  organization_name?: string;
   project?: string | null;
   project_name?: string;
+  sprint?: string | null;
+  sprint_name?: string;
   requester?: string;
   requester_name?: string;
+  requester_user?: string | null;
+  requester_user_name?: string;
+  contact_responsible?: string | null;
+  contact_responsible_name?: string;
+  contact_responsible_phone?: string;
   category?: string;
   category_id?: string;
   category_name?: string;
@@ -359,14 +410,32 @@ export type User = {
   client?: string | null;
   client_id?: string | null;
   client_name?: string;
+  organization_id?: string | null;
+  organization_name?: string;
+  organization_links?: OrganizationLink[];
   job_title?: string;
   specialty?: string;
   hourly_cost?: number;
   total_hours?: number;
   used_hours?: number;
   technical_group?: string;
+  permission_blocks?: string[];
+  permission_blocks_data?: PermissionBlock[];
+  granted_permissions?: PermissionMap;
+  denied_permissions?: PermissionMap;
+  resolved_permissions?: PermissionMap;
   permissions_json?: string[];
   is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PermissionBlock = {
+  id: string;
+  name: string;
+  description?: string;
+  permissions?: PermissionMap;
+  active: boolean;
   created_at?: string;
   updated_at?: string;
 };

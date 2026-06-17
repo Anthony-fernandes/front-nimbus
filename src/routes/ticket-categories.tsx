@@ -12,7 +12,7 @@ import {
   type TicketCategoryFormData,
 } from "@/components/forms/TicketCategoryForm";
 import { Button } from "@/components/ui/button";
-import { canManageTicketCategories } from "@/lib/permissions";
+import { canManageTicketCategories, hasAnyPermission } from "@/lib/permissions";
 import type { TicketCategory, User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
 import {
@@ -29,6 +29,12 @@ export const Route = createFileRoute("/ticket-categories")({
 function TicketCategoriesPage() {
   const queryClient = useQueryClient();
   const currentUser = getStoredUser<User>();
+  const canViewCategories = hasAnyPermission(currentUser, [
+    "categories.view",
+    "categories.manage",
+    "settings.view",
+    "settings.edit",
+  ]);
   const canManage = canManageTicketCategories(currentUser);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -36,6 +42,7 @@ function TicketCategoriesPage() {
   const { data: categories = [] } = useQuery({
     queryKey: ["ticket-categories"],
     queryFn: () => listTicketCategories(),
+    enabled: canViewCategories,
   });
 
   const selectedCategory = useMemo(

@@ -16,12 +16,15 @@ import { Route as SprintsRouteImport } from './routes/sprints'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as PermissionBlocksRouteImport } from './routes/permission-blocks'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as KanbanRouteImport } from './routes/kanban'
+import { Route as DashboardBuilderRouteImport } from './routes/dashboard-builder'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ClientRouteImport } from './routes/client'
 import { Route as BacklogRouteImport } from './routes/backlog'
 import { Route as ActivitiesRouteImport } from './routes/activities'
+import { Route as AccessDeniedRouteImport } from './routes/access-denied'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjetosIndexRouteImport } from './routes/projetos.index'
 import { Route as ChamadosIndexRouteImport } from './routes/chamados.index'
@@ -97,6 +100,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PermissionBlocksRoute = PermissionBlocksRouteImport.update({
+  id: '/permission-blocks',
+  path: '/permission-blocks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -105,6 +113,11 @@ const LoginRoute = LoginRouteImport.update({
 const KanbanRoute = KanbanRouteImport.update({
   id: '/kanban',
   path: '/kanban',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardBuilderRoute = DashboardBuilderRouteImport.update({
+  id: '/dashboard-builder',
+  path: '/dashboard-builder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsRoute = ClientsRouteImport.update({
@@ -125,6 +138,11 @@ const BacklogRoute = BacklogRouteImport.update({
 const ActivitiesRoute = ActivitiesRouteImport.update({
   id: '/activities',
   path: '/activities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccessDeniedRoute = AccessDeniedRouteImport.update({
+  id: '/access-denied',
+  path: '/access-denied',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -325,12 +343,15 @@ const ActivitiesIdEditRoute = ActivitiesIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
   '/backlog': typeof BacklogRouteWithChildren
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
+  '/dashboard-builder': typeof DashboardBuilderRoute
   '/kanban': typeof KanbanRoute
   '/login': typeof LoginRoute
+  '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -379,12 +400,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
   '/backlog': typeof BacklogRouteWithChildren
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
+  '/dashboard-builder': typeof DashboardBuilderRoute
   '/kanban': typeof KanbanRoute
   '/login': typeof LoginRoute
+  '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -434,12 +458,15 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
   '/backlog': typeof BacklogRouteWithChildren
   '/client': typeof ClientRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
+  '/dashboard-builder': typeof DashboardBuilderRoute
   '/kanban': typeof KanbanRoute
   '/login': typeof LoginRoute
+  '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -490,12 +517,15 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/access-denied'
     | '/activities'
     | '/backlog'
     | '/client'
     | '/clients'
+    | '/dashboard-builder'
     | '/kanban'
     | '/login'
+    | '/permission-blocks'
     | '/projects'
     | '/reports'
     | '/settings'
@@ -544,12 +574,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/access-denied'
     | '/activities'
     | '/backlog'
     | '/client'
     | '/clients'
+    | '/dashboard-builder'
     | '/kanban'
     | '/login'
+    | '/permission-blocks'
     | '/projects'
     | '/reports'
     | '/settings'
@@ -598,12 +631,15 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/access-denied'
     | '/activities'
     | '/backlog'
     | '/client'
     | '/clients'
+    | '/dashboard-builder'
     | '/kanban'
     | '/login'
+    | '/permission-blocks'
     | '/projects'
     | '/reports'
     | '/settings'
@@ -653,12 +689,15 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccessDeniedRoute: typeof AccessDeniedRoute
   ActivitiesRoute: typeof ActivitiesRouteWithChildren
   BacklogRoute: typeof BacklogRouteWithChildren
   ClientRoute: typeof ClientRouteWithChildren
   ClientsRoute: typeof ClientsRouteWithChildren
+  DashboardBuilderRoute: typeof DashboardBuilderRoute
   KanbanRoute: typeof KanbanRoute
   LoginRoute: typeof LoginRoute
+  PermissionBlocksRoute: typeof PermissionBlocksRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -728,6 +767,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/permission-blocks': {
+      id: '/permission-blocks'
+      path: '/permission-blocks'
+      fullPath: '/permission-blocks'
+      preLoaderRoute: typeof PermissionBlocksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -740,6 +786,13 @@ declare module '@tanstack/react-router' {
       path: '/kanban'
       fullPath: '/kanban'
       preLoaderRoute: typeof KanbanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard-builder': {
+      id: '/dashboard-builder'
+      path: '/dashboard-builder'
+      fullPath: '/dashboard-builder'
+      preLoaderRoute: typeof DashboardBuilderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clients': {
@@ -768,6 +821,13 @@ declare module '@tanstack/react-router' {
       path: '/activities'
       fullPath: '/activities'
       preLoaderRoute: typeof ActivitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/access-denied': {
+      id: '/access-denied'
+      path: '/access-denied'
+      fullPath: '/access-denied'
+      preLoaderRoute: typeof AccessDeniedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1288,12 +1348,15 @@ const ProjetosIdRouteWithChildren = ProjetosIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccessDeniedRoute: AccessDeniedRoute,
   ActivitiesRoute: ActivitiesRouteWithChildren,
   BacklogRoute: BacklogRouteWithChildren,
   ClientRoute: ClientRouteWithChildren,
   ClientsRoute: ClientsRouteWithChildren,
+  DashboardBuilderRoute: DashboardBuilderRoute,
   KanbanRoute: KanbanRoute,
   LoginRoute: LoginRoute,
+  PermissionBlocksRoute: PermissionBlocksRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,

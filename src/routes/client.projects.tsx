@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getUserClientId } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import type { Project, User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
 import { listProjects } from "@/services/projectService";
@@ -27,11 +28,12 @@ function ClientProjectsPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const user = getStoredUser<User>();
   const clientId = getUserClientId(user);
+  const canViewProjects = hasPermission(user, "projects.view");
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["client-projects-list", clientId],
     queryFn: () => listProjects({ client: clientId }),
-    enabled: Boolean(clientId),
+    enabled: Boolean(clientId) && canViewProjects,
   });
 
   if (pathname !== "/client/projects") {

@@ -1,9 +1,11 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Plus, Save, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { getUserDisplayName, getUserOrganizationIds, isClientUser } from "@/lib/auth";
+import type { User } from "@/lib/types";
 import { Field, FormSection } from "@/components/app/Field";
 import { UserPickerField, type UserPickerOption } from "@/components/forms/UserPickerField";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { listActivities } from "@/services/activityService";
+import { listActivityTags } from "@/services/activityTagService";
+import { listOrganizations } from "@/services/clientService";
+import { listTicketCategories } from "@/services/ticketCategoryService";
+import { saveTicket } from "@/services/ticketService";
+import { listUsers } from "@/services/userService";
+import { getStoredUser } from "@/services/authService";
 import {
   findTicketCategory,
   getCategoryDefaults,
@@ -34,23 +43,45 @@ import {
   formatTicketTypeLabel,
   formatUrgencyLabel,
 } from "@/lib/labels";
-import { isClientUser } from "@/lib/auth";
-import { listActivities } from "@/services/activityService";
-import { listClients } from "@/services/clientService";
-import { listTicketCategories } from "@/services/ticketCategoryService";
-import { saveTicket } from "@/services/ticketService";
-import { listUsers } from "@/services/userService";
 
 type SelectOption = {
   value: string;
   label: string;
 };
 
+function normalizeId(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function sanitizeSelectOptions(options: SelectOption[]) {
+  const seen = new Set<string>();
+
+  return options.flatMap((option) => {
+    const normalizedValue = String(option.value ?? "").trim();
+    const normalizedLabel = String(option.label ?? "").trim() || normalizedValue;
+
+    if (!normalizedValue || seen.has(normalizedValue)) {
+      return [];
+    }
+
+    seen.add(normalizedValue);
+
+    return [
+      {
+        value: normalizedValue,
+        label: normalizedLabel,
+      },
+    ];
+  });
+}
+
 export type TicketFormData = {
   title: string;
   description: string;
-  client: string;
-  requester: string;
+  organization: string;
+  requesterUser: string;
+  contactResponsibleName: string;
+  contactResponsiblePhone: string;
   category: string;
   categoryId: string;
   type: string;
@@ -81,8 +112,10 @@ export type TicketFormData = {
 const empty: TicketFormData = {
   title: "",
   description: "",
-  client: "",
-  requester: "",
+  organization: "",
+  requesterUser: "",
+  contactResponsibleName: "",
+  contactResponsiblePhone: "",
   category: "",
   categoryId: "",
   type: "Solicitacao",
@@ -125,14 +158,59 @@ function toUserOption(user: {
     user.name ||
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.username ||
-    "Usuário";
+    "Usuario";
 
   return {
     value: user.id,
     label,
-    subtitle: user.job_title || user.specialty || user.email || user.username || "Técnico disponível",
+    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuario disponivel",
     keywords: [user.email || "", user.username || "", user.job_title || "", user.specialty || ""],
   };
+}
+
+function toUserSelectOption(user: {
+  id: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  email?: string;
+}): SelectOption {
+  return {
+    value: user.id,
+    label:
+      user.name ||
+      [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+      user.username ||
+      user.email ||
+      "Usuario",
+  };
+}
+
+function getUserPhone(user: { phone?: string | null }) {
+  return user.phone || "";
+}
+
+function getRequesterAutofill(user: {
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  email?: string;
+  phone?: string | null;
+} | null) {
+  if (!user) return null;
+
+  return {
+    name: getUserDisplayName(user),
+    phone: getUserPhone(user),
+  };
+}
+
+function findUserById(users: User[], id: string) {
+  const normalizedId = normalizeId(id);
+  if (!normalizedId) return null;
+  return users.find((user) => normalizeId(user.id) === normalizedId) || null;
 }
 
 export function TicketForm({
@@ -148,13 +226,15 @@ export function TicketForm({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const currentUser = useMemo(() => getStoredUser<User>(), []);
   const [data, setData] = useState<TicketFormData>({ ...empty, ...initial });
-  const [tagInput, setTagInput] = useState("");
+  const [tagSearch, setTagSearch] = useState("");
   const [checkInput, setCheckInput] = useState("");
+  const contactAutofillRef = useRef<{ name: string; phone: string } | null>(null);
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ["form-clients"],
-    queryFn: () => listClients(),
+  const { data: organizations = [] } = useQuery({
+    queryKey: ["form-organizations"],
+    queryFn: () => listOrganizations(),
   });
   const { data: users = [] } = useQuery({
     queryKey: ["form-users"],
@@ -168,11 +248,35 @@ export function TicketForm({
     queryKey: ["form-activities"],
     queryFn: () => listActivities(),
   });
+  const { data: activityTags = [] } = useQuery({
+    queryKey: ["activity-tag-configs"],
+    queryFn: () => listActivityTags(),
+  });
 
-  const clientOptions = clients.map((client) => ({ value: client.id, label: client.name }));
-  const technicianOptions = users
+  const organizationOptions = organizations.map((organization) => ({
+    value: organization.id,
+    label: organization.name,
+  }));
+  const technicianOptions = users.filter((user) => !isClientUser(user)).map(toUserOption);
+  const technicianSelectOptions = users
     .filter((user) => !isClientUser(user))
+    .map(toUserSelectOption);
+  const requesterOptions = users
+    .filter((user) => {
+      if (!data.organization) return true;
+      return getUserOrganizationIds(user).includes(data.organization);
+    })
     .map(toUserOption);
+  const requesterSelectOptions = users
+    .filter((user) => {
+      if (!data.organization) return true;
+      return getUserOrganizationIds(user).includes(data.organization);
+    })
+    .map(toUserSelectOption);
+  const requesterUser = useMemo(
+    () => findUserById(users, data.requesterUser),
+    [data.requesterUser, users],
+  );
   const categoryOptions = categories
     .filter((category) => category.active ?? true)
     .map((category) => ({ value: category.id, label: category.name }));
@@ -190,6 +294,44 @@ export function TicketForm({
     () => findTicketCategory(categories, data.categoryId || data.category),
     [categories, data.category, data.categoryId],
   );
+  const selectedTagNames = useMemo(
+    () => new Set(data.tags.map((tagName) => normalizeSearch(tagName))),
+    [data.tags],
+  );
+  const selectedConfiguredTags = useMemo(
+    () =>
+      data.tags
+        .map((tagName) =>
+          activityTags.find((tag) => normalizeSearch(tag.name) === normalizeSearch(tagName)),
+        )
+        .filter((tag): tag is NonNullable<typeof activityTags[number]> => Boolean(tag)),
+    [activityTags, data.tags],
+  );
+  const selectedLegacyTagNames = useMemo(
+    () =>
+      data.tags.filter(
+        (tagName) =>
+          !activityTags.some((tag) => normalizeSearch(tag.name) === normalizeSearch(tagName)),
+      ),
+    [activityTags, data.tags],
+  );
+  const availableTags = useMemo(() => {
+    const normalizedQuery = normalizeSearch(tagSearch);
+
+    return activityTags.filter((tag) => {
+      if (!tag.active || selectedTagNames.has(normalizeSearch(tag.name))) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return normalizeSearch([tag.name, tag.description || ""].join(" ")).includes(
+        normalizedQuery,
+      );
+    });
+  }, [activityTags, selectedTagNames, tagSearch]);
 
   useEffect(() => {
     if (data.categoryId || !data.category) return;
@@ -202,8 +344,118 @@ export function TicketForm({
     }));
   }, [categories, data.category, data.categoryId]);
 
+  useEffect(() => {
+    if (!data.organization) return;
+
+    const scopedUserIds = new Set(
+      users
+        .filter((user) => getUserOrganizationIds(user).includes(data.organization))
+        .map((user) => user.id),
+    );
+
+    setData((current) => {
+      const requesterStillValid =
+        current.requesterUser && scopedUserIds.has(current.requesterUser);
+
+      if (requesterStillValid) {
+        return current;
+      }
+
+      const previousAutofill = contactAutofillRef.current;
+      const shouldClearName =
+        !current.contactResponsibleName
+        || current.contactResponsibleName === previousAutofill?.name;
+      const shouldClearPhone =
+        !current.contactResponsiblePhone
+        || current.contactResponsiblePhone === previousAutofill?.phone;
+
+      contactAutofillRef.current = null;
+
+      return {
+        ...current,
+        requesterUser: "",
+        contactResponsibleName: shouldClearName ? "" : current.contactResponsibleName,
+        contactResponsiblePhone: shouldClearPhone ? "" : current.contactResponsiblePhone,
+      };
+    });
+  }, [data.organization, users]);
+
+  useEffect(() => {
+    if (!requesterUser) {
+      return;
+    }
+
+    const autofill = getRequesterAutofill(requesterUser);
+    if (!autofill) {
+      return;
+    }
+
+    setData((current) => {
+      const previousAutofill = contactAutofillRef.current;
+      const shouldUpdateName =
+        !current.contactResponsibleName
+        || current.contactResponsibleName === previousAutofill?.name;
+      const shouldUpdatePhone =
+        !current.contactResponsiblePhone
+        || current.contactResponsiblePhone === previousAutofill?.phone;
+
+      if (!shouldUpdateName && !shouldUpdatePhone) {
+        return current;
+      }
+
+      return {
+        ...current,
+        contactResponsibleName: shouldUpdateName
+          ? autofill.name
+          : current.contactResponsibleName,
+        contactResponsiblePhone: shouldUpdatePhone
+          ? autofill.phone
+          : current.contactResponsiblePhone,
+      };
+    });
+
+    contactAutofillRef.current = autofill;
+  }, [requesterUser]);
+
   const set = <K extends keyof TicketFormData>(key: K, value: TicketFormData[K]) =>
     setData((current) => ({ ...current, [key]: value }));
+
+  const handleRequesterChange = (requesterId: string) => {
+    const selectedRequester = findUserById(users, requesterId);
+    const autofill = getRequesterAutofill(selectedRequester)
+      || getRequesterAutofill(
+        currentUser && normalizeId(currentUser.id) === normalizeId(requesterId) ? currentUser : null,
+      );
+
+    setData((current) => ({
+      ...current,
+      requesterUser: normalizeId(requesterId),
+      contactResponsibleName: autofill?.name || "",
+      contactResponsiblePhone: autofill?.phone || "",
+    }));
+
+    contactAutofillRef.current = autofill;
+  };
+
+  useEffect(() => {
+    if (!currentUser || !isClientUser(currentUser) || !data.organization || data.requesterUser) {
+      return;
+    }
+
+    const currentUserOrganizationIds = getUserOrganizationIds(currentUser);
+    if (!currentUserOrganizationIds.includes(data.organization)) {
+      return;
+    }
+
+    const requesterExistsInOptions = users.some(
+      (user) => normalizeId(user.id) === normalizeId(currentUser.id),
+    );
+    if (!requesterExistsInOptions) {
+      return;
+    }
+
+    handleRequesterChange(currentUser.id);
+  }, [currentUser, data.organization, data.requesterUser, users]);
 
   const applyCategoryDefaults = (categoryId: string) => {
     const category = findTicketCategory(categories, categoryId);
@@ -241,10 +493,10 @@ export function TicketForm({
     }));
   };
 
-  const addTag = () => {
-    if (!tagInput.trim()) return;
-    set("tags", [...data.tags, tagInput.trim()]);
-    setTagInput("");
+  const addTag = (tagName: string) => {
+    if (!tagName.trim() || selectedTagNames.has(normalizeSearch(tagName))) return;
+    set("tags", [...data.tags, tagName]);
+    setTagSearch("");
   };
 
   const addChecklistItem = () => {
@@ -253,11 +505,19 @@ export function TicketForm({
     setCheckInput("");
   };
 
+  const removeTag = (tagName: string) => {
+    const normalizedTagName = normalizeSearch(tagName);
+    set(
+      "tags",
+      data.tags.filter((entry) => normalizeSearch(entry) !== normalizedTagName),
+    );
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!data.title.trim() || !data.client || !data.requester.trim()) {
-      toast.error("Preencha título, cliente e solicitante.");
+    if (!data.title.trim() || !data.organization || !data.requesterUser) {
+      toast.error("Preencha titulo, organizacao atendida e solicitante.");
       return;
     }
 
@@ -278,10 +538,10 @@ export function TicketForm({
     <form onSubmit={submit} className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
         <FormSection
-          title="Dados da solicitação"
-          description="Informações básicas do chamado e do solicitante."
+          title="Dados da solicitacao"
+          description="Informacoes basicas do chamado, da organizacao atendida e dos envolvidos."
         >
-          <Field label="Título" required>
+          <Field label="Titulo" required>
             <Input
               value={data.title}
               onChange={(event) => set("title", event.target.value)}
@@ -291,7 +551,7 @@ export function TicketForm({
             />
           </Field>
           <Field
-            label="Descrição"
+            label="Descricao"
             required
             hint="Descreva o contexto, o impacto e o comportamento esperado."
           >
@@ -304,20 +564,50 @@ export function TicketForm({
             />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Cliente" required>
+            <Field
+              label="Organizacao atendida"
+              required
+              hint="Selecione a organizacao, cliente, setor ou area atendida."
+            >
               <Selectable
-                value={data.client}
-                onChange={(value) => set("client", value)}
-                options={clientOptions}
-                placeholder="Selecionar cliente"
+                value={data.organization}
+                onChange={(value) => set("organization", value)}
+                options={organizationOptions}
+                placeholder="Selecionar organizacao"
               />
             </Field>
-            <Field label="Solicitante" required>
+            <Field
+              label="Solicitante"
+              required
+              hint="Selecione o usuario que abriu ou solicitou a demanda."
+            >
+              <Selectable
+                value={data.requesterUser}
+                onChange={handleRequesterChange}
+                options={requesterSelectOptions}
+                placeholder="Selecionar solicitante"
+              />
+            </Field>
+            <Field
+              label="Contato responsavel"
+              hint="Pessoa de referencia para duvidas, validacao e aprovacao da demanda."
+            >
               <Input
-                value={data.requester}
-                onChange={(event) => set("requester", event.target.value)}
-                placeholder="Nome do solicitante"
-                required
+                value={data.contactResponsibleName}
+                onChange={(event) => set("contactResponsibleName", event.target.value)}
+                placeholder="Nome do contato responsavel"
+                maxLength={140}
+              />
+            </Field>
+            <Field
+              label="Telefone do contato"
+              hint="Use o telefone principal para duvidas, alinhamentos e aprovacao."
+            >
+              <Input
+                value={data.contactResponsiblePhone}
+                onChange={(event) => set("contactResponsiblePhone", event.target.value)}
+                placeholder="(00) 00000-0000"
+                maxLength={30}
               />
             </Field>
             <Field label="Origem">
@@ -345,8 +635,8 @@ export function TicketForm({
         </FormSection>
 
         <FormSection
-          title="Categorização interna"
-          description="Defina a classificação e as regras operacionais do chamado."
+          title="Categorizacao interna"
+          description="Defina a classificacao e as regras operacionais do chamado."
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Categoria">
@@ -387,7 +677,7 @@ export function TicketForm({
                 }))}
               />
             </Field>
-            <Field label="Urgência">
+            <Field label="Urgencia">
               <Selectable
                 value={data.urgency}
                 onChange={(value) => set("urgency", value)}
@@ -404,24 +694,24 @@ export function TicketForm({
                 placeholder="Ex.: 8h"
               />
             </Field>
-            <Field label="Exige aprovação">
+            <Field label="Exige aprovacao">
               <ToggleField
                 checked={data.approvalRequired}
                 onCheckedChange={(checked) => set("approvalRequired", checked)}
                 label={
                   selectedCategory?.approval_required
-                    ? "Categoria exige aprovação."
-                    : "Sem aprovação obrigatória."
+                    ? "Categoria exige aprovacao."
+                    : "Sem aprovacao obrigatoria."
                 }
               />
             </Field>
-            <Field label="Exige avaliação do cliente">
+            <Field label="Exige avaliacao da organizacao">
               <ToggleField
                 checked={data.requiresClientValidation}
                 onCheckedChange={(checked) => set("requiresClientValidation", checked)}
                 label={
                   data.requiresClientValidation
-                    ? "Retorna para validação do cliente."
+                    ? "Retorna para validacao da organizacao."
                     : "Pode ser finalizado internamente."
                 }
               />
@@ -430,25 +720,27 @@ export function TicketForm({
         </FormSection>
 
         <FormSection
-          title="Atendimento técnico"
-          description="Equipe, responsáveis, esforço e controles internos do chamado."
+          title="Atendimento tecnico"
+          description="Equipe, responsaveis, esforco e controles internos do chamado."
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Equipe responsável">
+            <Field label="Equipe responsavel">
               <Input
                 value={data.team}
                 onChange={(event) => set("team", event.target.value)}
                 placeholder="Ex.: Suporte N2"
               />
             </Field>
-            <Field label="Técnico responsável">
-              <UserPickerField
-                options={technicianOptions}
-                selected={data.responsibleTechnician ? [data.responsibleTechnician] : []}
-                onChange={(selected) => set("responsibleTechnician", selected[0] || "")}
-                placeholder="Adicionar responsável..."
-                emptySelectedText="Nenhum responsável adicionado ainda."
-                maxSelections={1}
+            <Field
+              label="Responsavel tecnico"
+              hint="Selecione o tecnico ou responsavel interno pelo atendimento."
+            >
+              <Selectable
+                value={data.responsibleTechnician}
+                onChange={(value) => set("responsibleTechnician", value)}
+                options={technicianSelectOptions}
+                placeholder="Selecionar responsavel tecnico"
+                allowEmpty
               />
             </Field>
             <Field label="Atividade vinculada">
@@ -464,24 +756,24 @@ export function TicketForm({
 
           <div className="space-y-3">
             <div>
-              <div className="text-xs font-medium text-muted-foreground">Técnicos envolvidos</div>
+              <div className="text-xs font-medium text-muted-foreground">Tecnicos envolvidos</div>
               <p className="text-[11px] text-muted-foreground">
-                Use múltiplos técnicos quando o atendimento exigir colaboração.
+                Use multiplos tecnicos quando o atendimento exigir colaboracao.
               </p>
             </div>
             <UserPickerField
               options={technicianOptions}
               selected={data.tech}
               onChange={(selected) => set("tech", selected)}
-              placeholder="Adicionar responsável..."
-              emptySelectedText="Nenhum responsável adicionado ainda."
+              placeholder="Adicionar tecnico..."
+              emptySelectedText="Nenhum tecnico envolvido ainda."
             />
           </div>
         </FormSection>
 
         <FormSection
-          title="Checklist e observações"
-          description="Estruture a execução técnica e registre o contexto interno."
+          title="Checklist e observacoes"
+          description="Estruture a execucao tecnica e registre o contexto interno."
         >
           <div className="flex gap-2">
             <Input
@@ -522,7 +814,7 @@ export function TicketForm({
                       item.done ? "border-success bg-success" : "border-border"
                     }`}
                   >
-                    {item.done && <Check className="h-3 w-3 text-success-foreground" />}
+                    {item.done ? <Check className="h-3 w-3 text-success-foreground" /> : null}
                   </button>
                   <span className={item.done ? "text-muted-foreground line-through" : ""}>
                     {item.text}
@@ -543,19 +835,19 @@ export function TicketForm({
               ))}
             </ul>
           )}
-          <Field label="Observações internas">
+          <Field label="Observacoes internas">
             <Textarea
               value={data.internalNotes}
               onChange={(event) => set("internalNotes", event.target.value)}
               rows={4}
-              placeholder="Use este campo para contexto técnico, riscos e decisões internas."
+              placeholder="Use este campo para contexto tecnico, riscos e decisoes internas."
             />
           </Field>
         </FormSection>
       </div>
 
       <div className="space-y-5">
-        <FormSection title="Datas e esforço">
+        <FormSection title="Datas e esforco">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Abertura">
               <Input
@@ -591,63 +883,122 @@ export function TicketForm({
         </FormSection>
 
         <FormSection title="Tags">
-          <div className="flex gap-2">
-            <Input
-              value={tagInput}
-              onChange={(event) => setTagInput(event.target.value)}
-              placeholder="Adicionar tag"
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  addTag();
-                }
-              }}
-            />
-            <Button type="button" variant="outline" onClick={addTag}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {data.tags.map((tag, index) => (
-              <span
-                key={`${tag}-${index}`}
-                className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] text-primary"
-              >
-                #{tag}
-                <button
-                  type="button"
-                  onClick={() =>
-                    set("tags", data.tags.filter((_, tagIndex) => tagIndex !== index))
-                  }
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        </FormSection>
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border bg-muted/15">
+              <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+                <Input
+                  value={tagSearch}
+                  onChange={(event) => setTagSearch(event.target.value)}
+                  placeholder="Selecionar tags..."
+                  className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                />
+              </div>
+              <div className="max-h-[220px] space-y-1 overflow-y-auto overscroll-contain p-2">
+                {availableTags.length === 0 ? (
+                  <div className="rounded-xl px-3 py-3 text-sm text-muted-foreground">
+                    {activityTags.length === 0 ? (
+                      <>
+                        Nenhuma tag cadastrada ainda. Cadastre as tags em{" "}
+                        <Link to="/settings" className="text-primary underline underline-offset-4">
+                          Configuracoes
+                        </Link>
+                        .
+                      </>
+                    ) : (
+                      "Nenhuma tag ativa encontrada para o filtro atual."
+                    )}
+                  </div>
+                ) : (
+                  availableTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => addTag(tag.name)}
+                      className="flex w-full items-center justify-between rounded-xl border border-transparent bg-muted/10 px-3 py-3 text-left transition-colors hover:border-primary/30 hover:bg-muted/30"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full border border-white/10"
+                            style={{ backgroundColor: tag.color || "#5ea8ff" }}
+                          />
+                          <span className="truncate text-sm font-medium">{tag.name}</span>
+                        </div>
+                        <div className="mt-1 truncate text-xs text-muted-foreground">
+                          {tag.description || "Tag ativa disponivel para selecao."}
+                        </div>
+                      </div>
+                      <span className="rounded-md bg-primary/10 px-2 py-1 text-[11px] text-primary">
+                        Adicionar
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
 
-        <FormSection title="Conversão em atividade de projeto">
-          <ToggleField
-            checked={data.convertToProjectActivity}
-            onCheckedChange={(checked) => set("convertToProjectActivity", checked)}
-            label={
-              data.convertToProjectActivity
-                ? "Este chamado deve virar atividade de projeto."
-                : "Resolver como chamado normal."
-            }
-          />
-          <p className="text-xs text-muted-foreground">
-            O chamado continua independente do projeto. Quando for convertido, escolha o projeto
-            diretamente na atividade criada a partir dele.
-          </p>
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Tags selecionadas
+              </div>
+              {selectedConfiguredTags.length === 0 && selectedLegacyTagNames.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-muted/10 px-4 py-4 text-sm text-muted-foreground">
+                  Nenhuma tag selecionada.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {selectedConfiguredTags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs ${
+                        tag.active
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-warning/30 bg-warning/10 text-warning"
+                      }`}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full border border-white/10"
+                        style={{ backgroundColor: tag.color || "#5ea8ff" }}
+                      />
+                      <span>{tag.name}</span>
+                      {!tag.active ? <span className="text-[10px] uppercase">Inativa</span> : null}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag.name)}
+                        aria-label={`Remover ${tag.name}`}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
+
+                  {selectedLegacyTagNames.map((tagName) => (
+                    <span
+                      key={`legacy:${tagName}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/20 px-3 py-1 text-xs text-muted-foreground"
+                    >
+                      <span>{tagName}</span>
+                      <span className="text-[10px] uppercase">Legada</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tagName)}
+                        aria-label={`Remover ${tagName}`}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </FormSection>
 
         <FormSection title="Anexos">
           <label className="block cursor-pointer rounded-xl border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary/40">
             <Upload className="mx-auto h-5 w-5 text-muted-foreground" />
             <p className="mt-2 text-xs text-muted-foreground">
-              A interface está pronta para anexos. A API atual pode ainda não persistir os arquivos.
+              A interface esta pronta para anexos. A API atual pode ainda nao persistir os arquivos.
             </p>
             <input
               type="file"
@@ -658,13 +1009,13 @@ export function TicketForm({
           </label>
         </FormSection>
 
-        <div className="sticky bottom-0 flex flex-col gap-2 rounded-2xl p-3 shadow-card glass">
+        <div className="glass sticky bottom-0 flex flex-col gap-2 rounded-2xl p-3 shadow-card">
           <Button
             type="submit"
             className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Save className="h-4 w-4" />
-            {mode === "create" ? "Criar chamado" : "Salvar alterações"}
+            {mode === "create" ? "Criar chamado" : "Salvar alteracoes"}
           </Button>
           <Button
             type="button"
@@ -695,9 +1046,12 @@ function Selectable({
   allowEmpty?: boolean;
   disabled?: boolean;
 }) {
+  const normalizedValue = String(value ?? "").trim();
+  const normalizedOptions = sanitizeSelectOptions(options);
+
   return (
     <Select
-      value={value || (allowEmpty ? "__none__" : undefined)}
+      value={normalizedValue || (allowEmpty ? "__none__" : undefined)}
       disabled={disabled}
       onValueChange={(nextValue) => onChange(nextValue === "__none__" ? "" : nextValue)}
     >
@@ -705,8 +1059,8 @@ function Selectable({
         <SelectValue placeholder={placeholder ?? "Selecionar"} />
       </SelectTrigger>
       <SelectContent>
-        {allowEmpty && <SelectItem value="__none__">Nenhum</SelectItem>}
-        {options.map((option) => (
+        {allowEmpty ? <SelectItem value="__none__">Nenhum</SelectItem> : null}
+        {normalizedOptions.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             {option.label}
           </SelectItem>
@@ -735,4 +1089,12 @@ function ToggleField({
       <span className="text-sm">{label}</span>
     </label>
   );
+}
+
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
 }

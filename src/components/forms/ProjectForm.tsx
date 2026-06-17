@@ -6,13 +6,20 @@ import { toast } from "sonner";
 
 import { Field, FormSection } from "@/components/app/Field";
 import { UserPickerField, type UserPickerOption } from "@/components/forms/UserPickerField";
-import { formatProjectStatusLabel } from "@/lib/labels";
-import type { ProjectStage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { listClients } from "@/services/clientService";
+import { getUserOrganizationIds, isClientUser } from "@/lib/auth";
+import { formatProjectStatusLabel } from "@/lib/labels";
+import type { ProjectStage } from "@/lib/types";
+import { listOrganizations } from "@/services/clientService";
 import { saveProject } from "@/services/projectService";
 import { formatDate } from "@/services/utils";
 import { listUsers } from "@/services/userService";
@@ -24,8 +31,9 @@ type SelectOption = {
 
 export type ProjectFormData = {
   name: string;
-  client: string;
-  lead: string;
+  organization: string;
+  contactPrincipal: string;
+  leader: string;
   team: string[];
   status: string;
   startAt: string;
@@ -41,8 +49,9 @@ export type ProjectFormData = {
 
 const empty: ProjectFormData = {
   name: "",
-  client: "",
-  lead: "",
+  organization: "",
+  contactPrincipal: "",
+  leader: "",
   team: [],
   status: "Planejado",
   startAt: new Date().toISOString().slice(0, 10),
@@ -78,12 +87,12 @@ function toUserOption(user: {
     user.name ||
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.username ||
-    "Usuário";
+    "Usuario";
 
   return {
     value: user.id,
     label,
-    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuário da equipe",
+    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuario da equipe",
     keywords: [user.email || "", user.username || "", user.job_title || "", user.specialty || ""],
   };
 }
@@ -105,20 +114,28 @@ export function ProjectForm({
   const [stageTitleInput, setStageTitleInput] = useState("");
   const [stageExpectedEndInput, setStageExpectedEndInput] = useState("");
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ["form-clients"],
-    queryFn: () => listClients(),
+  const { data: organizations = [] } = useQuery({
+    queryKey: ["form-organizations"],
+    queryFn: () => listOrganizations(),
   });
   const { data: users = [] } = useQuery({
     queryKey: ["form-users"],
     queryFn: () => listUsers(),
   });
 
-  const clientOptions: SelectOption[] = clients.map((client) => ({
-    value: client.id,
-    label: client.name,
+  const organizationOptions: SelectOption[] = organizations.map((organization) => ({
+    value: organization.id,
+    label: organization.name,
   }));
-  const userOptions: UserPickerOption[] = users.map(toUserOption);
+  const internalUserOptions: UserPickerOption[] = users
+    .filter((user) => !isClientUser(user))
+    .map(toUserOption);
+  const organizationUserOptions: UserPickerOption[] = users
+    .filter((user) => {
+      if (!data.organization) return true;
+      return getUserOrganizationIds(user).includes(data.organization);
+    })
+    .map(toUserOption);
   const progressPreview = useMemo(() => {
     const estHours = Number(data.estHours || 0);
     const usedHours = Number(data.usedHours || 0);
@@ -153,8 +170,8 @@ export function ProjectForm({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!data.name.trim() || !data.client) {
-      toast.error("Preencha nome e cliente");
+    if (!data.name.trim() || !data.organization) {
+      toast.error("Preencha nome e organizacao atendida");
       return;
     }
 
@@ -171,8 +188,8 @@ export function ProjectForm({
     <form onSubmit={submit} className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
         <FormSection
-          title="Informações do projeto"
-          description="Escopo principal, cliente atendido e liderança interna da entrega."
+          title="Informacoes do projeto"
+          description="Escopo principal, organizacao atendida e lideranca interna da entrega."
         >
           <Field label="Nome do projeto" required>
             <Input
@@ -181,7 +198,7 @@ export function ProjectForm({
               required
             />
           </Field>
-          <Field label="Descrição">
+          <Field label="Descricao">
             <Textarea
               value={data.description}
               onChange={(event) => set("description", event.target.value)}
@@ -190,39 +207,42 @@ export function ProjectForm({
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
-              label="Cliente"
+              label="Organizacao atendida"
               required
-              hint="Selecione o cliente ou empresa dona do projeto."
+              hint="Selecione a empresa, cliente, setor ou area para quem o projeto sera entregue."
             >
-              <Select value={data.client || undefined} onValueChange={(value) => set("client", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Selectable
+                value={data.organization}
+                onChange={(value) => set("organization", value)}
+                options={organizationOptions}
+                placeholder="Selecionar organizacao"
+              />
             </Field>
             <Field
-              label="Líder do projeto"
-              hint="Selecione a pessoa responsável por conduzir o projeto."
+              label="Contato principal"
+              hint="Pessoa da organizacao que acompanha escopo, duvidas e validacoes do projeto."
             >
-              <Select value={data.lead || undefined} onValueChange={(value) => set("lead", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar líder do projeto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {userOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <UserPickerField
+                options={organizationUserOptions}
+                selected={data.contactPrincipal ? [data.contactPrincipal] : []}
+                onChange={(selected) => set("contactPrincipal", selected[0] || "")}
+                placeholder="Selecionar contato principal..."
+                emptySelectedText="Nenhum contato principal definido."
+                maxSelections={1}
+              />
+            </Field>
+            <Field
+              label="Lider do projeto"
+              hint="Selecione a pessoa responsavel por conduzir o projeto."
+            >
+              <UserPickerField
+                options={internalUserOptions}
+                selected={data.leader ? [data.leader] : []}
+                onChange={(selected) => set("leader", selected[0] || "")}
+                placeholder="Selecionar lider do projeto..."
+                emptySelectedText="Nenhum lider selecionado."
+                maxSelections={1}
+              />
             </Field>
             <Field label="Status">
               <Select value={data.status} onValueChange={(value) => set("status", value)}>
@@ -245,10 +265,10 @@ export function ProjectForm({
 
         <FormSection
           title="Equipe do projeto"
-          description="Adicione os membros que participarão das atividades. O líder do projeto pode ou não fazer parte desta equipe."
+          description="Adicione os membros que participarao das atividades e sprints."
         >
           <UserPickerField
-            options={userOptions}
+            options={internalUserOptions}
             selected={data.team}
             onChange={(selected) => set("team", selected)}
             placeholder="Adicionar membro da equipe..."
@@ -258,14 +278,14 @@ export function ProjectForm({
 
         <FormSection title="Cronograma">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Data de início">
+            <Field label="Data de inicio">
               <Input
                 type="date"
                 value={data.startAt}
                 onChange={(event) => set("startAt", event.target.value)}
               />
             </Field>
-            <Field label="Data de término">
+            <Field label="Data de termino">
               <Input
                 type="date"
                 value={data.endAt}
@@ -276,11 +296,11 @@ export function ProjectForm({
         </FormSection>
 
         <FormSection
-          title="Custos e esforço"
-          description="Orçamento e horas usadas para projetar o progresso."
+          title="Custos e esforco"
+          description="Orcamento e horas usadas para projetar o progresso."
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Orçamento (R$)">
+            <Field label="Orcamento (R$)">
               <Input
                 type="number"
                 min={0}
@@ -290,7 +310,7 @@ export function ProjectForm({
             </Field>
             <Field
               label="Custo realizado (R$)"
-              hint="Calculado pelos lançamentos da aba Custos no detalhe do projeto."
+              hint="Calculado pelos lancamentos da aba Custos no detalhe do projeto."
             >
               <Input
                 type="number"
@@ -333,7 +353,7 @@ export function ProjectForm({
 
         <FormSection
           title="Etapas do projeto"
-          description="Cadastre as principais etapas e suas previsões de término."
+          description="Cadastre as principais etapas e suas previsoes de termino."
         >
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
             <Field label="Nome da etapa">
@@ -349,7 +369,7 @@ export function ProjectForm({
                 }}
               />
             </Field>
-            <Field label="Previsão de término">
+            <Field label="Previsao de termino">
               <Input
                 type="date"
                 value={stageExpectedEndInput}
@@ -382,8 +402,8 @@ export function ProjectForm({
                       <div className="text-sm font-medium">{stage.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {stage.expectedEndDate
-                          ? `Previsão de término: ${formatDate(stage.expectedEndDate)}`
-                          : "Sem previsão de término definida."}
+                          ? `Previsao de termino: ${formatDate(stage.expectedEndDate)}`
+                          : "Sem previsao de termino definida."}
                       </div>
                     </div>
                     <button
@@ -447,9 +467,7 @@ export function ProjectForm({
         <FormSection title="Anexos">
           <label className="block cursor-pointer rounded-xl border-2 border-dashed border-border p-6 text-center transition hover:border-primary/40">
             <Upload className="mx-auto h-5 w-5 text-muted-foreground" />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Enviar documentos do projeto
-            </p>
+            <p className="mt-2 text-xs text-muted-foreground">Enviar documentos do projeto</p>
             <input
               type="file"
               multiple
@@ -459,13 +477,13 @@ export function ProjectForm({
           </label>
         </FormSection>
 
-        <div className="sticky bottom-0 flex flex-col gap-2 rounded-2xl p-3 shadow-card glass">
+        <div className="glass sticky bottom-0 flex flex-col gap-2 rounded-2xl p-3 shadow-card">
           <Button
             type="submit"
             className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Save className="h-4 w-4" />
-            {mode === "create" ? "Criar projeto" : "Salvar alterações"}
+            {mode === "create" ? "Criar projeto" : "Salvar alteracoes"}
           </Button>
           <Button
             type="button"
@@ -478,5 +496,38 @@ export function ProjectForm({
         </div>
       </div>
     </form>
+  );
+}
+
+function Selectable({
+  value,
+  onChange,
+  options,
+  placeholder,
+  allowEmpty = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: SelectOption[];
+  placeholder?: string;
+  allowEmpty?: boolean;
+}) {
+  return (
+    <Select
+      value={value || (allowEmpty ? "__none__" : undefined)}
+      onValueChange={(nextValue) => onChange(nextValue === "__none__" ? "" : nextValue)}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder ?? "Selecionar"} />
+      </SelectTrigger>
+      <SelectContent>
+        {allowEmpty ? <SelectItem value="__none__">Nenhum</SelectItem> : null}
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

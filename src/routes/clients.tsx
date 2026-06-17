@@ -12,34 +12,36 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Client } from "@/lib/types";
-import { listClients } from "@/services/clientService";
+import type { Organization } from "@/lib/types";
+import { listOrganizations } from "@/services/clientService";
 
 export const Route = createFileRoute("/clients")({
-  head: () => ({ meta: [{ title: "Clientes · Stratos Suite" }] }),
-  component: ClientsPage,
+  head: () => ({ meta: [{ title: "Organizacoes · Stratos Suite" }] }),
+  component: OrganizationsPage,
 });
 
 const healthClr: Record<string, string> = {
-  "Ótimo": "bg-success/15 text-success",
   Otimo: "bg-success/15 text-success",
   Bom: "bg-info/15 text-info",
-  "Atenção": "bg-warning/15 text-warning",
   Atencao: "bg-warning/15 text-warning",
 };
 
 function money(value?: string | number) {
   const amount = Number(value ?? 0);
   return amount
-    ? amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL", notation: "compact" })
+    ? amount.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        notation: "compact",
+      })
     : "R$ 0";
 }
 
-function ClientsPage() {
+function OrganizationsPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { data: clients = [], isLoading, isError } = useQuery({
+  const { data: organizations = [], isLoading, isError } = useQuery({
     queryKey: ["clients"],
-    queryFn: () => listClients(),
+    queryFn: () => listOrganizations(),
   });
 
   if (pathname !== "/clients") {
@@ -51,9 +53,9 @@ function ClientsPage() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Organizacoes</h1>
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "Carregando carteira..." : `${clients.length} contas cadastradas`}
+              {isLoading ? "Carregando organizacoes..." : `${organizations.length} organizacoes cadastradas`}
             </p>
           </div>
           <Button
@@ -61,43 +63,43 @@ function ClientsPage() {
             className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Link to="/clients/new">
-              <Plus className="h-4 w-4" /> Novo cliente
+              <Plus className="h-4 w-4" /> Nova organizacao
             </Link>
           </Button>
         </div>
 
-        {isError && (
+        {isError ? (
           <div className="glass rounded-2xl p-4 text-sm text-destructive">
-            Não foi possível carregar os clientes.
+            Nao foi possivel carregar as organizacoes.
           </div>
-        )}
+        ) : null}
 
-        {!isLoading && clients.length === 0 && (
+        {!isLoading && organizations.length === 0 ? (
           <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">
-            Nenhum cliente cadastrado.
+            Nenhuma organizacao cadastrada.
           </div>
-        )}
+        ) : null}
 
         <div className="glass overflow-hidden rounded-2xl shadow-card">
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground hover:bg-transparent">
-                <TableHead className="px-4 py-2.5">Cliente</TableHead>
+                <TableHead className="px-4 py-2.5">Organizacao</TableHead>
                 <TableHead className="px-2 py-2.5">Contato</TableHead>
-                <TableHead className="px-2 py-2.5">Plano</TableHead>
+                <TableHead className="px-2 py-2.5">Tipo</TableHead>
                 <TableHead className="px-2 py-2.5">Saude</TableHead>
-                <TableHead className="px-2 py-2.5">Tickets</TableHead>
+                <TableHead className="px-2 py-2.5">Chamados</TableHead>
                 <TableHead className="px-2 py-2.5">Status</TableHead>
                 <TableHead className="px-4 py-2.5 text-right">MRR</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client: Client) => (
-                <TableRow key={client.id} className="border-border hover:bg-muted/30">
+              {organizations.map((organization: Organization) => (
+                <TableRow key={organization.id} className="border-border hover:bg-muted/30">
                   <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary text-sm font-semibold text-primary-foreground">
-                        {client.name
+                        {organization.name
                           .split(" ")
                           .map((segment) => segment[0])
                           .slice(0, 2)
@@ -106,37 +108,41 @@ function ClientsPage() {
                       <div className="min-w-0">
                         <Link
                           to="/clients/$id"
-                          params={{ id: client.id }}
+                          params={{ id: organization.id }}
                           className="truncate font-medium hover:text-primary"
                         >
-                          {client.name}
+                          {organization.name}
                         </Link>
                         <div className="text-[11px] text-muted-foreground">
-                          {client.sector || "Sem setor"}
+                          {organization.sector || organization.organization_type || organization.type || "Sem classificacao"}
                         </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="px-2 py-3 text-muted-foreground">
-                    <div>{client.contact_name || "Não informado"}</div>
-                    <div className="text-[11px]">{client.email || client.phone || "-"}</div>
+                    <div>{organization.contact_name || "Nao informado"}</div>
+                    <div className="text-[11px]">{organization.email || organization.phone || "-"}</div>
                   </TableCell>
-                  <TableCell className="px-2 py-3">{client.plan || "Pro"}</TableCell>
+                  <TableCell className="px-2 py-3">
+                    {organization.organization_type || organization.type || "Organizacao"}
+                  </TableCell>
                   <TableCell className="px-2 py-3">
                     <span
-                      className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${healthClr[client.health || "Bom"] || "bg-muted text-muted-foreground"}`}
+                      className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                        healthClr[organization.health || "Bom"] || "bg-muted text-muted-foreground"
+                      }`}
                     >
-                      {client.health || "Bom"}
+                      {organization.health || "Bom"}
                     </span>
                   </TableCell>
-                  <TableCell className="px-2 py-3 font-medium">{client.tickets ?? 0}</TableCell>
+                  <TableCell className="px-2 py-3 font-medium">{organization.tickets ?? 0}</TableCell>
                   <TableCell className="px-2 py-3">
                     <span className="rounded-md bg-muted/60 px-2 py-1 text-[11px] text-muted-foreground">
-                      {client.status || "Ativo"}
+                      {organization.status || "Ativo"}
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right font-medium">
-                    {money(client.mrr)}
+                    {money(organization.mrr)}
                   </TableCell>
                 </TableRow>
               ))}
