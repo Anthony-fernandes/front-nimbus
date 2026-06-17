@@ -8,6 +8,7 @@ import {
   Columns3,
   FolderKanban,
   HelpCircle,
+  ShieldCheck,
   Inbox,
   LayoutDashboard,
   ListTodo,
@@ -139,6 +140,12 @@ function getInternalMenu(user: User | null | undefined) {
       title: "Relatorios",
       url: "/reports",
       icon: BarChart3,
+      visible: hasPermission(user, "reports.view"),
+    },
+    {
+      title: "SLA",
+      url: "/sla",
+      icon: ShieldCheck,
       visible: hasPermission(user, "reports.view"),
     },
     {
