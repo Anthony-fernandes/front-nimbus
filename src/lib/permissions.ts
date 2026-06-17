@@ -790,6 +790,18 @@ function canAccessInternalPath(user: Partial<User> | null | undefined, pathname:
     };
   }
 
+  if (pathname.startsWith("/knowledge") || pathname.startsWith("/forum") || pathname.startsWith("/doubts") || pathname.startsWith("/chat")) {
+    return { allowed: hasAnyPermission(user, ["knowledge.view", "communication.view", "activities.view"]), fallbackTo: getDeniedFallback(user) };
+  }
+
+  if (pathname.startsWith("/org")) {
+    return { allowed: hasAnyPermission(user, ["users.manage", "users.managePermissions"]), fallbackTo: getDeniedFallback(user) };
+  }
+
+  if (pathname.startsWith("/notification-preferences")) {
+    return { allowed: true };
+  }
+
   if (pathname.startsWith("/kanban") || pathname.startsWith("/backlog") || pathname.startsWith("/activities")) {
     if (pathname.endsWith("/new") || pathname.endsWith("/nova")) {
       return { allowed: hasPermission(user, "activities.create"), fallbackTo: getDeniedFallback(user) };
