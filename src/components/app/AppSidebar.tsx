@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Blocks,
+  Building2,
   ClipboardCheck,
   Columns3,
   FolderKanban,
@@ -112,6 +113,12 @@ function getInternalMenu(user: User | null | undefined) {
       url: "/teams",
       icon: UsersRound,
       visible: hasAnyPermission(user, ["users.view", "users.manage", "users.managePermissions"]),
+    },
+    {
+      title: "Organizacao",
+      url: "/org",
+      icon: Building2,
+      visible: hasAnyPermission(user, ["users.manage", "users.managePermissions"]),
     },
     {
       title: "Categorias",

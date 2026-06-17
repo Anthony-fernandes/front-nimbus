@@ -27,9 +27,10 @@ import {
 } from "@/lib/permissions";
 import { getStoredUser } from "@/services/authService";
 import { listOrganizations } from "@/services/clientService";
+import { listDepartments, listPositions } from "@/services/orgService";
 import { listPermissionBlocks } from "@/services/permissionBlockService";
 import { maskCurrencyInput } from "@/services/utils";
-import { saveMember } from "@/services/userService";
+import { listUsers, saveMember } from "@/services/userService";
 
 export type MemberFormData = {
   name: string;
@@ -50,6 +51,12 @@ export type MemberFormData = {
   permissionBlockIds: string[];
   grantedPermissionKeys: string[];
   deniedPermissionKeys: string[];
+  department: string;
+  position: string;
+  supervisor: string;
+  manager: string;
+  approvalMode: string;
+  isServiceDeskApprover: boolean;
 };
 
 const empty: MemberFormData = {
@@ -71,6 +78,12 @@ const empty: MemberFormData = {
   permissionBlockIds: [],
   grantedPermissionKeys: [],
   deniedPermissionKeys: [],
+  department: "",
+  position: "",
+  supervisor: "",
+  manager: "",
+  approvalMode: "INHERITED",
+  isServiceDeskApprover: false,
 };
 
 const ROLE_OPTIONS: Array<{ value: AppUserRole; label: string }> = [
@@ -123,6 +136,18 @@ export function MemberForm({
     queryKey: ["permission-blocks"],
     queryFn: () => listPermissionBlocks(),
     enabled: canManagePermissionSettings,
+  });
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => listDepartments(),
+  });
+  const { data: positions = [] } = useQuery({
+    queryKey: ["positions"],
+    queryFn: () => listPositions(),
+  });
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => listUsers(),
   });
 
   const selectedBlocks = useMemo(
@@ -452,6 +477,108 @@ export function MemberForm({
                 </span>
               </label>
             ))}
+          </div>
+        </FormSection>
+
+        <FormSection
+          title="Estrutura organizacional"
+          description="Vincule o usuario a departamentos, cargos e responsaveis de aprovacao."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Departamento">
+              <Select
+                value={data.department || "__none__"}
+                onValueChange={(v) => set("department", v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar departamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Cargo (organizacional)">
+              <Select
+                value={data.position || "__none__"}
+                onValueChange={(v) => set("position", v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {positions.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Supervisor direto">
+              <Select
+                value={data.supervisor || "__none__"}
+                onValueChange={(v) => set("supervisor", v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar supervisor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {allUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Gerente">
+              <Select
+                value={data.manager || "__none__"}
+                onValueChange={(v) => set("manager", v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar gerente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {allUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Modo de aprovacao" hint="Define quem aprova chamados originados por este usuario.">
+              <Select
+                value={data.approvalMode || "INHERITED"}
+                onValueChange={(v) => set("approvalMode", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INHERITED">Herdado (padrao do sistema)</SelectItem>
+                  <SelectItem value="SUPERVISOR">Supervisor direto</SelectItem>
+                  <SelectItem value="MANAGER">Gerente</SelectItem>
+                  <SelectItem value="AUTO">Auto (por cargo)</SelectItem>
+                  <SelectItem value="SERVICE_DESK">Service Desk</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Aprovador Service Desk">
+              <label className="flex cursor-pointer items-center gap-2 pt-2">
+                <Checkbox
+                  checked={data.isServiceDeskApprover}
+                  onCheckedChange={(v) => set("isServiceDeskApprover", Boolean(v))}
+                />
+                <span className="text-sm">Este usuario aprova chamados como Service Desk</span>
+              </label>
+            </Field>
           </div>
         </FormSection>
 

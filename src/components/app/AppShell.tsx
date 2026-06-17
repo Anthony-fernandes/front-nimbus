@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Bell, Command, LogOut, Plus, Search } from "lucide-react";
+import { Bell, Command, LogOut, Plus, Search, Settings } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
@@ -154,6 +154,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Button>
             ) : null}
             {!clientUser ? <NotificationBell /> : null}
+            {!clientUser ? (
+              <Link
+                to="/notification-preferences"
+                title="Preferências de notificação"
+                className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              >
+                <Settings className="h-4 w-4" />
+              </Link>
+            ) : null}
             <button
               title="Sair"
               onClick={async () => {

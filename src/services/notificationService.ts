@@ -51,5 +51,17 @@ export async function updateNotificationPreference(payload: Partial<Notification
   return response.data;
 }
 
+export async function getNotificationPreferences(): Promise<NotificationPreference> {
+  const response = await api.get<NotificationPreference>("/notifications/preferences/");
+  return response.data;
+}
+
+export async function updateNotificationPreferences(
+  data: Partial<NotificationPreference>,
+): Promise<NotificationPreference> {
+  const response = await api.patch<NotificationPreference>("/notifications/preferences/", data);
+  return response.data;
+}
+
 export type { Paginated };
 export { unwrapRows };

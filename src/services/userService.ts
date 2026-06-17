@@ -96,14 +96,23 @@ export async function saveMember(
       active: true,
     })),
   };
+  const orgPayload = {
+    department: data.department || null,
+    position: data.position || null,
+    supervisor: data.supervisor || null,
+    manager: data.manager || null,
+    approval_mode: data.approvalMode || "INHERITED",
+    is_service_desk_approver: data.isServiceDeskApprover ?? false,
+  };
   const extendedPayload = options?.includePermissionConfig
     ? {
         ...payload,
+        ...orgPayload,
         permission_blocks: data.permissionBlockIds,
         granted_permissions: grantedPermissions,
         denied_permissions: deniedPermissions,
       }
-    : payload;
+    : { ...payload, ...orgPayload };
 
   try {
     return mode === "edit" ? updateUser(userId!, extendedPayload) : createUser(extendedPayload);
@@ -150,5 +159,11 @@ export function toMemberFormData(user: User): Partial<MemberFormData> {
       )
       .filter((value, index, list) => list.indexOf(value) === index),
     deniedPermissionKeys: flattenGrantedPermissions(user.denied_permissions),
+    department: user.department || "",
+    position: user.position || "",
+    supervisor: user.supervisor || "",
+    manager: user.manager || "",
+    approvalMode: user.approval_mode || "INHERITED",
+    isServiceDeskApprover: user.is_service_desk_approver ?? false,
   };
 }
