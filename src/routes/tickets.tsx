@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpDown,
   Ban,
@@ -20,6 +20,15 @@ import {
   UserRoundCheck,
   X,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { api } from "@/services/api";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -120,6 +129,10 @@ type TicketWorkflowDialogState = {
   actionId: TicketWorkflowActionId;
 } | null;
 
+type BulkActionType = "technician" | "status" | "priority" | null;
+
+const TICKET_PRIORITY_BULK_OPTIONS = ["Critica", "Alta", "Media", "Baixa", "Pendente"];
+
 function TicketsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -133,6 +146,10 @@ function TicketsPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [dialogState, setDialogState] = useState<TicketWorkflowDialogState>(null);
   const [workflowSaving, setWorkflowSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<BulkActionType>(null);
+  const [bulkValue, setBulkValue] = useState("");
+  const [bulkSaving, setBulkSaving] = useState(false);
   const canViewTickets = hasAnyPermission(currentUser, [
     "tickets.viewAll",
     "tickets.viewAssigned",
@@ -231,6 +248,57 @@ function TicketsPage() {
     setActiveQuickFilter(null);
     setSearchTerm("");
     setFilters(DEFAULT_TICKET_ADVANCED_FILTERS);
+  };
+
+  const toggleTicketSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredTickets.length && filteredTickets.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredTickets.map((t) => t.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setBulkAction(null);
+    setBulkValue("");
+  };
+
+  const applyBulkAction = async () => {
+    if (!bulkValue || selectedIds.size === 0) return;
+    setBulkSaving(true);
+    try {
+      const fieldMap: Record<string, string> = {
+        technician: "responsible_technician",
+        status: "status",
+        priority: "priority",
+      };
+      const field = fieldMap[bulkAction!];
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          api.patch(`/tickets/${id}/`, { [field]: bulkValue }),
+        ),
+      );
+      await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+      toast.success(`${selectedIds.size} chamado(s) atualizado(s).`);
+      clearSelection();
+    } catch {
+      toast.error("Nao foi possivel aplicar a acao em massa.");
+    } finally {
+      setBulkSaving(false);
+    }
   };
 
   const updateFilter = <K extends keyof TicketAdvancedFilters>(

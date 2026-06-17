@@ -17,6 +17,7 @@ import {
   MessagesSquare,
   PencilRuler,
   Rocket,
+  ScrollText,
   Settings,
   Sparkles,
   Tags,
@@ -175,6 +176,12 @@ function getInternalMenu(user: User | null | undefined) {
       url: "/email-templates",
       icon: Mail,
       visible: hasPermission(user, "settings.edit") || getUserRole(user) === "ADMIN",
+    },
+    {
+      title: "Auditoria",
+      url: "/audit",
+      icon: ScrollText,
+      visible: hasPermission(user, "settings.view") || getUserRole(user) === "ADMIN",
     },
   ].filter((item) => item.visible);
 

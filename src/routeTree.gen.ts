@@ -31,6 +31,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ClientRouteImport } from './routes/client'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BacklogRouteImport } from './routes/backlog'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AprovacoesRouteImport } from './routes/aprovacoes'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as AccessDeniedRouteImport } from './routes/access-denied'
@@ -185,6 +186,11 @@ const ChatRoute = ChatRouteImport.update({
 const BacklogRoute = BacklogRouteImport.update({
   id: '/backlog',
   path: '/backlog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AprovacoesRoute = AprovacoesRouteImport.update({
@@ -418,6 +424,7 @@ export interface FileRoutesByFullPath {
   '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
+  '/audit': typeof AuditRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/chat': typeof ChatRoute
   '/client': typeof ClientRouteWithChildren
@@ -487,6 +494,7 @@ export interface FileRoutesByTo {
   '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
+  '/audit': typeof AuditRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/chat': typeof ChatRoute
   '/client': typeof ClientRouteWithChildren
@@ -557,6 +565,7 @@ export interface FileRoutesById {
   '/access-denied': typeof AccessDeniedRoute
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
+  '/audit': typeof AuditRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/chat': typeof ChatRoute
   '/client': typeof ClientRouteWithChildren
@@ -628,6 +637,7 @@ export interface FileRouteTypes {
     | '/access-denied'
     | '/activities'
     | '/aprovacoes'
+    | '/audit'
     | '/backlog'
     | '/chat'
     | '/client'
@@ -697,6 +707,7 @@ export interface FileRouteTypes {
     | '/access-denied'
     | '/activities'
     | '/aprovacoes'
+    | '/audit'
     | '/backlog'
     | '/chat'
     | '/client'
@@ -766,6 +777,7 @@ export interface FileRouteTypes {
     | '/access-denied'
     | '/activities'
     | '/aprovacoes'
+    | '/audit'
     | '/backlog'
     | '/chat'
     | '/client'
@@ -836,6 +848,7 @@ export interface RootRouteChildren {
   AccessDeniedRoute: typeof AccessDeniedRoute
   ActivitiesRoute: typeof ActivitiesRouteWithChildren
   AprovacoesRoute: typeof AprovacoesRoute
+  AuditRoute: typeof AuditRoute
   BacklogRoute: typeof BacklogRouteWithChildren
   ChatRoute: typeof ChatRoute
   ClientRoute: typeof ClientRouteWithChildren
@@ -1030,6 +1043,13 @@ declare module '@tanstack/react-router' {
       path: '/aprovacoes'
       fullPath: '/aprovacoes'
       preLoaderRoute: typeof AprovacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activities': {
@@ -1621,6 +1641,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccessDeniedRoute: AccessDeniedRoute,
   ActivitiesRoute: ActivitiesRouteWithChildren,
   AprovacoesRoute: AprovacoesRoute,
+  AuditRoute: AuditRoute,
   BacklogRoute: BacklogRouteWithChildren,
   ChatRoute: ChatRoute,
   ClientRoute: ClientRouteWithChildren,

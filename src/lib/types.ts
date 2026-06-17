@@ -646,3 +646,16 @@ export interface DoubtsQuestion { id: string; title: string; content: string; au
 export interface DoubtsAnswer { id: string; question: string; author: string; author_name?: string; content: string; is_accepted: boolean; likes_count: number; created_at: string; }
 export interface ChatConversation { id: string; participants: string[]; participant_names?: string[]; created_by: string; last_message_at: string | null; created_at: string; }
 export interface ChatMessage { id: string; conversation: string; author: string; author_name?: string; content: string; file: string | null; file_name: string | null; created_at: string; }
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  entity_type: string;
+  entity_label: string;
+  actor_name: string;
+  created_at: string;
+  changes: Record<string, unknown> | null;
+  origin: string;
+  ip_address: string | null;
+  metadata: Record<string, unknown> | null;
+}
