@@ -5,6 +5,7 @@ import {
 } from "@/lib/tickets";
 import type { Activity, Ticket, TicketAttachment, TicketCategory } from "@/lib/types";
 
+import { api } from "./api";
 import {
   createResource,
   deleteResource,
@@ -234,6 +235,11 @@ export function updateTicket(
 
 export function deleteTicket(id: string) {
   return deleteResource(ENDPOINT, id);
+}
+
+export async function rateTicket(id: string, rating: number, comment?: string): Promise<Ticket> {
+  const response = await api.post<Ticket>(`${ENDPOINT}/${id}/rate/`, { rating, comment: comment || "" });
+  return hydrateTicketWithWorkflow(response.data);
 }
 
 export async function saveTicket(

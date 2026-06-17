@@ -402,6 +402,9 @@ export type Ticket = {
   finished_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  rating?: number | null;
+  rating_comment?: string;
+  rated_at?: string | null;
 };
 
 export type User = {

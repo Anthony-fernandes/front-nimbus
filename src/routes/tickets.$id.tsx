@@ -22,6 +22,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
 import { TicketApprovalPanel } from "@/components/tickets/TicketApprovalPanel";
+import { TicketRatingPanel } from "@/components/tickets/TicketRatingPanel";
 import { TicketWorkflowDialog, type TicketWorkflowDialogSubmitData } from "@/components/tickets/TicketWorkflowDialog";
 import { TicketTimeline } from "@/components/tickets/TicketTimeline";
 import {
@@ -406,6 +407,7 @@ function TicketDetail() {
           currentUser={currentUser}
           onChanged={() => ticketQuery.refetch()}
         />
+        <TicketRatingPanel ticket={ticket} currentUser={currentUser} onChanged={() => ticketQuery.refetch()} />
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard label="SLA" value={ticket.sla || "8h"} icon={Clock} />
