@@ -2,13 +2,17 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Blocks,
+  BookOpen,
   Building2,
   ClipboardCheck,
   Columns3,
   FolderKanban,
+  HelpCircle,
   Inbox,
   LayoutDashboard,
   ListTodo,
+  MessageCircle,
+  MessagesSquare,
   PencilRuler,
   Rocket,
   Settings,
@@ -99,6 +103,10 @@ function getInternalMenu(user: User | null | undefined) {
       icon: ListTodo,
       visible: hasAnyPermission(user, ["activities.view", "projects.view"]),
     },
+    { title: "Conhecimento", url: "/knowledge", icon: BookOpen, visible: true },
+    { title: "Forum", url: "/forum", icon: MessagesSquare, visible: true },
+    { title: "Duvidas", url: "/doubts", icon: HelpCircle, visible: true },
+    { title: "Chat", url: "/chat", icon: MessageCircle, visible: true },
   ].filter((item) => item.visible);
 
   const management: MenuItem[] = [

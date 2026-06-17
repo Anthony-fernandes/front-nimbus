@@ -632,3 +632,14 @@ export type DashboardData = {
   recent_tickets: Array<Pick<Ticket, "id" | "code" | "title" | "priority" | "status" | "sla">>;
   projects_at_risk: Array<Pick<Project, "id" | "name" | "progress" | "due_at">>;
 };
+
+export interface KnowledgeCategory { id: string; name: string; slug: string; description: string; parent: string | null; parent_name?: string; order: number; active: boolean; }
+export interface KnowledgeTag { id: string; name: string; slug: string; }
+export interface KnowledgeArticle { id: string; title: string; slug: string; content: string; summary: string; category: string | null; category_name?: string; tags: string[]; tag_names?: string[]; status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'; visibility: 'PUBLIC' | 'INTERNAL' | 'RESTRICTED'; author: string; author_name?: string; views_count: number; helpful_count: number; not_helpful_count: number; version: number; published_at: string | null; source_ticket: string | null; created_at: string; }
+export interface ForumCategory { id: string; name: string; description: string; order: number; active: boolean; }
+export interface ForumTopic { id: string; category: string; category_name?: string; title: string; content: string; author: string; author_name?: string; is_pinned: boolean; is_locked: boolean; views_count: number; replies_count: number; best_answer: string | null; created_at: string; }
+export interface ForumReply { id: string; topic: string; author: string; author_name?: string; content: string; is_best_answer: boolean; likes_count: number; created_at: string; }
+export interface DoubtsQuestion { id: string; title: string; content: string; author: string; author_name?: string; status: 'OPEN' | 'ANSWERED' | 'CLOSED'; views_count: number; answers_count: number; tags: string[]; created_at: string; }
+export interface DoubtsAnswer { id: string; question: string; author: string; author_name?: string; content: string; is_accepted: boolean; likes_count: number; created_at: string; }
+export interface ChatConversation { id: string; participants: string[]; participant_names?: string[]; created_by: string; last_message_at: string | null; created_at: string; }
+export interface ChatMessage { id: string; conversation: string; author: string; author_name?: string; content: string; file: string | null; file_name: string | null; created_at: string; }
