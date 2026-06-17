@@ -20,6 +20,7 @@ export const DASHBOARD_COMPONENT_TYPES = [
   "text",
   "section",
   "separator",
+  "formula",
 ] as const;
 
 export const DASHBOARD_FILTER_KEYS = [
@@ -308,6 +309,16 @@ export const DASHBOARD_COMPONENT_TEMPLATES: DashboardComponentTemplate[] = [
     defaultSubtitle: "Divisao visual",
     defaultColSpan: 12,
     defaultHeight: 32,
+  },
+  {
+    type: "formula",
+    label: "Métrica calculada",
+    description: "Fórmula com variáveis de dados",
+    icon: "sigma",
+    defaultDataSource: "tickets_open",
+    defaultTitle: "Métrica",
+    defaultColSpan: 3,
+    defaultHeight: 188,
   },
 ];
 

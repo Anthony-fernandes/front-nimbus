@@ -266,6 +266,37 @@ export function resolveComponentData(
     };
   }
 
+  if (component.type === "formula") {
+    const formula = typeof component.configJson?.formula === "string" ? component.configJson.formula : "";
+    const suffix = typeof component.configJson?.suffix === "string" ? component.configJson.suffix : "";
+    const vars: Record<string, number> = {
+      tickets_open: context.tickets.filter(isOperationalTicketOpen).length,
+      tickets_total: context.tickets.length,
+      clients: context.clients.length,
+      projects: context.projects.length,
+      activities: context.activities.length,
+      sprints: context.sprints.length,
+    };
+    let expr = formula;
+    for (const [key, val] of Object.entries(vars)) {
+      expr = expr.replaceAll(`{${key}}`, String(val));
+    }
+    let result: string;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      const numeric = Number(new Function("return " + expr)());
+      result = isFinite(numeric) ? String(Math.round(numeric * 100) / 100) + suffix : "—";
+    } catch {
+      result = "—";
+    }
+    return {
+      kind: "kpi",
+      value: result,
+      numericValue: 0,
+      helper: component.subtitle || "",
+    };
+  }
+
   const effectiveFilters = component.useGlobalFilters
     ? { ...filters, ...(component.filters || {}) }
     : { ...(component.filters || {}) };

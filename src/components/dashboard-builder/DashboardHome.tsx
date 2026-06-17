@@ -1,5 +1,5 @@
 import { type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -178,6 +178,7 @@ const COMPONENT_LABELS: Record<DashboardComponentConfig["type"], string> = {
   text: "Texto",
   section: "Secao",
   separator: "Separador",
+  formula: "Métrica calculada",
 };
 
 const TONE_LABELS: Record<DashboardTone, string> = {
@@ -2478,6 +2479,43 @@ function ComponentInspectorPanel({
             />
           </Field>
         ) : null}
+
+        {component.type === "formula" ? (
+          <div className="space-y-3">
+            <Field label="Fórmula">
+              <Textarea
+                rows={3}
+                value={String(component.configJson?.formula || "")}
+                onChange={(event) =>
+                  onChange({
+                    configJson: {
+                      ...(component.configJson || {}),
+                      formula: event.target.value,
+                    },
+                  })
+                }
+                placeholder="{tickets_open} / {clients} * 100"
+              />
+            </Field>
+            <Field label="Sufixo">
+              <Input
+                value={String(component.configJson?.suffix || "")}
+                onChange={(event) =>
+                  onChange({
+                    configJson: {
+                      ...(component.configJson || {}),
+                      suffix: event.target.value,
+                    },
+                  })
+                }
+                placeholder="% ou pts"
+              />
+            </Field>
+            <p className="text-[11px] text-muted-foreground">
+              Use {"{tickets_open}"}, {"{tickets_total}"}, {"{clients}"}, {"{projects}"}, {"{activities}"}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-lg border border-border bg-surface/40 p-4">
@@ -2764,6 +2802,7 @@ function DashboardWidgetCard({
   mode?: "viewer" | "builder";
   spanClassName?: string;
 }) {
+  const navigate = useNavigate();
   const tone = component.tone || inferToneFromData(data);
   const colSpanClass =
     spanClassName
@@ -2777,6 +2816,20 @@ function DashboardWidgetCard({
       : data.kind === "progress" && isCompactMetric
         ? Math.min(component.layout.minHeight, 166)
         : component.layout.minHeight;
+
+  function handleDrillDown(_row: Record<string, string | number>) {
+    if (mode !== "viewer") return;
+    const ds = component.dataSource || "";
+    if (ds.startsWith("ticket")) {
+      void navigate({ to: "/tickets" });
+    } else if (ds.startsWith("project")) {
+      void navigate({ to: "/projects" });
+    } else if (ds.startsWith("activit")) {
+      void navigate({ to: "/activities" });
+    } else if (ds.startsWith("client")) {
+      void navigate({ to: "/clients" });
+    }
+  }
 
   if (data.kind === "section") {
     return (
@@ -2878,7 +2931,7 @@ function DashboardWidgetCard({
               </span>
             </div>
             <div className="mt-2.5 flex-1">
-              <WidgetBody component={component} data={data} tone={tone} compact={isCompactMetric} />
+              <WidgetBody component={component} data={data} tone={tone} compact={isCompactMetric} onChartRowClick={mode === "viewer" ? handleDrillDown : undefined} />
             </div>
           </>
         ) : (
@@ -2893,7 +2946,7 @@ function DashboardWidgetCard({
             </div>
 
             <div className="flex-1 px-4 pb-4">
-              <WidgetBody component={component} data={data} tone={tone} compact={false} />
+              <WidgetBody component={component} data={data} tone={tone} compact={false} onChartRowClick={mode === "viewer" ? handleDrillDown : undefined} />
             </div>
           </>
         )}
@@ -2907,11 +2960,13 @@ function WidgetBody({
   data,
   tone,
   compact = false,
+  onChartRowClick,
 }: {
   component: DashboardComponentConfig;
   data: DashboardResolvedData;
   tone: DashboardTone;
   compact?: boolean;
+  onChartRowClick?: (row: Record<string, string | number>) => void;
 }) {
   switch (data.kind) {
     case "kpi":
@@ -2950,7 +3005,7 @@ function WidgetBody({
     case "series":
       return (
         <div className="h-full min-h-[220px]">
-          <GenericChart data={data.data} chartType={data.chartType} tone={data.tone || tone} />
+          <GenericChart data={data.data} chartType={data.chartType} tone={data.tone || tone} onClickRow={onChartRowClick} />
           {data.helper ? <p className="mt-3 text-xs text-muted-foreground">{data.helper}</p> : null}
         </div>
       );
@@ -3544,10 +3599,12 @@ function GenericChart({
   chartType,
   data,
   tone,
+  onClickRow,
 }: {
   chartType: "line" | "bar" | "donut";
   data: Array<Record<string, string | number>>;
   tone: DashboardTone;
+  onClickRow?: (row: Record<string, string | number>) => void;
 }) {
   if (!data.length) {
     return (
@@ -3584,6 +3641,8 @@ function GenericChart({
               <Cell
                 key={`${nameKey}-${index}`}
                 fill={typeof row.color === "string" ? row.color : colors[index % colors.length]}
+                onClick={() => onClickRow?.(data[index])}
+                cursor={onClickRow ? "pointer" : undefined}
               />
             ))}
           </Pie>
@@ -3652,6 +3711,8 @@ function GenericChart({
             dataKey={key}
             fill={colors[index % colors.length]}
             radius={verticalLayout ? [0, 8, 8, 0] : [8, 8, 0, 0]}
+            onClick={(barData) => onClickRow?.(barData.payload as Record<string, string | number>)}
+            cursor={onClickRow ? "pointer" : undefined}
           />
         ))}
       </ReBarChart>
