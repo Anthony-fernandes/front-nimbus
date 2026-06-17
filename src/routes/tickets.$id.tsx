@@ -1,9 +1,10 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   Ban,
+  BookOpen,
   Check,
   CheckCheck,
   Clock,
@@ -35,6 +36,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { formatPriorityLabel, formatTicketStatusLabel } from "@/lib/labels";
 import { isClientUser } from "@/lib/auth";
@@ -68,6 +71,7 @@ import { listActivities } from "@/services/activityService";
 import { listSprints } from "@/services/sprintService";
 import { listTicketCategories } from "@/services/ticketCategoryService";
 import { listTicketTimeline, createTicketTimelineComment } from "@/services/ticketTimelineService";
+import { convertTicketToKb, listKnowledgeCategories } from "@/services/knowledgeService";
 import { deleteTicket, getTicket, transitionTicket } from "@/services/ticketService";
 import { listTicketWorkflowStatuses } from "@/services/ticketWorkflowService";
 import { listUsers } from "@/services/userService";
@@ -100,6 +104,8 @@ function TicketDetail() {
   const [dialogState, setDialogState] = useState<TicketWorkflowDialogState>(null);
   const [workflowSaving, setWorkflowSaving] = useState(false);
   const [confirmGenerateActivityOpen, setConfirmGenerateActivityOpen] = useState(false);
+  const [convertKbOpen, setConvertKbOpen] = useState(false);
+  const [convertKbCategory, setConvertKbCategory] = useState<string>("");
   const canViewTickets = hasAnyPermission(currentUser, [
     "tickets.viewAll",
     "tickets.viewAssigned",
@@ -141,6 +147,21 @@ function TicketDetail() {
     queryKey: ["ticket-workflow-status-configs"],
     queryFn: () => listTicketWorkflowStatuses(),
     enabled: canViewTickets,
+  });
+  const kbCategoriesQuery = useQuery({
+    queryKey: ["knowledge-categories"],
+    queryFn: listKnowledgeCategories,
+    enabled: convertKbOpen,
+  });
+  const convertToKbMutation = useMutation({
+    mutationFn: () => ticketQuery.data ? convertTicketToKb(ticketQuery.data.id, convertKbCategory || undefined) : Promise.reject(),
+    onSuccess: (article) => {
+      setConvertKbOpen(false);
+      toast.success("Artigo criado na Base de Conhecimento!", {
+        action: { label: "Ver artigo →", onClick: () => navigate({ to: "/knowledge/$id", params: { id: article.id } }) },
+      });
+    },
+    onError: () => toast.error("Não foi possível converter o chamado."),
   });
 
   if (pathname !== `/tickets/${id}`) {
@@ -389,6 +410,17 @@ function TicketDetail() {
                   onClick={handleGenerateActivity}
                 >
                   <Workflow className="h-3.5 w-3.5" /> Gerar atividade
+                </Button>
+              ) : null}
+              {canApprove || canEditTickets ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setConvertKbOpen(true)}
+                >
+                  <BookOpen className="h-3.5 w-3.5" /> Converter para KB
                 </Button>
               ) : null}
               <ConfirmDelete
@@ -739,6 +771,35 @@ function TicketDetail() {
           await runWorkflowAction(dialogState.actionId, formData);
         }}
       />
+
+      <Dialog open={convertKbOpen} onOpenChange={setConvertKbOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Converter chamado em artigo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Um rascunho de artigo será criado na Base de Conhecimento com o conteúdo deste chamado.
+            </p>
+            <Select value={convertKbCategory} onValueChange={setConvertKbCategory}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Categoria (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {(kbCategoriesQuery.data ?? []).map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConvertKbOpen(false)}>Cancelar</Button>
+            <Button onClick={() => convertToKbMutation.mutate()} disabled={convertToKbMutation.isPending}>
+              {convertToKbMutation.isPending ? "Convertendo..." : "Converter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

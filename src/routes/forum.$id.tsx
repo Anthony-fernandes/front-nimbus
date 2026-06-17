@@ -1,17 +1,21 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Heart, Star } from "lucide-react";
+import { ArrowLeft, BookOpen, Heart, Star } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
+  convertForumTopicToKb,
   createForumReply,
   getForumTopic,
   listForumReplies,
+  listKnowledgeCategories,
   markBestAnswer,
   toggleReplyLike,
 } from "@/services/knowledgeService";
@@ -31,9 +35,12 @@ function formatDate(value?: string | null) {
 
 function ForumTopicPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = getStoredUser();
   const [replyContent, setReplyContent] = useState("");
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [convertCategory, setConvertCategory] = useState<string>("");
 
   const topicQuery = useQuery({
     queryKey: ["forum-topic", id],
@@ -68,6 +75,23 @@ function ForumTopicPage() {
       void queryClient.invalidateQueries({ queryKey: ["forum-replies", id] });
       void queryClient.invalidateQueries({ queryKey: ["forum-topic", id] });
     },
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: ["knowledge-categories"],
+    queryFn: listKnowledgeCategories,
+    enabled: convertDialogOpen,
+  });
+
+  const convertToKbMutation = useMutation({
+    mutationFn: () => convertForumTopicToKb(id, convertCategory || undefined),
+    onSuccess: (article) => {
+      setConvertDialogOpen(false);
+      toast.success("Artigo criado!", {
+        action: { label: "Ver artigo →", onClick: () => navigate({ to: "/knowledge/$id", params: { id: article.id } }) },
+      });
+    },
+    onError: () => toast.error("Não foi possível converter o tópico."),
   });
 
   const topic = topicQuery.data;
@@ -105,6 +129,11 @@ function ForumTopicPage() {
                 <span>{formatDate(topic.created_at)}</span>
                 <span>{topic.views_count} visualizações</span>
                 <span>{topic.replies_count} respostas</span>
+              </div>
+              <div className="flex justify-end pt-1">
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setConvertDialogOpen(true)}>
+                  <BookOpen className="h-3.5 w-3.5" /> Converter para KB
+                </Button>
               </div>
             </div>
 
@@ -186,6 +215,35 @@ function ForumTopicPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Converter tópico em artigo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Um rascunho de artigo será criado na Base de Conhecimento com o conteúdo deste tópico.
+            </p>
+            <Select value={convertCategory} onValueChange={setConvertCategory}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Categoria (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {(categoriesQuery.data ?? []).map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConvertDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => convertToKbMutation.mutate()} disabled={convertToKbMutation.isPending}>
+              {convertToKbMutation.isPending ? "Convertendo..." : "Converter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

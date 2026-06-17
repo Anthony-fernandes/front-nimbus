@@ -147,3 +147,29 @@ export async function sendChatMessage(conversationId: string, content: string) {
   });
   return response.data;
 }
+
+// ─── Convert to KB ────────────────────────────────────────────────────────────
+
+export async function convertForumTopicToKb(topicId: string, categoryId?: string): Promise<KnowledgeArticle> {
+  const response = await api.post<KnowledgeArticle>(
+    `/communication/forum-topics/${topicId}/convert-to-kb/`,
+    categoryId ? { category: categoryId } : {},
+  );
+  return response.data;
+}
+
+export async function convertDoubtsQuestionToKb(questionId: string, categoryId?: string): Promise<KnowledgeArticle> {
+  const response = await api.post<KnowledgeArticle>(
+    `/communication/doubts-questions/${questionId}/convert-to-kb/`,
+    categoryId ? { category: categoryId } : {},
+  );
+  return response.data;
+}
+
+export async function convertTicketToKb(ticketId: string, categoryId?: string): Promise<KnowledgeArticle> {
+  const response = await api.post<KnowledgeArticle>(
+    `/tickets/${ticketId}/convert-to-kb/`,
+    categoryId ? { category: categoryId } : {},
+  );
+  return response.data;
+}
