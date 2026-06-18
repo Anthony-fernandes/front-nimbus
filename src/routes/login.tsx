@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
+import { Sparkles, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { getHomeRoute } from "@/lib/auth";
-import { login } from "@/services/authService";
+import type { User } from "@/lib/types";
+import { getHomeRoute, normalizeUser } from "@/lib/auth";
+import { api } from "@/services/api";
+import { setSession } from "@/services/session";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar · Stratos Suite" }] }),
@@ -105,6 +107,84 @@ function LoginForm() {
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"credentials" | "mfa">("credentials");
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [totpCode, setTotpCode] = useState("");
+  if (step === "mfa") {
+    return (
+      <form
+        className="mt-6 space-y-4"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!mfaToken) return;
+          setLoading(true);
+          try {
+            const response = await api.post<{ access: string; refresh: string; user?: User | null }>(
+              "/auth/mfa/verify-login/",
+              { mfa_token: mfaToken, totp_code: totpCode },
+            );
+            setSession({ access: response.data.access, refresh: response.data.refresh, user: null });
+            const user =
+              normalizeUser(response.data.user) ||
+              normalizeUser((await api.get<User>("/auth/me/")).data);
+            const session = { ...response.data, user };
+            setSession(session);
+            toast.success("Login realizado com sucesso");
+            navigate({ to: getHomeRoute(user) });
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Código inválido");
+          } finally {
+            setLoading(false);
+          }
+        }}
+      >
+        <div className="flex flex-col items-center gap-2 pb-2">
+          <div className="h-12 w-12 rounded-full bg-primary/10 grid place-items-center">
+            <ShieldCheck className="h-6 w-6 text-primary" />
+          </div>
+          <h3 className="text-base font-semibold">Verificação em dois fatores</h3>
+          <p className="text-xs text-muted-foreground text-center">
+            Digite o código do seu aplicativo autenticador
+          </p>
+        </div>
+
+        <div className="flex justify-center">
+          <input
+            autoFocus
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={totpCode}
+            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+            placeholder="000000"
+            className="w-40 h-12 rounded-lg bg-muted/40 border border-border px-3 text-center text-xl tracking-[0.4em] outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || totpCode.length < 6}
+          className="w-full h-10 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 hover:opacity-95 transition disabled:opacity-60"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
+        </button>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => {
+              setStep("credentials");
+              setMfaToken(null);
+              setTotpCode("");
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground transition underline underline-offset-2"
+          >
+            Voltar ao login
+          </button>
+        </div>
+      </form>
+    );
+  }
 
   return (
     <form
@@ -113,9 +193,34 @@ function LoginForm() {
         event.preventDefault();
         setLoading(true);
         try {
-          const session = await login(username, password);
-          toast.success("Login realizado com sucesso");
-          navigate({ to: getHomeRoute(session.user) });
+          const response = await api.post<
+            | { access: string; refresh: string; user?: unknown }
+            | { mfa_required: true; mfa_token: string }
+          >("/auth/login/", { username, password });
+
+          if ("mfa_required" in response.data && response.data.mfa_required) {
+            setMfaToken(response.data.mfa_token);
+            setStep("mfa");
+            setTotpCode("");
+            return;
+          }
+
+          const data = response.data as { access: string; refresh: string; user?: User | null };
+          setSession({ access: data.access, refresh: data.refresh, user: null });
+
+          try {
+            const user =
+              normalizeUser(data.user) ||
+              normalizeUser((await api.get<User>("/auth/me/")).data);
+            const session = { ...data, user };
+            setSession(session);
+            toast.success("Login realizado com sucesso");
+            navigate({ to: getHomeRoute(user) });
+          } catch (error) {
+            const { clearSession } = await import("@/services/session");
+            clearSession();
+            throw error;
+          }
         } catch (error) {
           toast.error(error instanceof Error ? error.message : "Não foi possível entrar");
         } finally {

@@ -5,6 +5,8 @@ import {
   Flag,
   Pencil,
   Plus,
+  ShieldCheck,
+  ShieldOff,
   Tags,
   TimerReset,
   Trash2,
@@ -14,6 +16,14 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader } from "@/components/app/PageHeader";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ActivityTagConfigForm,
   toActivityTagConfigFormData,
@@ -34,6 +44,7 @@ import {
   saveActivityTag,
 } from "@/services/activityTagService";
 import { getStoredUser } from "@/services/authService";
+import { api } from "@/services/api";
 import {
   deleteTicketWorkflowStatus,
   listTicketWorkflowStatuses,
@@ -523,8 +534,254 @@ function SettingsPage() {
             </div>
           </div>
         </div>
+
+        <MfaSection />
       </div>
     </AppShell>
+  );
+}
+
+function MfaSection() {
+  const queryClient = useQueryClient();
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [setupData, setSetupData] = useState<{ secret: string; qr_url: string } | null>(null);
+  const [setupCode, setSetupCode] = useState("");
+  const [disableCode, setDisableCode] = useState("");
+  const [loadingSetup, setLoadingSetup] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [disabling, setDisabling] = useState(false);
+
+  const { data: mfaStatus, isLoading: mfaLoading } = useQuery({
+    queryKey: ["mfa-status"],
+    queryFn: async () => {
+      const response = await api.get<{ mfa_enabled: boolean }>("/auth/mfa/status/");
+      return response.data;
+    },
+  });
+
+  const mfaEnabled = mfaStatus?.mfa_enabled ?? false;
+
+  const handleOpenSetup = async () => {
+    setLoadingSetup(true);
+    try {
+      const response = await api.get<{ secret: string; qr_url: string }>("/auth/mfa/setup/");
+      setSetupData(response.data);
+      setSetupCode("");
+      setSetupOpen(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar configuracao MFA.");
+    } finally {
+      setLoadingSetup(false);
+    }
+  };
+
+  const handleConfirmSetup = async () => {
+    setConfirming(true);
+    try {
+      await api.post("/auth/mfa/setup/confirm/", { totp_code: setupCode });
+      toast.success("Autenticacao em dois fatores ativada com sucesso.");
+      setSetupOpen(false);
+      setSetupData(null);
+      setSetupCode("");
+      await queryClient.invalidateQueries({ queryKey: ["mfa-status"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Codigo invalido. Tente novamente.");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleDisable = async () => {
+    setDisabling(true);
+    try {
+      await api.post("/auth/mfa/disable/", { totp_code: disableCode });
+      toast.success("Autenticacao em dois fatores desativada.");
+      setDisableOpen(false);
+      setDisableCode("");
+      await queryClient.invalidateQueries({ queryKey: ["mfa-status"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Codigo invalido. Tente novamente.");
+    } finally {
+      setDisabling(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="glass rounded-2xl p-5 shadow-card">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center shrink-0">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold">Autenticacao em dois fatores</h2>
+                {!mfaLoading && mfaEnabled && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-green-400">
+                    <ShieldCheck className="h-3 w-3" />
+                    Ativo
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {mfaEnabled
+                  ? "Sua conta esta protegida com autenticacao em dois fatores."
+                  : "Adicione uma camada extra de seguranca a sua conta."}
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0">
+            {mfaLoading ? null : mfaEnabled ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => { setDisableCode(""); setDisableOpen(true); }}
+              >
+                <ShieldOff className="h-4 w-4" />
+                Desativar
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                onClick={handleOpenSetup}
+                disabled={loadingSetup}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Ativar autenticacao em dois fatores
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Setup dialog */}
+      <Dialog open={setupOpen} onOpenChange={(open) => { if (!open) { setSetupOpen(false); setSetupData(null); setSetupCode(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ativar autenticacao em dois fatores</DialogTitle>
+            <DialogDescription>
+              Escaneie o QR code ou insira o segredo manualmente no seu aplicativo autenticador, depois confirme com o codigo gerado.
+            </DialogDescription>
+          </DialogHeader>
+
+          {setupData && (
+            <div className="space-y-4 py-2">
+              <div className="flex flex-col items-center gap-3">
+                <div className="rounded-lg border border-border bg-white p-3">
+                  <img
+                    src={setupData.qr_url}
+                    alt="QR Code MFA"
+                    className="h-44 w-44"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                </div>
+                <div className="w-full">
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Ou insira o segredo manualmente
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { navigator.clipboard.writeText(setupData.secret); toast.success("Segredo copiado!"); }}
+                    className="w-full rounded-lg bg-muted/40 border border-border px-3 py-2 text-left font-mono text-xs text-muted-foreground hover:border-primary/40 transition break-all"
+                    title="Clique para copiar"
+                  >
+                    {setupData.secret}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Codigo de verificacao (6 digitos)
+                  </span>
+                  <input
+                    autoFocus
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={setupCode}
+                    onChange={(e) => setSetupCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="000000"
+                    className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition tracking-widest"
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setSetupOpen(false); setSetupData(null); setSetupCode(""); }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+              onClick={handleConfirmSetup}
+              disabled={confirming || setupCode.length < 6}
+            >
+              {confirming ? "Confirmando..." : "Confirmar ativacao"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable dialog */}
+      <Dialog open={disableOpen} onOpenChange={(open) => { if (!open) { setDisableOpen(false); setDisableCode(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Desativar autenticacao em dois fatores</DialogTitle>
+            <DialogDescription>
+              Para confirmar, insira o codigo atual do seu aplicativo autenticador.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            <label className="block">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Codigo de verificacao (6 digitos)
+              </span>
+              <input
+                autoFocus
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="000000"
+                className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition tracking-widest"
+              />
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setDisableOpen(false); setDisableCode(""); }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDisable}
+              disabled={disabling || disableCode.length < 6}
+            >
+              {disabling ? "Desativando..." : "Desativar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
