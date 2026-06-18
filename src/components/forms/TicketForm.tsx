@@ -1,7 +1,7 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, Save, Upload, X } from "lucide-react";
+import { Check, ChevronDown, LayoutTemplate, Plus, Save, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { getUserDisplayName, getUserOrganizationIds, isClientUser } from "@/lib/auth";
@@ -10,6 +10,12 @@ import { Field, FormSection } from "@/components/app/Field";
 import { UserPickerField, type UserPickerOption } from "@/components/forms/UserPickerField";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/services/api";
 import { listActivities } from "@/services/activityService";
 import { listActivityTags } from "@/services/activityTagService";
 import { listOrganizations } from "@/services/clientService";
@@ -231,6 +238,47 @@ export function TicketForm({
   const [tagSearch, setTagSearch] = useState("");
   const [checkInput, setCheckInput] = useState("");
   const contactAutofillRef = useRef<{ name: string; phone: string } | null>(null);
+
+  // Template selector state
+  type TicketTemplate = {
+    id: string;
+    name: string;
+    title: string;
+    type: string;
+    priority: string;
+    description_template: string;
+    tags: string[];
+  };
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [templates, setTemplates] = useState<TicketTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+
+  const openTemplateDialog = useCallback(async () => {
+    setTemplateDialogOpen(true);
+    if (templates.length > 0) return;
+    setTemplatesLoading(true);
+    try {
+      const res = await api.get("/ticket-templates/");
+      setTemplates(res.data as TicketTemplate[]);
+    } catch {
+      // ignore
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [templates.length]);
+
+  const applyTemplate = (template: TicketTemplate) => {
+    setData((current) => ({
+      ...current,
+      title: template.title || current.title,
+      type: template.type || current.type,
+      priority: template.priority || current.priority,
+      description: template.description_template || current.description,
+      tags: template.tags?.length ? template.tags : current.tags,
+    }));
+    setTemplateDialogOpen(false);
+    toast.success(`Template "${template.name}" aplicado.`);
+  };
 
   const { data: organizations = [] } = useQuery({
     queryKey: ["form-organizations"],
@@ -536,6 +584,21 @@ export function TicketForm({
 
   return (
     <form onSubmit={submit} className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      {/* Template selector button — fetches /ticket-templates/ and pre-fills form */}
+      <div className="lg:col-span-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={openTemplateDialog}
+        >
+          <LayoutTemplate className="h-3.5 w-3.5" />
+          Usar template
+          <ChevronDown className="h-3 w-3 opacity-60" />
+        </Button>
+      </div>
+
       <div className="space-y-5 lg:col-span-2">
         <FormSection
           title="Dados da solicitacao"
@@ -1027,6 +1090,43 @@ export function TicketForm({
           </Button>
         </div>
       </div>
+
+      {/* Template selector dialog */}
+      <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selecionar template</DialogTitle>
+          </DialogHeader>
+          {templatesLoading ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Carregando templates...</p>
+          ) : templates.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum template disponível.</p>
+          ) : (
+            <div className="max-h-72 space-y-1 overflow-y-auto py-2">
+              {templates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => applyTemplate(tpl)}
+                  className="flex w-full items-start gap-3 rounded-xl border border-transparent bg-muted/20 px-3 py-3 text-left transition-colors hover:border-primary/30 hover:bg-muted/40"
+                >
+                  <LayoutTemplate className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div>
+                    <div className="text-sm font-medium">{tpl.name}</div>
+                    {tpl.title && (
+                      <div className="mt-0.5 text-xs text-muted-foreground truncate">{tpl.title}</div>
+                    )}
+                    <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground">
+                      {tpl.type && <span>{tpl.type}</span>}
+                      {tpl.priority && <span>· {tpl.priority}</span>}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

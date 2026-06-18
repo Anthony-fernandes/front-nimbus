@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { FileDown, FileSpreadsheet } from "lucide-react";
+import { FileDown, FileSpreadsheet, Table2 } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { CardSkeleton } from "@/components/app/CardSkeleton";
@@ -20,7 +20,7 @@ import {
   buildStatusDistribution,
   buildTechnicianLoad,
 } from "@/services/analytics";
-import { exportReportCSV, getRatingsReport, getSLAReport, getTicketsReport } from "@/services/reportService";
+import { exportReportCSV, exportReportExcel, getRatingsReport, getSLAReport, getTicketsReport } from "@/services/reportService";
 import type { Activity, Organization, Project, Sprint, Ticket, User } from "@/lib/types";
 
 export const Route = createFileRoute("/reports")({
@@ -81,8 +81,14 @@ function ReportsPage() {
             <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => exportReportCSV("tickets", { date_from: dateFrom, date_to: dateTo })}>
               <FileSpreadsheet className="h-3.5 w-3.5" /> Chamados CSV
             </Button>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => exportReportExcel("tickets", { date_from: dateFrom, date_to: dateTo })}>
+              <Table2 className="h-3.5 w-3.5" /> Chamados Excel
+            </Button>
             <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => exportReportCSV("sla", { date_from: dateFrom, date_to: dateTo })}>
               <FileDown className="h-3.5 w-3.5" /> SLA CSV
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => exportReportExcel("sla", { date_from: dateFrom, date_to: dateTo })}>
+              <Table2 className="h-3.5 w-3.5" /> SLA Excel
             </Button>
           </div>
         </div>

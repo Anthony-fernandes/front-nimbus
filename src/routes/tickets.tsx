@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpDown,
   Ban,
+  Bookmark,
   Check,
   CheckCheck,
   Clock,
@@ -152,6 +153,49 @@ function TicketsPage() {
   const [bulkAction, setBulkAction] = useState<BulkActionType>(null);
   const [bulkValue, setBulkValue] = useState("");
   const [bulkSaving, setBulkSaving] = useState(false);
+
+  // Saved filters (localStorage)
+  type SavedFilter = { name: string; filters: TicketAdvancedFilters };
+  const SAVED_FILTERS_KEY = "ticket_saved_filters";
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(SAVED_FILTERS_KEY) || "[]") as SavedFilter[];
+    } catch {
+      return [];
+    }
+  });
+  const [saveFilterOpen, setSaveFilterOpen] = useState(false);
+  const [saveFilterName, setSaveFilterName] = useState("");
+  const saveFilterInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (saveFilterOpen && saveFilterInputRef.current) {
+      saveFilterInputRef.current.focus();
+    }
+  }, [saveFilterOpen]);
+
+  const persistSavedFilters = (next: SavedFilter[]) => {
+    setSavedFilters(next);
+    localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(next));
+  };
+
+  const handleSaveFilter = () => {
+    const name = saveFilterName.trim();
+    if (!name) return;
+    const next: SavedFilter[] = [...savedFilters.filter((f) => f.name !== name), { name, filters }];
+    persistSavedFilters(next);
+    setSaveFilterName("");
+    setSaveFilterOpen(false);
+  };
+
+  const handleLoadSavedFilter = (saved: SavedFilter) => {
+    setFilters(saved.filters);
+  };
+
+  const handleDeleteSavedFilter = (name: string) => {
+    persistSavedFilters(savedFilters.filter((f) => f.name !== name));
+  };
+
   const canViewTickets = hasAnyPermission(currentUser, [
     "tickets.viewAll",
     "tickets.viewAssigned",
@@ -642,6 +686,75 @@ function TicketsPage() {
                 </Popover>
               </div>
             </div>
+
+            {/* Saved filter chips */}
+            {savedFilters.length > 0 || activeAdvancedFilterCount > 0 ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {savedFilters.map((saved) => (
+                  <span
+                    key={saved.name}
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs text-primary"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleLoadSavedFilter(saved)}
+                      className="font-medium"
+                    >
+                      {saved.name}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSavedFilter(saved.name)}
+                      aria-label={`Remover filtro ${saved.name}`}
+                      className="ml-0.5 opacity-70 hover:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+                {activeAdvancedFilterCount > 0 ? (
+                  <div className="relative">
+                    {saveFilterOpen ? (
+                      <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-1">
+                        <input
+                          ref={saveFilterInputRef}
+                          value={saveFilterName}
+                          onChange={(e) => setSaveFilterName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveFilter();
+                            if (e.key === "Escape") setSaveFilterOpen(false);
+                          }}
+                          placeholder="Nome do filtro..."
+                          className="w-32 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveFilter}
+                          className="text-primary text-xs font-medium"
+                        >
+                          Salvar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSaveFilterOpen(false)}
+                          className="text-muted-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSaveFilterOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                      >
+                        <Bookmark className="h-3 w-3" /> Salvar filtro
+                      </button>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
               <span>

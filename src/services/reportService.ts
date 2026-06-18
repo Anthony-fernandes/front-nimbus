@@ -81,6 +81,11 @@ export const exportReportCSV = (type: string, params: { date_from?: string; date
   window.open(`${api.defaults.baseURL}/reports/?${query}`, "_blank");
 };
 
+export const exportReportExcel = (type: string, params: { date_from?: string; date_to?: string } = {}) => {
+  const query = new URLSearchParams({ type, export: "excel", ...params }).toString();
+  window.open(`${api.defaults.baseURL}/reports/?${query}`, "_blank");
+};
+
 export const getSLAAlerts = async (): Promise<SLAAlerts> => {
   const res = await api.get("/sla-policies/alerts/");
   return res.data as SLAAlerts;
