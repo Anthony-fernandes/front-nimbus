@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, MessageCircle, Plus, Send } from "lucide-react";
@@ -59,11 +59,18 @@ function ChatPage() {
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [participantSearch, setParticipantSearch] = useState("");
   const wsRef = useRef<WebSocket | null>(null);
+  const notifWsRef = useRef<WebSocket | null>(null);
+  const wsConnected = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const selectedConvRef = useRef<string | null>(null);
+
+  // Keep ref in sync so WS callbacks can read current value without closure staleness
+  useEffect(() => { selectedConvRef.current = selectedConversationId; }, [selectedConversationId]);
 
   const conversationsQuery = useQuery({
     queryKey: ["chat-conversations"],
     queryFn: listChatConversations,
+    refetchInterval: 15_000,
   });
 
   const usersQuery = useQuery({
@@ -75,6 +82,8 @@ function ChatPage() {
     queryKey: ["chat-messages", selectedConversationId],
     queryFn: () => (selectedConversationId ? listChatMessages(selectedConversationId) : Promise.resolve([])),
     enabled: !!selectedConversationId,
+    // Poll every 5s when WebSocket is not connected
+    refetchInterval: wsConnected.current ? false : 5_000,
   });
 
   // Sync REST messages into state
@@ -84,7 +93,62 @@ function ChatPage() {
     }
   }, [messagesQuery.data]);
 
-  // WebSocket connection
+  const appendMessage = useCallback((msg: ChatMessage) => {
+    setMessages((prev) => {
+      // Replace optimistic placeholder if content + author match
+      const optIdx = prev.findIndex(
+        (m) => m.id.startsWith("opt-") && m.author === msg.author && m.content === msg.content,
+      );
+      if (optIdx !== -1) {
+        const next = [...prev];
+        next[optIdx] = msg;
+        return next;
+      }
+      // Deduplicate by real id
+      if (prev.some((m) => m.id === msg.id)) return prev;
+      return [...prev, msg];
+    });
+  }, []);
+
+  // Global notification WebSocket (personal channel)
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    const base = API_BASE_URL.replace(/\/api$/, "");
+    const wsBase = base.replace(/^https:\/\//, "wss://").replace(/^http:\/\//, "ws://");
+    const url = `${wsBase}/ws/notifications/?token=${token}`;
+
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(url);
+      notifWsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data as string) as Partial<ChatMessage> & { event?: string };
+          if (data.event === "chat.new_message") {
+            // New message in a different conversation — refresh list and show toast
+            if (data.conversation && data.conversation !== selectedConvRef.current) {
+              void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
+              toast(`💬 ${data.author_name || "Alguém"}: ${(data.content ?? "").slice(0, 60)}`);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      };
+    } catch {
+      // WebSocket not available
+    }
+
+    return () => {
+      ws?.close();
+      notifWsRef.current = null;
+    };
+  }, [queryClient]);
+
+  // Conversation WebSocket connection
   useEffect(() => {
     if (!selectedConversationId) return;
 
@@ -98,24 +162,22 @@ function ChatPage() {
       ws = new WebSocket(url);
       wsRef.current = ws;
 
+      ws.onopen = () => { wsConnected.current = true; };
+
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data as string) as Partial<ChatMessage>;
           if (data.id && data.content) {
-            setMessages((prev) => {
-              const exists = prev.some((m) => m.id === data.id);
-              if (exists) return prev;
-              return [...prev, data as ChatMessage];
-            });
+            appendMessage(data as ChatMessage);
+            void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
           }
         } catch {
           // ignore parse errors
         }
       };
 
-      ws.onerror = () => {
-        // WS failed — REST fallback is already in place
-      };
+      ws.onclose = () => { wsConnected.current = false; };
+      ws.onerror = () => { wsConnected.current = false; };
     } catch {
       // WebSocket not available
     }
@@ -123,8 +185,9 @@ function ChatPage() {
     return () => {
       ws?.close();
       wsRef.current = null;
+      wsConnected.current = false;
     };
-  }, [selectedConversationId]);
+  }, [selectedConversationId, appendMessage, queryClient]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -151,29 +214,38 @@ function ChatPage() {
     const content = inputText.trim();
     setInputText("");
 
-    // Optimistic add (temporary message without a real id)
-    const optimistic: ChatMessage = {
-      id: `opt-${Date.now()}`,
-      conversation: selectedConversationId,
-      author: user?.id ?? "",
-      author_name: user ? (user as { display_name?: string }).display_name ?? "" : "",
-      content,
-      file: null,
-      file_name: null,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimistic]);
-
-    // Try WS first
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Add optimistic message; it will be replaced when server echoes back with real id
+      const optimistic: ChatMessage = {
+        id: `opt-${Date.now()}`,
+        conversation: selectedConversationId,
+        author: user?.id ?? "",
+        author_name: user ? ((user as { display_name?: string }).display_name ?? "") : "",
+        content,
+        file: null,
+        file_name: null,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimistic]);
       wsRef.current.send(JSON.stringify({ type: "message", content }));
     } else {
-      // REST fallback
+      // REST fallback — add optimistic then replace with real message
+      const optimistic: ChatMessage = {
+        id: `opt-${Date.now()}`,
+        conversation: selectedConversationId,
+        author: user?.id ?? "",
+        author_name: user ? ((user as { display_name?: string }).display_name ?? "") : "",
+        content,
+        file: null,
+        file_name: null,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimistic]);
+
       sendChatMessage(selectedConversationId, content)
         .then((msg) => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === optimistic.id ? msg : m)),
-          );
+          setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? msg : m)));
+          void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
         })
         .catch(() => {
           toast.error("Não foi possível enviar a mensagem.");
