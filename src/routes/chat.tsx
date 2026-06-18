@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, Plus, Send } from "lucide-react";
+import { Check, MessageCircle, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL } from "@/services/api";
 import {
@@ -25,6 +26,8 @@ import {
   sendChatMessage,
 } from "@/services/knowledgeService";
 import { getAccessToken, getStoredUser } from "@/services/session";
+import { listUsers } from "@/services/userService";
+import { getUserDisplayName } from "@/lib/auth";
 import type { ChatMessage } from "@/lib/types";
 
 export const Route = createFileRoute("/chat")({
@@ -53,12 +56,19 @@ function ChatPage() {
   const [inputText, setInputText] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [participantInput, setParticipantInput] = useState("");
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
+  const [participantSearch, setParticipantSearch] = useState("");
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const conversationsQuery = useQuery({
     queryKey: ["chat-conversations"],
     queryFn: listChatConversations,
+  });
+
+  const usersQuery = useQuery({
+    queryKey: ["users-list"],
+    queryFn: () => listUsers(),
   });
 
   const messagesQuery = useQuery({
@@ -127,6 +137,8 @@ function ChatPage() {
       toast.success("Conversa criada.");
       setDialogOpen(false);
       setParticipantInput("");
+      setSelectedParticipants([]);
+      setParticipantSearch("");
       void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
       setSelectedConversationId(conv.id);
     },
@@ -309,13 +321,65 @@ function ChatPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>IDs dos participantes (separados por vírgula)</Label>
+              <Label>Buscar participantes</Label>
               <Input
-                value={participantInput}
-                onChange={(e) => setParticipantInput(e.target.value)}
-                placeholder="uuid1, uuid2..."
+                value={participantSearch}
+                onChange={(e) => setParticipantSearch(e.target.value)}
+                placeholder="Nome ou e-mail..."
+                autoFocus
               />
             </div>
+            <ScrollArea className="h-48 rounded-md border">
+              <div className="p-1 space-y-0.5">
+                {(usersQuery.data || [])
+                  .filter((u) => {
+                    if (!participantSearch.trim()) return true;
+                    const q = participantSearch.toLowerCase();
+                    return (
+                      getUserDisplayName(u).toLowerCase().includes(q) ||
+                      (u.email || "").toLowerCase().includes(q)
+                    );
+                  })
+                  .filter((u) => u.id !== user?.id)
+                  .map((u) => {
+                    const selected = selectedParticipants.includes(u.id);
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedParticipants((prev) =>
+                            selected ? prev.filter((id) => id !== u.id) : [...prev, u.id],
+                          )
+                        }
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm text-left hover:bg-muted transition-colors",
+                          selected && "bg-primary/10 font-medium",
+                        )}
+                      >
+                        <span className="flex-1 truncate">
+                          {getUserDisplayName(u)}
+                          {u.email && (
+                            <span className="text-xs text-muted-foreground ml-1">({u.email})</span>
+                          )}
+                        </span>
+                        {selected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                      </button>
+                    );
+                  })}
+                {usersQuery.isLoading && (
+                  <p className="text-xs text-muted-foreground text-center py-4">Carregando...</p>
+                )}
+                {!usersQuery.isLoading && (usersQuery.data || []).length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">Nenhum usuário encontrado.</p>
+                )}
+              </div>
+            </ScrollArea>
+            {selectedParticipants.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {selectedParticipants.length} participante(s) selecionado(s)
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
@@ -323,14 +387,10 @@ function ChatPage() {
             </Button>
             <Button
               onClick={() => {
-                const ids = participantInput
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                if (ids.length === 0) return;
-                createConvMutation.mutate(ids);
+                if (selectedParticipants.length === 0) return;
+                createConvMutation.mutate(selectedParticipants);
               }}
-              disabled={createConvMutation.isPending || !participantInput.trim()}
+              disabled={createConvMutation.isPending || selectedParticipants.length === 0}
             >
               Criar
             </Button>

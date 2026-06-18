@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Plus } from "lucide-react";
@@ -31,8 +32,76 @@ function daysUntil(date?: string | null) {
   return diff < 0 ? `${Math.abs(diff)} dias de atraso` : `${diff} dias`;
 }
 
+function ProjectTimeline({ projects }: { projects: Project[] }) {
+  const projectsWithDates = projects.filter((p) => p.start_at || p.due_at);
+  if (projectsWithDates.length === 0) {
+    return (
+      <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
+        Nenhum projeto com datas definidas para exibir na timeline.
+      </div>
+    );
+  }
+
+  const allDates = projectsWithDates.flatMap((p) => [p.start_at, p.due_at].filter(Boolean) as string[]);
+  const minDate = new Date(Math.min(...allDates.map((d) => new Date(d).getTime())));
+  const maxDate = new Date(Math.max(...allDates.map((d) => new Date(d).getTime())));
+  const totalMs = maxDate.getTime() - minDate.getTime() || 1;
+
+  const statusColors: Record<string, string> = {
+    "Em andamento": "bg-blue-500",
+    "Planejado": "bg-slate-400",
+    "Concluído": "bg-green-500",
+    "Em risco": "bg-orange-500",
+    "Cancelado": "bg-red-400",
+  };
+
+  return (
+    <div className="glass overflow-hidden rounded-2xl shadow-card">
+      <div className="overflow-x-auto p-4">
+        <div className="min-w-[600px] space-y-2">
+          {projectsWithDates.map((project) => {
+            const start = project.start_at ? new Date(project.start_at) : minDate;
+            const end = project.due_at ? new Date(project.due_at) : start;
+            const left = ((start.getTime() - minDate.getTime()) / totalMs) * 100;
+            const width = Math.max(1, ((end.getTime() - start.getTime()) / totalMs) * 100);
+            const color = statusColors[project.status || ""] || "bg-primary";
+
+            return (
+              <div key={project.id} className="flex items-center gap-3">
+                <Link
+                  to="/projects/$id"
+                  params={{ id: project.id }}
+                  className="w-40 shrink-0 truncate text-xs font-medium hover:text-primary"
+                >
+                  {project.name}
+                </Link>
+                <div className="relative flex-1 h-6">
+                  <div className="absolute inset-y-0 w-full rounded bg-muted/40" />
+                  <div
+                    className={`absolute inset-y-1 rounded ${color} opacity-80`}
+                    style={{ left: `${left}%`, width: `${width}%` }}
+                    title={`${project.start_at || "?"} → ${project.due_at || "?"}`}
+                  />
+                </div>
+                <span className="w-12 shrink-0 text-right text-[10px] text-muted-foreground">
+                  {project.progress ?? 0}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex justify-between text-[10px] text-muted-foreground min-w-[600px] pl-44 pr-16">
+          <span>{minDate.toLocaleDateString("pt-BR")}</span>
+          <span>{maxDate.toLocaleDateString("pt-BR")}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProjectsPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [view, setView] = useState<"list" | "timeline">("list");
   const { data: projects = [], isLoading, isError } = useQuery({
     queryKey: ["projects"],
     queryFn: () => listProjects(),
@@ -62,24 +131,26 @@ function ProjectsPage() {
               </a>
             </Button>
             <div className="flex gap-1.5 text-xs">
-              <Link
-                to="/projects"
-                className="rounded-lg bg-gradient-primary px-3 py-1.5 text-primary-foreground shadow-glow"
+              <button
+                type="button"
+                onClick={() => setView("list")}
+                className={`rounded-lg px-3 py-1.5 transition-colors ${view === "list" ? "bg-gradient-primary text-primary-foreground shadow-glow" : "glass hover:border-primary/40"}`}
               >
                 Lista
-              </Link>
+              </button>
               <Link
                 to="/kanban"
                 className="glass rounded-lg px-3 py-1.5 transition-colors hover:border-primary/40"
               >
                 Kanban
               </Link>
-              <span
-                title="Timeline em breve"
-                className="glass cursor-not-allowed rounded-lg px-3 py-1.5 text-muted-foreground/80"
+              <button
+                type="button"
+                onClick={() => setView("timeline")}
+                className={`rounded-lg px-3 py-1.5 transition-colors ${view === "timeline" ? "bg-gradient-primary text-primary-foreground shadow-glow" : "glass hover:border-primary/40"}`}
               >
                 Timeline
-              </span>
+              </button>
             </div>
           </div>
         </div>
@@ -96,7 +167,9 @@ function ProjectsPage() {
           </div>
         ) : null}
 
-        <div className="glass overflow-hidden rounded-2xl shadow-card">
+        {view === "timeline" && <ProjectTimeline projects={projects.filter(Boolean) as Project[]} />}
+
+        {view === "list" && <div className="glass overflow-hidden rounded-2xl shadow-card">
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground hover:bg-transparent">
@@ -172,7 +245,7 @@ function ProjectsPage() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </div>}
       </div>
     </AppShell>
   );
