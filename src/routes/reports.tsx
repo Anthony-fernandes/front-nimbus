@@ -4,6 +4,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { FileDown, FileSpreadsheet } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { CardSkeleton } from "@/components/app/CardSkeleton";
 import { BurndownChart, SlaChart, StatusPie, TechChart } from "@/components/dashboard/Charts";
 import { Button } from "@/components/ui/button";
 import { listClients } from "@/services/clientService";
@@ -56,6 +57,7 @@ function ReportsPage() {
   const activities = (results[3].data || []) as Activity[];
   const users = (results[4].data || []) as User[];
   const sprints = (results[5].data || []) as Sprint[];
+  const isLoadingAll = results.some((r) => r.isLoading);
   const summary = buildReportSummary({ tickets, projects, clients, activities });
   const ticketTrend = buildDailyTicketTrend(tickets);
   const technicianLoad = buildTechnicianLoad(tickets, users);
@@ -117,14 +119,18 @@ function ReportsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {summary.map((item) => (
-            <div key={item.label} className="glass rounded-xl p-4 animate-fade-in-up">
-              <div className="text-xs text-muted-foreground">{item.label}</div>
-              <div className="text-2xl font-semibold mt-1">{item.value}</div>
-            </div>
-          ))}
-        </div>
+        {isLoadingAll ? (
+          <CardSkeleton count={4} />
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {summary.map((item) => (
+              <div key={item.label} className="glass rounded-xl p-4 animate-fade-in-up">
+                <div className="text-xs text-muted-foreground">{item.label}</div>
+                <div className="text-2xl font-semibold mt-1">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Section title="Chamados por dia"><SlaChart data={ticketTrend} /></Section>

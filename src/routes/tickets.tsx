@@ -32,6 +32,8 @@ import { api } from "@/services/api";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { TableSkeleton } from "@/components/app/TableSkeleton";
+import { EmptyState } from "@/components/app/EmptyState";
 import { TicketWorkflowDialog, type TicketWorkflowDialogSubmitData } from "@/components/tickets/TicketWorkflowDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -659,54 +661,86 @@ function TicketsPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <th className="px-4 py-2.5 text-left font-medium">ID</th>
-                  <th className="px-2 py-2.5 text-left font-medium">Titulo</th>
-                  <th className="px-2 py-2.5 text-left font-medium">Organizacao atendida</th>
-                  <th className="px-2 py-2.5 text-left font-medium">Categoria</th>
-                  <th className="px-2 py-2.5 text-left font-medium">Prioridade</th>
-                  <th className="px-2 py-2.5 text-left font-medium">Status</th>
-                  <th className="px-2 py-2.5 text-left font-medium">Tecnico</th>
-                  <th className="px-2 py-2.5 text-left font-medium">SLA</th>
-                  <th className="px-4 py-2.5" />
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                      Carregando chamados...
-                    </td>
+          {isLoading ? (
+            <div className="p-4">
+              <TableSkeleton rows={8} cols={9} />
+            </div>
+          ) : tickets.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                title="Nenhum chamado cadastrado ainda."
+                description="Assim que novos chamados forem criados, eles aparecerao aqui."
+              />
+            </div>
+          ) : filteredTickets.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                title="Nenhum chamado encontrado"
+                description="Tente ajustar os filtros ou crie um novo chamado."
+                action={
+                  <button
+                    type="button"
+                    onClick={resetAllListControls}
+                    className="text-xs text-primary underline"
+                  >
+                    Limpar filtros
+                  </button>
+                }
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <th className="px-4 py-2.5 text-left font-medium">
+                      <Checkbox
+                        checked={selectedIds.size === filteredTickets.length && filteredTickets.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Selecionar todos"
+                      />
+                    </th>
+                    <th className="px-2 py-2.5 text-left font-medium">ID</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Titulo</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Organizacao atendida</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Categoria</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Prioridade</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Status</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Tecnico</th>
+                    <th className="px-2 py-2.5 text-left font-medium">SLA</th>
+                    <th className="px-4 py-2.5" />
                   </tr>
-                ) : tickets.length === 0 ? (
-                  <EmptyStateRow
-                    title="Nenhum chamado cadastrado ainda."
-                    description="Assim que novos chamados forem criados, eles aparecerao aqui."
-                  />
-                ) : filteredTickets.length === 0 ? (
-                  <EmptyStateRow
-                    title="Nenhum chamado encontrado com os filtros atuais."
-                    description="Tente ajustar a busca, os filtros avancados ou o filtro rapido ativo."
-                    actionLabel="Limpar filtros"
-                    onAction={resetAllListControls}
-                  />
-                ) : (
-                  filteredTickets.map((ticket) => {
+                </thead>
+                <tbody>
+                  {filteredTickets.map((ticket) => {
                     const actions = getAvailableTicketActions(ticket, statusConfigs, workflowPermissions);
                     const flowActions = actions.filter(
                       (action) => !["open_details", "edit"].includes(action.id),
                     );
+                    const isSelected = selectedIds.has(ticket.id);
 
                     return (
                       <tr
                         key={ticket.id}
                         onClick={() => navigate({ to: "/tickets/$id", params: { id: ticket.id } })}
-                        className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/30"
+                        className={cn(
+                          "cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/30",
+                          isSelected && "bg-primary/5",
+                        )}
                       >
-                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                        <td
+                          className="px-4 py-3"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                          }}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleTicketSelection(ticket.id)}
+                            aria-label={`Selecionar chamado ${ticket.code || ticket.id}`}
+                          />
+                        </td>
+                        <td className="px-2 py-3 font-mono text-xs text-muted-foreground">
                           <Link to="/tickets/$id" params={{ id: ticket.id }} className="hover:text-primary">
                             {ticket.code || ticket.id.slice(0, 8)}
                           </Link>
@@ -774,12 +808,130 @@ function TicketsPage() {
                         </td>
                       </tr>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+
+        {/* Bulk action bar */}
+        {selectedIds.size > 0 ? (
+          <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-border bg-background/95 px-5 py-3 shadow-card backdrop-blur">
+            <span className="text-sm font-medium text-muted-foreground">
+              {selectedIds.size} selecionado(s)
+            </span>
+            <div className="h-4 w-px bg-border" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs"
+              disabled={bulkSaving}
+              onClick={() => {
+                setBulkAction("status");
+                setBulkValue("Finalizado");
+              }}
+            >
+              <Check className="h-3.5 w-3.5" /> Fechar selecionados
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs"
+              onClick={() => setBulkAction("technician")}
+            >
+              <UserRoundCheck className="h-3.5 w-3.5" /> Atribuir tecnico
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5 text-xs text-muted-foreground"
+              onClick={clearSelection}
+            >
+              <X className="h-3.5 w-3.5" /> Cancelar selecao
+            </Button>
+          </div>
+        ) : null}
+
+        {/* Bulk close confirmation */}
+        <Dialog
+          open={bulkAction === "status" && bulkValue === "Finalizado"}
+          onOpenChange={(open) => {
+            if (!open) {
+              setBulkAction(null);
+              setBulkValue("");
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Fechar chamados selecionados</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja fechar {selectedIds.size} chamado(s)? O status sera alterado para "Finalizado".
+            </p>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setBulkAction(null);
+                  setBulkValue("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button disabled={bulkSaving} onClick={applyBulkAction}>
+                {bulkSaving ? "Salvando..." : "Confirmar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk assign technician dialog */}
+        <Dialog
+          open={bulkAction === "technician" && bulkValue === ""}
+          onOpenChange={(open) => {
+            if (!open) {
+              setBulkAction(null);
+              setBulkValue("");
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Atribuir tecnico</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground mb-2">
+              Selecione o tecnico para atribuir aos {selectedIds.size} chamado(s) selecionado(s).
+            </p>
+            <Select onValueChange={(val) => setBulkValue(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar tecnico..." />
+              </SelectTrigger>
+              <SelectContent>
+                {technicianUsers.map((user) => (
+                  <SelectItem key={user.id} value={String(user.id)}>
+                    {user.name || user.username}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setBulkAction(null);
+                  setBulkValue("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button disabled={bulkSaving || !bulkValue} onClick={applyBulkAction}>
+                {bulkSaving ? "Salvando..." : "Atribuir"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <TicketWorkflowDialog
