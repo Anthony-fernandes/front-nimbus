@@ -172,9 +172,9 @@ export function buildReportSummary(args: {
   const { tickets, projects, clients, activities } = args;
 
   return [
-    { label: "Clientes", value: String(clients.length) },
-    { label: "Projetos ativos", value: String(countActiveProjects(projects)) },
-    { label: "Chamados atrasados", value: String(tickets.filter(isTicketLate).length) },
-    { label: "Atividades abertas", value: String(countOpenActivities(activities)) },
+    { label: "Clientes", value: clients.length },
+    { label: "Projetos ativos", value: countActiveProjects(projects) },
+    { label: "Chamados atrasados", value: tickets.filter(isTicketLate).length },
+    { label: "Atividades abertas", value: countOpenActivities(activities) },
   ] satisfies SimplePoint[];
 }

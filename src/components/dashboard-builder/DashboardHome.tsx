@@ -329,7 +329,6 @@ type DashboardComponentPatch = Omit<Partial<DashboardComponentConfig>, "layout">
 };
 
 type DashboardHomeScreen = "viewer" | "builder";
-type BuilderViewport = "desktop" | "tablet" | "mobile";
 type BuilderSidebarTab = "inspector" | "dashboard" | "history";
 
 const LIBRARY_GROUPS = [
@@ -354,12 +353,6 @@ const LIBRARY_GROUPS = [
     types: ["text", "section", "separator"] as DashboardComponentConfig["type"][],
   },
 ] as const;
-
-const BUILDER_VIEWPORTS: Array<{ id: BuilderViewport; label: string; icon: LucideIcon; maxWidth: string }> = [
-  { id: "desktop", label: "Desktop", icon: Monitor, maxWidth: "max-w-[1280px]" },
-  { id: "tablet", label: "Tablet", icon: Tablet, maxWidth: "max-w-[960px]" },
-  { id: "mobile", label: "Mobile", icon: Smartphone, maxWidth: "max-w-[560px]" },
-];
 
 const ICON_OPTIONS = Object.keys(ICON_MAP)
   .sort((left, right) => left.localeCompare(right, "pt-BR"))

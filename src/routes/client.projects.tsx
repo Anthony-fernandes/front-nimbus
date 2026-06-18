@@ -81,7 +81,7 @@ function ClientProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.map((project: Project) => {
+              {(projects.filter(Boolean) as Project[]).map((project) => {
                 const projectRisk = Math.max(0, 100 - Number(project.progress ?? 0));
 
                 return (

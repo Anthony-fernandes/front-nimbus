@@ -20,6 +20,7 @@ import {
   buildTechnicianLoad,
 } from "@/services/analytics";
 import { exportReportCSV, getRatingsReport, getSLAReport, getTicketsReport } from "@/services/reportService";
+import type { Activity, Organization, Project, Sprint, Ticket, User } from "@/lib/types";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [{ title: "Relatórios · Stratos Suite" }] }),
@@ -49,7 +50,12 @@ function ReportsPage() {
     ],
   });
 
-  const [clients = [], projects = [], tickets = [], activities = [], users = [], sprints = []] = results.map((result) => result.data || []);
+  const clients = (results[0].data || []) as Organization[];
+  const projects = (results[1].data || []) as Project[];
+  const tickets = (results[2].data || []) as Ticket[];
+  const activities = (results[3].data || []) as Activity[];
+  const users = (results[4].data || []) as User[];
+  const sprints = (results[5].data || []) as Sprint[];
   const summary = buildReportSummary({ tickets, projects, clients, activities });
   const ticketTrend = buildDailyTicketTrend(tickets);
   const technicianLoad = buildTechnicianLoad(tickets, users);

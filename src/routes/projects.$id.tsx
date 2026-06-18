@@ -95,7 +95,7 @@ function ProjectDetail() {
 
   const project = projectQuery.data;
   const activities = Array.isArray(activitiesQuery.data) ? activitiesQuery.data : [];
-  const stages = normalizeProjectStages(project?.checklist);
+  const stages = normalizeProjectStages(project?.checklist) as ProjectStage[];
   const costs = Array.isArray(costsQuery.data) ? costsQuery.data : [];
   const progressSummary = useMemo(
     () => getProjectProgressSummary({ checklist: stages }, activities),
@@ -291,7 +291,7 @@ function ProjectDetail() {
   }
 
   async function handleRemoveTeamMember(memberId: string, memberName: string) {
-    if (!memberId) {
+    if (!memberId || !project) {
       toast.error("Não foi possível identificar este membro para remoção.");
       return;
     }
@@ -315,7 +315,7 @@ function ProjectDetail() {
   }
 
   async function handleAddTeamMembers() {
-    if (!selectedMembersToAdd.length) {
+    if (!selectedMembersToAdd.length || !project) {
       return;
     }
 
@@ -386,7 +386,7 @@ function ProjectDetail() {
         ...baseProject,
         team: nextTeamIds,
         team_names: nextTeamNames,
-      };
+      } as Project;
     });
 
     try {
@@ -413,9 +413,9 @@ function ProjectDetail() {
     }
 
     const previousProject = cachedProject;
-    const updatedStages = normalizeProjectStages(cachedProject.checklist).map((stage) =>
-      stage.id === stageId ? { ...stage, completed } : stage,
-    );
+    const updatedStages = (normalizeProjectStages(cachedProject.checklist) as ProjectStage[])
+      .map((stage) => (stage && stage.id === stageId ? { ...stage, completed } : stage))
+      .filter(Boolean) as ProjectStage[];
 
     queryClient.setQueryData<Project>(["project", id], {
       ...cachedProject,
@@ -1178,11 +1178,11 @@ function getStageStatusBadgeClass(completed: boolean) {
   return "border-border bg-muted/40 text-muted-foreground";
 }
 
-function toProjectStagePayload(stages: ProjectStage[]) {
+function toProjectStagePayload(stages: ProjectStage[]): ProjectStage[] {
   return stages.map((stage) => ({
     id: stage.id,
     title: stage.title,
-    expectedEndDate: stage.expectedEndDate || null,
+    expectedEndDate: stage.expectedEndDate || undefined,
     completed: Boolean(stage.completed),
   }));
 }

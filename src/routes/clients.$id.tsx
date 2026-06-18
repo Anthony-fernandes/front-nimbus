@@ -142,16 +142,16 @@ function OrganizationDetail() {
                 {projects.length === 0 ? (
                   <EmptyPanel text="Nenhum projeto vinculado a esta organizacao." />
                 ) : (
-                  projects.map((project) => (
+                  projects.filter(Boolean).map((project) => (
                     <Link
-                      key={project.id}
+                      key={project!.id}
                       to="/projects/$id"
-                      params={{ id: project.id }}
+                      params={{ id: project!.id }}
                       className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-3 transition hover:border-primary/40"
                     >
-                      <span className="text-sm">{project.name}</span>
+                      <span className="text-sm">{project!.name}</span>
                       <span className="rounded bg-primary/15 px-2 py-0.5 text-[11px] text-primary">
-                        {project.status || "Planejado"}
+                        {project!.status || "Planejado"}
                       </span>
                     </Link>
                   ))

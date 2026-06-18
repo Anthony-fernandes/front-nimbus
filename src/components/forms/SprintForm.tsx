@@ -88,11 +88,11 @@ export function SprintForm({
   });
 
   const userOptions = users.map(toUserOption);
-  const projectOptions = projects.map((project) => ({
-    value: project.id,
-    label: project.organization_name || project.client_name
-      ? `${project.name} · ${project.organization_name || project.client_name}`
-      : project.name,
+  const projectOptions = projects.filter(Boolean).map((project) => ({
+    value: project!.id,
+    label: project!.organization_name || project!.client_name
+      ? `${project!.name} · ${project!.organization_name || project!.client_name}`
+      : project!.name,
   }));
 
   const set = <K extends keyof SprintFormData>(key: K, value: SprintFormData[K]) =>

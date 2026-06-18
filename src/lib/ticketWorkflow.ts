@@ -503,13 +503,15 @@ export function hasTicketWorkflowStarted(ticket: Ticket, statusConfigs: TicketWo
   }
 
   if (
-    [
-      TICKET_WORKFLOW_STATUS_SLUGS.IN_PROGRESS,
-      TICKET_WORKFLOW_STATUS_SLUGS.WAITING_CUSTOMER,
-      TICKET_WORKFLOW_STATUS_SLUGS.VALIDATION,
-      TICKET_WORKFLOW_STATUS_SLUGS.PAUSED,
-      TICKET_WORKFLOW_STATUS_SLUGS.FINISHED,
-    ].includes(statusSlug as (typeof TICKET_WORKFLOW_STATUS_SLUGS)[keyof typeof TICKET_WORKFLOW_STATUS_SLUGS])
+    (
+      [
+        TICKET_WORKFLOW_STATUS_SLUGS.IN_PROGRESS,
+        TICKET_WORKFLOW_STATUS_SLUGS.WAITING_CUSTOMER,
+        TICKET_WORKFLOW_STATUS_SLUGS.VALIDATION,
+        TICKET_WORKFLOW_STATUS_SLUGS.PAUSED,
+        TICKET_WORKFLOW_STATUS_SLUGS.FINISHED,
+      ] as string[]
+    ).includes(statusSlug)
   ) {
     return true;
   }
@@ -530,15 +532,17 @@ export function isTicketTriageCompleted(ticket: Ticket, statusConfigs: TicketWor
     return true;
   }
 
-  return [
-    TICKET_WORKFLOW_STATUS_SLUGS.AWAITING_SERVICE,
-    TICKET_WORKFLOW_STATUS_SLUGS.IN_PROGRESS,
-    TICKET_WORKFLOW_STATUS_SLUGS.WAITING_CUSTOMER,
-    TICKET_WORKFLOW_STATUS_SLUGS.VALIDATION,
-    TICKET_WORKFLOW_STATUS_SLUGS.PAUSED,
-    TICKET_WORKFLOW_STATUS_SLUGS.FINISHED,
-    TICKET_WORKFLOW_STATUS_SLUGS.CANCELED,
-  ].includes(statusSlug as (typeof TICKET_WORKFLOW_STATUS_SLUGS)[keyof typeof TICKET_WORKFLOW_STATUS_SLUGS]);
+  return (
+    [
+      TICKET_WORKFLOW_STATUS_SLUGS.AWAITING_SERVICE,
+      TICKET_WORKFLOW_STATUS_SLUGS.IN_PROGRESS,
+      TICKET_WORKFLOW_STATUS_SLUGS.WAITING_CUSTOMER,
+      TICKET_WORKFLOW_STATUS_SLUGS.VALIDATION,
+      TICKET_WORKFLOW_STATUS_SLUGS.PAUSED,
+      TICKET_WORKFLOW_STATUS_SLUGS.FINISHED,
+      TICKET_WORKFLOW_STATUS_SLUGS.CANCELED,
+    ] as string[]
+  ).includes(statusSlug);
 }
 
 export function isTicketSlaPaused(ticket: Ticket, statusConfigs: TicketWorkflowStatusConfig[]) {
@@ -602,11 +606,13 @@ export function getAvailableTicketActions(
   if (
     canCategorize &&
     !triageCompleted &&
-    [
-      TICKET_WORKFLOW_STATUS_SLUGS.OPEN,
-      TICKET_WORKFLOW_STATUS_SLUGS.APPROVED,
-      TICKET_WORKFLOW_STATUS_SLUGS.TRIAGE,
-    ].includes(currentStatus as (typeof TICKET_WORKFLOW_STATUS_SLUGS)[keyof typeof TICKET_WORKFLOW_STATUS_SLUGS])
+    (
+      [
+        TICKET_WORKFLOW_STATUS_SLUGS.OPEN,
+        TICKET_WORKFLOW_STATUS_SLUGS.APPROVED,
+        TICKET_WORKFLOW_STATUS_SLUGS.TRIAGE,
+      ] as string[]
+    ).includes(currentStatus)
   ) {
     actions.push({
       id: "categorize",
@@ -619,12 +625,14 @@ export function getAvailableTicketActions(
     !hasStarted &&
     !approvalPending &&
     triageCompleted &&
-    [
-      TICKET_WORKFLOW_STATUS_SLUGS.OPEN,
-      TICKET_WORKFLOW_STATUS_SLUGS.TRIAGE,
-      TICKET_WORKFLOW_STATUS_SLUGS.AWAITING_SERVICE,
-      TICKET_WORKFLOW_STATUS_SLUGS.APPROVED,
-    ].includes(currentStatus as (typeof TICKET_WORKFLOW_STATUS_SLUGS)[keyof typeof TICKET_WORKFLOW_STATUS_SLUGS])
+    (
+      [
+        TICKET_WORKFLOW_STATUS_SLUGS.OPEN,
+        TICKET_WORKFLOW_STATUS_SLUGS.TRIAGE,
+        TICKET_WORKFLOW_STATUS_SLUGS.AWAITING_SERVICE,
+        TICKET_WORKFLOW_STATUS_SLUGS.APPROVED,
+      ] as string[]
+    ).includes(currentStatus)
   ) {
     actions.push({
       id: "start_service",
@@ -1162,7 +1170,7 @@ export function ticketStatusHistoryToTimelineEvents(
       created_at: entry.createdAt,
       type: "status",
       visibility: "internal",
-      message: `${describeHistoryAction(entry.action)}${actor}.${reason}`.trim(),
+      message: `${describeHistoryAction(entry.action as TicketWorkflowActionId)}${actor}.${reason}`.trim(),
       metadata: {
         action: entry.action,
         fromStatus: entry.fromStatus,

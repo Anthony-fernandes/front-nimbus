@@ -3,6 +3,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { Mail, Pencil, Phone, Shield } from "lucide-react";
 import { toast } from "sonner";
 
+import type { Project } from "@/lib/types";
 import { AppShell } from "@/components/app/AppShell";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -55,8 +56,8 @@ function MemberDetail() {
 
   const user = userQuery.data;
   const tickets = (results[0].data || []).filter((ticket) => ticket.technicians?.includes(id));
-  const projects = (results[1].data || []).filter(
-    (project) => project.owner === id || project.team?.includes(id),
+  const projects = ((results[1].data || []) as Project[]).filter(
+    (project) => project !== null && (project.owner === id || project.team?.includes(id)),
   );
   const sprints = (results[2].data || []).filter((sprint) => sprint.lead === id);
   const activities = (results[3].data || []).filter((activity) => activity.assignee === id);

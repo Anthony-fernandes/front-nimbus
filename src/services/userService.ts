@@ -115,7 +115,7 @@ export async function saveMember(
     : { ...payload, ...orgPayload };
 
   try {
-    return mode === "edit" ? updateUser(userId!, extendedPayload) : createUser(extendedPayload);
+    return mode === "edit" ? updateUser(userId!, extendedPayload as Partial<User>) : createUser(extendedPayload as Partial<User>);
   } catch (error) {
     if (!canRetryWithLegacyPayload(error)) {
       throw error;

@@ -72,6 +72,8 @@ export function ClientTicketRequestForm() {
         requesterContactName: data.contactName || requesterName,
         requesterContactPhone: data.contactPhone || requesterPhone,
         attachments: data.attachments,
+        type: "Incidente",
+        urgency: "Media",
       });
       await queryClient.invalidateQueries({ queryKey: ["client-tickets-list", clientId] });
       await queryClient.invalidateQueries({ queryKey: ["client-portal-tickets", clientId] });

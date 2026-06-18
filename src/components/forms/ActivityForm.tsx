@@ -133,7 +133,7 @@ export function ActivityForm({
   );
 
   const userOptions = users.map(toUserOption);
-  const projectOptions = projects.map((project) => ({ value: project.id, label: project.name }));
+  const projectOptions = projects.filter(Boolean).map((project) => ({ value: project!.id, label: project!.name }));
   const ticketOptions = tickets.map((ticket) => ({
     value: ticket.id,
     label: `${ticket.code || ticket.id.slice(0, 8)} · ${ticket.title}`,

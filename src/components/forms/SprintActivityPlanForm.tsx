@@ -103,8 +103,8 @@ export function SprintActivityPlanForm({
   const totalPlannedAfterSave = (selectedActivity?.plannedHoursOutsideSprint || 0) + plannedHoursNow;
   const exceedsEstimate =
     Boolean(selectedActivity)
-    && selectedActivity.estimatedHours > 0
-    && totalPlannedAfterSave > selectedActivity.estimatedHours;
+    && (selectedActivity?.estimatedHours ?? 0) > 0
+    && totalPlannedAfterSave > (selectedActivity?.estimatedHours ?? 0);
 
   const set = <K extends keyof SprintActivityPlanFormData>(
     key: K,

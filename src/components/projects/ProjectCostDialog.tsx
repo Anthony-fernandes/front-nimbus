@@ -92,7 +92,7 @@ function parseRelatedItemValue(value: string) {
   }
 
   const [type, ...idParts] = value.split(":");
-  const relatedItemType = type === "activity" || type === "ticket" ? type : undefined;
+  const relatedItemType = (type === "activity" || type === "ticket" ? type : undefined) as ProjectCostRelatedType | undefined;
   const relatedItemId = idParts.join(":") || undefined;
 
   return { relatedItemId, relatedItemType };

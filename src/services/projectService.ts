@@ -168,7 +168,7 @@ export function normalizeProjectStages(stages?: LegacyProjectStage[] | LegacyPro
         completed: Boolean(completed),
       };
     })
-    .filter((stage): stage is ProjectStage => Boolean(stage));
+    .filter(Boolean) as ProjectStage[];
 }
 
 function normalizeProjectStatus(status?: string) {
@@ -218,7 +218,7 @@ export function normalizeProject(project?: Project | null) {
     tags: coerceArray(rawProject.tags as string[] | string | null | undefined)
       .map((tag) => toText(tag))
       .filter(Boolean),
-    checklist: normalizeProjectStages(rawProject.checklist ?? rawProject.stages),
+    checklist: normalizeProjectStages((rawProject.checklist ?? rawProject.stages) as LegacyProjectStage[] | undefined),
     cost_entries: coerceArray(rawProject.cost_entries as unknown[] | unknown)
       .filter(Boolean) as Project["cost_entries"],
     costs: coerceArray(rawProject.costs as unknown[] | unknown)
@@ -232,7 +232,7 @@ export function listProjects(params?: Record<string, unknown>) {
   return listResource<Project>(ENDPOINT, params).then((projects) =>
     projects
       .map((project) => normalizeProject(project))
-      .filter((project): project is Project => Boolean(project)),
+      .filter(Boolean) as Project[],
   );
 }
 
@@ -280,7 +280,7 @@ export async function saveProject(
     })),
   };
 
-  return mode === "edit" ? updateProject(projectId!, payload) : createProject(payload);
+  return mode === "edit" ? updateProject(projectId!, payload as Partial<Project>) : createProject(payload as Partial<Project>);
 }
 
 export function toProjectFormData(project: Project): Partial<ProjectFormData> {
@@ -301,6 +301,6 @@ export function toProjectFormData(project: Project): Partial<ProjectFormData> {
     usedHours: "",
     tags: normalizedProject.tags || [],
     description: normalizedProject.description || "",
-    stages: normalizeProjectStages(normalizedProject.checklist),
+    stages: normalizeProjectStages(normalizedProject.checklist) as ProjectStage[],
   };
 }

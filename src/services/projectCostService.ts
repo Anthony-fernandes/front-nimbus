@@ -391,6 +391,7 @@ async function writeProjectCostField(projectId: string, costs: ProjectCost[]) {
 async function syncProjectRealCost(projectId: string) {
   try {
     const project = await getProject(projectId);
+    if (!project) return null;
     const costs = await listProjectCosts(projectId);
     const summary = calculateProjectCostSummary(costs, project.budget);
     await updateProject(projectId, { real_cost: summary.realized });

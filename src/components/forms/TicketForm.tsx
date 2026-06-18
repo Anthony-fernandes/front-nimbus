@@ -187,8 +187,8 @@ function toUserSelectOption(user: {
   };
 }
 
-function getUserPhone(user: { phone?: string | null }) {
-  return user.phone || "";
+function getUserPhone(user: { phone?: string | null }): string {
+  return user.phone ?? "";
 }
 
 function getRequesterAutofill(user: {
@@ -202,7 +202,7 @@ function getRequesterAutofill(user: {
   if (!user) return null;
 
   return {
-    name: getUserDisplayName(user),
+    name: getUserDisplayName(user as Partial<User>),
     phone: getUserPhone(user),
   };
 }

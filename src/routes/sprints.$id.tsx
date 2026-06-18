@@ -368,7 +368,7 @@ function SprintDetail() {
                           </div>
 
                           <div className="flex flex-col items-start gap-2 lg:items-end">
-                            <span className={getPlanStatusClass(planSummary.status)}>
+                            <span className={getPlanStatusClass(planSummary.status as "over" | "under" | "balanced")}>
                               {planSummary.label}
                             </span>
                             <div className="flex gap-2">

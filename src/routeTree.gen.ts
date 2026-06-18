@@ -14,6 +14,7 @@ import { Route as TicketCategoriesRouteImport } from './routes/ticket-categories
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as SprintsRouteImport } from './routes/sprints'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SlaRouteImport } from './routes/sla'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PermissionBlocksRouteImport } from './routes/permission-blocks'
@@ -102,6 +103,11 @@ const SprintsRoute = SprintsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SlaRoute = SlaRouteImport.update({
+  id: '/sla',
+  path: '/sla',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -448,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
+  '/sla': typeof SlaRoute
   '/settings': typeof SettingsRoute
   '/sprints': typeof SprintsRouteWithChildren
   '/teams': typeof TeamsRouteWithChildren
@@ -519,6 +526,7 @@ export interface FileRoutesByTo {
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
+  '/sla': typeof SlaRoute
   '/settings': typeof SettingsRoute
   '/sprints': typeof SprintsRouteWithChildren
   '/teams': typeof TeamsRouteWithChildren
@@ -591,6 +599,7 @@ export interface FileRoutesById {
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
+  '/sla': typeof SlaRoute
   '/settings': typeof SettingsRoute
   '/sprints': typeof SprintsRouteWithChildren
   '/teams': typeof TeamsRouteWithChildren
@@ -664,6 +673,7 @@ export interface FileRouteTypes {
     | '/permission-blocks'
     | '/projects'
     | '/reports'
+    | '/sla'
     | '/settings'
     | '/sprints'
     | '/teams'
@@ -735,6 +745,7 @@ export interface FileRouteTypes {
     | '/permission-blocks'
     | '/projects'
     | '/reports'
+    | '/sla'
     | '/settings'
     | '/sprints'
     | '/teams'
@@ -806,6 +817,7 @@ export interface FileRouteTypes {
     | '/permission-blocks'
     | '/projects'
     | '/reports'
+    | '/sla'
     | '/settings'
     | '/sprints'
     | '/teams'
@@ -878,6 +890,7 @@ export interface RootRouteChildren {
   PermissionBlocksRoute: typeof PermissionBlocksRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
   ReportsRoute: typeof ReportsRoute
+  SlaRoute: typeof SlaRoute
   SettingsRoute: typeof SettingsRoute
   SprintsRoute: typeof SprintsRouteWithChildren
   TeamsRoute: typeof TeamsRouteWithChildren
@@ -930,6 +943,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sla': {
+      id: '/sla'
+      path: '/sla'
+      fullPath: '/sla'
+      preLoaderRoute: typeof SlaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -1679,6 +1699,7 @@ const rootRouteChildren: RootRouteChildren = {
   PermissionBlocksRoute: PermissionBlocksRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
   ReportsRoute: ReportsRoute,
+  SlaRoute: SlaRoute,
   SettingsRoute: SettingsRoute,
   SprintsRoute: SprintsRouteWithChildren,
   TeamsRoute: TeamsRouteWithChildren,

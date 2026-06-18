@@ -130,6 +130,7 @@ function ActivityDetail() {
       ? {
           id: `legacy:${activity.id}`,
           activityId: activity.id,
+          sprintId: undefined,
           projectId: activity.project || "",
           collaboratorId: activity.assignee || "",
           collaboratorName: activity.assignee_name || "Registro legado",
@@ -185,7 +186,7 @@ function ActivityDetail() {
           collaboratorId: data.collaboratorId,
           collaboratorName: collaborator?.name,
           date: data.date,
-          hours: data.hours,
+          hours: parseFloat(data.hours) || 0,
           sprintId: data.sprintId,
           workDescription: data.workDescription,
         },
@@ -522,7 +523,7 @@ function ActivityDetail() {
                               {plan.notes || "Sem observacao de planejamento."}
                             </p>
                           </div>
-                          <span className={getPlanStatusClass(planSummary.status)}>
+                          <span className={getPlanStatusClass(planSummary.status as "over" | "under" | "balanced")}>
                             {planSummary.label}
                           </span>
                         </div>

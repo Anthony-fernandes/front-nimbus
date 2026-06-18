@@ -110,7 +110,7 @@ function ProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.map((project: Project) => (
+              {(projects.filter(Boolean) as Project[]).map((project) => (
                 <TableRow key={project.id} className="border-border hover:bg-muted/30">
                   <TableCell className="px-4 py-3">
                     <div className="min-w-0">

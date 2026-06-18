@@ -42,11 +42,11 @@ function normalizeSprintActivityPlan(
     responsibleIds: responsibleIds
       .map((value) => String(value || "").trim())
       .filter(Boolean),
-    plannedHours: Math.max(0, toNumber(payload.plannedHours ?? payload.planned_hours, 0)),
+    plannedHours: Math.max(0, toNumber((payload.plannedHours ?? payload.planned_hours) as string | number | null | undefined, 0)),
     storyPoints:
       payload.storyPoints == null && payload.story_points == null
         ? undefined
-        : Math.max(0, toNumber(payload.storyPoints ?? payload.story_points, 0)),
+        : Math.max(0, toNumber((payload.storyPoints ?? payload.story_points) as string | number | null | undefined, 0)),
     plannedStartDate:
       typeof payload.plannedStartDate === "string"
         ? payload.plannedStartDate
