@@ -1,4 +1,52 @@
 import { formatActivityStatusLabel, formatPriorityLabel, formatSprintStatusLabel, formatTicketStatusLabel } from "@/lib/labels";
+
+/**
+ * Safe recursive-descent parser for simple math expressions.
+ * Supports: numbers, +, -, *, /, unary minus, parentheses.
+ * Throws on any non-math input — no eval, no Function().
+ */
+function safeMath(expression: string): number {
+  const s = expression.replace(/\s+/g, "");
+  let pos = 0;
+
+  function peek() { return s[pos]; }
+  function consume() { return s[pos++]; }
+
+  function parseNumber(): number {
+    if (peek() === "(") {
+      consume(); // (
+      const v = parseExpr();
+      if (consume() !== ")") throw new Error("expected )");
+      return v;
+    }
+    if (peek() === "-") { consume(); return -parseNumber(); }
+    let num = "";
+    while (pos < s.length && /[\d.]/.test(peek())) num += consume();
+    if (!num) throw new Error(`unexpected char: ${peek() ?? "EOF"}`);
+    return parseFloat(num);
+  }
+
+  function parseTerm(): number {
+    let left = parseNumber();
+    while (pos < s.length && (peek() === "*" || peek() === "/")) {
+      const op = consume();
+      const right = parseNumber();
+      left = op === "*" ? left * right : left / right;
+    }
+    return left;
+  }
+
+  function parseExpr(): number {
+    let left = parseTerm();
+    while (pos < s.length && peek() !== ")" && (peek() === "+" || peek() === "-")) {
+      const op = consume();
+      left = op === "+" ? left + parseTerm() : left - parseTerm();
+    }
+    return left;
+  }
+
+  return parseExpr();
+}
 import {
   DASHBOARD_SOURCE_CATALOG,
   type DashboardComponentConfig,
@@ -283,8 +331,7 @@ export function resolveComponentData(
     }
     let result: string;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval
-      const numeric = Number(new Function("return " + expr)());
+      const numeric = safeMath(expr);
       result = isFinite(numeric) ? String(Math.round(numeric * 100) / 100) + suffix : "—";
     } catch {
       result = "—";
