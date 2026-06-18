@@ -1,4 +1,4 @@
-import { type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent as ReactDragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -33,7 +33,6 @@ import {
   Loader2,
   MessageSquare,
   Minus,
-  Monitor,
   PencilLine,
   PieChart,
   Play,
@@ -44,8 +43,6 @@ import {
   Send,
   Settings2,
   ShieldAlert,
-  Smartphone,
-  Tablet,
   Ticket as TicketIcon,
   TimerReset,
   Trash2,
@@ -70,6 +67,9 @@ import {
   YAxis,
 } from "recharts";
 import { toast } from "sonner";
+import ReactGridLayout from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
 
 import { AppShell } from "@/components/app/AppShell";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
@@ -1592,214 +1592,96 @@ function DashboardBuilderCanvas({
   onDeleteComponent: (componentId: string) => void;
   onUpdateComponentLayout: (componentId: string, rect: BuilderGridRect) => void;
 }) {
-  const canvasRef = useRef<HTMLDivElement | null>(null);
-  const resizeSessionRef = useRef<{
-    componentId: string;
-    handle: "nw" | "ne" | "sw" | "se";
-    startX: number;
-    startY: number;
-    startRect: BuilderGridRect;
-    componentType: DashboardComponentConfig["type"];
-  } | null>(null);
-  const [dropPreview, setDropPreview] = useState<(BuilderGridRect & { label: string }) | null>(null);
-  const [draggingComponentId, setDraggingComponentId] = useState<string | null>(null);
-
-  const resolveGridRect = (clientX: number, clientY: number, w: number, h: number): BuilderGridRect | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return null;
-    }
-
-    const bounds = canvas.getBoundingClientRect();
-    const availableWidth = bounds.width - BUILDER_GRID_GAP * (BUILDER_GRID_COLUMNS - 1);
-    const columnWidth = availableWidth / BUILDER_GRID_COLUMNS;
-    const strideX = columnWidth + BUILDER_GRID_GAP;
-    const strideY = BUILDER_GRID_ROW_HEIGHT + BUILDER_GRID_GAP;
-    const offsetX = Math.max(0, clientX - bounds.left);
-    const offsetY = Math.max(0, clientY - bounds.top);
-    const rawX = Math.round(offsetX / Math.max(strideX, 1));
-    const rawY = Math.round(offsetY / Math.max(strideY, 1));
-    const width = Math.max(1, Math.min(BUILDER_GRID_COLUMNS, w));
-
-    return {
-      x: Math.max(0, Math.min(BUILDER_GRID_COLUMNS - width, rawX)),
-      y: Math.max(0, rawY),
-      w: width,
-      h: Math.max(1, h),
-    };
-  };
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(1200);
 
   useEffect(() => {
-    function handlePointerMove(event: PointerEvent) {
-      const session = resizeSessionRef.current;
-      const canvas = canvasRef.current;
-      if (!session || !canvas) {
-        return;
-      }
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width || 1200);
+    });
+    ro.observe(el);
+    setContainerWidth(el.getBoundingClientRect().width || 1200);
+    return () => ro.disconnect();
+  }, []);
 
-      const bounds = canvas.getBoundingClientRect();
-      const availableWidth = bounds.width - BUILDER_GRID_GAP * (BUILDER_GRID_COLUMNS - 1);
-      const columnWidth = availableWidth / BUILDER_GRID_COLUMNS;
-      const strideX = columnWidth + BUILDER_GRID_GAP;
-      const strideY = BUILDER_GRID_ROW_HEIGHT + BUILDER_GRID_GAP;
-      const deltaCols = Math.round((event.clientX - session.startX) / Math.max(strideX, 1));
-      const deltaRows = Math.round((event.clientY - session.startY) / Math.max(strideY, 1));
-      const fullWidth = isFullWidthBuilderType(session.componentType);
+  const layout = items.map(({ component }) => ({
+    i: component.id,
+    x: component.layout.x ?? 0,
+    y: component.layout.y ?? 0,
+    w: component.layout.w ?? component.layout.colSpan ?? 12,
+    h: component.layout.h ?? 2,
+    minW: isFullWidthBuilderType(component.type) ? BUILDER_GRID_COLUMNS : 2,
+    maxW: isFullWidthBuilderType(component.type) ? BUILDER_GRID_COLUMNS : BUILDER_GRID_COLUMNS,
+  }));
 
-      let nextRect: BuilderGridRect = { ...session.startRect };
-
-      if (fullWidth) {
-        nextRect = {
-          ...nextRect,
-          x: 0,
-          w: BUILDER_GRID_COLUMNS,
-          h: Math.max(1, session.startRect.h + deltaRows),
-        };
-      } else {
-        switch (session.handle) {
-          case "se":
-            nextRect = {
-              ...nextRect,
-              w: Math.max(1, Math.min(BUILDER_GRID_COLUMNS - session.startRect.x, session.startRect.w + deltaCols)),
-              h: Math.max(1, session.startRect.h + deltaRows),
-            };
-            break;
-          case "sw": {
-            const nextX = Math.max(0, Math.min(session.startRect.x + session.startRect.w - 1, session.startRect.x + deltaCols));
-            nextRect = {
-              ...nextRect,
-              x: nextX,
-              w: Math.max(1, session.startRect.w - (nextX - session.startRect.x)),
-              h: Math.max(1, session.startRect.h + deltaRows),
-            };
-            break;
-          }
-          case "ne": {
-            const nextY = Math.max(0, Math.min(session.startRect.y + session.startRect.h - 1, session.startRect.y + deltaRows));
-            nextRect = {
-              ...nextRect,
-              y: nextY,
-              w: Math.max(1, Math.min(BUILDER_GRID_COLUMNS - session.startRect.x, session.startRect.w + deltaCols)),
-              h: Math.max(1, session.startRect.h - (nextY - session.startRect.y)),
-            };
-            break;
-          }
-          case "nw": {
-            const nextX = Math.max(0, Math.min(session.startRect.x + session.startRect.w - 1, session.startRect.x + deltaCols));
-            const nextY = Math.max(0, Math.min(session.startRect.y + session.startRect.h - 1, session.startRect.y + deltaRows));
-            nextRect = {
-              x: nextX,
-              y: nextY,
-              w: Math.max(1, session.startRect.w - (nextX - session.startRect.x)),
-              h: Math.max(1, session.startRect.h - (nextY - session.startRect.y)),
-            };
-            break;
-          }
-        }
-      }
-
-      onUpdateComponentLayout(session.componentId, nextRect);
-    }
-
-    function handlePointerUp() {
-      resizeSessionRef.current = null;
-    }
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-  }, [onUpdateComponentLayout]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const RGL = (ReactGridLayout as any).default ?? ReactGridLayout;
 
   return (
     <div className="p-5">
       <div
-        ref={canvasRef}
-        className="relative rounded-xl border border-border bg-background/20 p-3"
-        onDragOver={(event) => {
+        ref={containerRef}
+        className="relative min-h-[300px] rounded-xl border border-border bg-background/20 p-3"
+        onDragOver={(e) => {
           const payload = _activeDragPayload;
-          if (!payload) {
-            return;
-          }
-
-          event.preventDefault();
-          const previewRect = resolveGridRect(event.clientX, event.clientY, payload.w, payload.h);
-          if (!previewRect) {
-            return;
-          }
-
-          setDropPreview({
-            ...previewRect,
-            label: payload.kind === "component" ? "Mover widget" : "Adicionar widget",
-          });
+          if (payload?.kind === "template") e.preventDefault();
         }}
-        onDragLeave={(event) => {
-          if (event.currentTarget === event.target) {
-            setDropPreview(null);
-          }
-        }}
-        onDrop={(event) => {
-          const payload = _activeDragPayload ?? readBuilderDragPayload(event);
-          const previewRect =
-            dropPreview
-            || (payload ? resolveGridRect(event.clientX, event.clientY, payload.w, payload.h) : null);
-
-          event.preventDefault();
-          setDropPreview(null);
-          setDraggingComponentId(null);
+        onDrop={(e) => {
+          const payload = _activeDragPayload;
           _activeDragPayload = null;
-
-          if (!payload || !previewRect) {
-            return;
-          }
-
-          if (payload.kind === "template") {
-            onAddComponent(payload.templateType, previewRect);
-            return;
-          }
-
-          onUpdateComponentLayout(payload.componentId, previewRect);
+          if (!payload || payload.kind !== "template") return;
+          e.preventDefault();
+          const bounds = containerRef.current?.getBoundingClientRect();
+          if (!bounds) return;
+          const colWidth = containerWidth / BUILDER_GRID_COLUMNS;
+          const x = Math.max(0, Math.min(BUILDER_GRID_COLUMNS - payload.w, Math.floor((e.clientX - bounds.left) / colWidth)));
+          const y = Math.max(0, Math.floor((e.clientY - bounds.top) / BUILDER_GRID_ROW_HEIGHT));
+          onAddComponent(payload.templateType, { x, y, w: payload.w, h: payload.h });
         }}
       >
-        <div
-          className="grid"
-          style={{
-            gridTemplateColumns: `repeat(${BUILDER_GRID_COLUMNS}, minmax(0, 1fr))`,
-            gridAutoRows: `${BUILDER_GRID_ROW_HEIGHT}px`,
-            gap: BUILDER_GRID_GAP,
-            backgroundImage: "linear-gradient(rgba(148,163,184,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.08) 1px, transparent 1px)",
-            backgroundSize: `100% ${BUILDER_GRID_ROW_HEIGHT + BUILDER_GRID_GAP}px, calc((100% - ${(BUILDER_GRID_COLUMNS - 1) * BUILDER_GRID_GAP}px) / ${BUILDER_GRID_COLUMNS}) 100%`,
-            backgroundPosition: "0 0, 0 0",
+        <RGL
+          layout={layout}
+          cols={BUILDER_GRID_COLUMNS}
+          rowHeight={BUILDER_GRID_ROW_HEIGHT}
+          width={containerWidth - 24}
+          margin={[BUILDER_GRID_GAP, BUILDER_GRID_GAP]}
+          containerPadding={[0, 0]}
+          isDraggable
+          isResizable
+          resizeHandles={["se", "sw", "ne", "nw"]}
+          draggableHandle=".drag-handle"
+          onLayoutChange={(newLayout: Array<{ i: string; x: number; y: number; w: number; h: number }>) => {
+            newLayout.forEach((item) => {
+              const prev = items.find((m) => m.component.id === item.i);
+              if (!prev) return;
+              const pl = prev.component.layout;
+              if (item.x !== pl.x || item.y !== pl.y || item.w !== pl.w || item.h !== pl.h) {
+                onUpdateComponentLayout(item.i, { x: item.x, y: item.y, w: item.w, h: item.h });
+              }
+            });
           }}
         >
           {items.map(({ component, data }) => (
             <div
               key={component.id}
-              draggable
-              onDragStart={(event) => {
-                writeBuilderDragPayload(event, {
-                  kind: "component",
-                  componentId: component.id,
-                  type: component.type,
-                  w: component.layout.w,
-                  h: component.layout.h,
-                });
-                setDraggingComponentId(component.id);
-              }}
-              onDragEnd={() => {
-                setDraggingComponentId(null);
-                setDropPreview(null);
-                _activeDragPayload = null;
-              }}
-              className={cn("group relative min-h-0", draggingComponentId === component.id && "opacity-50")}
-              style={{
-                gridColumn: `${component.layout.x + 1} / span ${component.layout.w}`,
-                gridRow: `${component.layout.y + 1} / span ${component.layout.h}`,
-              }}
+              className={cn(
+                "group relative",
+                component.id === selectedComponentId && "ring-2 ring-primary/60 rounded-xl",
+              )}
             >
+              {/* drag handle overlay — covers top area so clicks on widget don't start drags */}
+              <div
+                className="drag-handle absolute inset-x-0 top-0 z-10 flex h-8 cursor-grab items-center justify-center opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+                title="Arraste para mover"
+              >
+                <div className="flex gap-0.5 rounded-md border border-border bg-background/90 px-2 py-1 shadow-sm">
+                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">{component.title}</span>
+                </div>
+              </div>
+
               <DashboardWidgetCard
                 component={component}
                 data={data}
@@ -1815,67 +1697,24 @@ function DashboardBuilderCanvas({
                 mode="builder"
                 spanClassName="col-span-12"
               />
-
-              {!isFullWidthBuilderType(component.type) ? (
-                <>
-                  {(["nw", "ne", "sw", "se"] as const).map((handle) => (
-                    <button
-                      key={handle}
-                      type="button"
-                      aria-label={`Redimensionar ${component.title}`}
-                      className={cn(
-                        "absolute z-20 h-3 w-3 rounded-full border border-primary/60 bg-background shadow-sm opacity-0 transition group-hover:opacity-100 hover:opacity-100",
-                        handle === "nw" && "left-2 top-2 cursor-nwse-resize",
-                        handle === "ne" && "right-2 top-2 cursor-nesw-resize",
-                        handle === "sw" && "bottom-2 left-2 cursor-nesw-resize",
-                        handle === "se" && "bottom-2 right-2 cursor-nwse-resize",
-                      )}
-                      onPointerDown={(event: ReactPointerEvent<HTMLButtonElement>) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        resizeSessionRef.current = {
-                          componentId: component.id,
-                          handle,
-                          startX: event.clientX,
-                          startY: event.clientY,
-                          startRect: {
-                            x: component.layout.x,
-                            y: component.layout.y,
-                            w: component.layout.w,
-                            h: component.layout.h,
-                          },
-                          componentType: component.type,
-                        };
-                      }}
-                    />
-                  ))}
-                </>
-              ) : null}
             </div>
           ))}
+        </RGL>
 
-          {dropPreview ? (
-            <div
-              className="pointer-events-none relative rounded-xl border border-dashed border-primary/70 bg-primary/10"
-              style={{
-                gridColumn: `${dropPreview.x + 1} / span ${dropPreview.w}`,
-                gridRow: `${dropPreview.y + 1} / span ${dropPreview.h}`,
-              }}
-            >
-              <div className="absolute inset-x-2 top-2 rounded-md bg-background/80 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-primary">
-                {dropPreview.label}
-              </div>
-            </div>
-          ) : null}
+        {items.length === 0 && (
+          <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-muted-foreground">
+            <LayoutDashboard className="h-10 w-10 opacity-20" />
+            <p className="text-sm">Arraste componentes da biblioteca ou clique neles para adicionar</p>
+          </div>
+        )}
 
-          <button
-            type="button"
-            onClick={() => toast.info("Arraste um componente da biblioteca para o grid ou clique na biblioteca para adicionar.")}
-            className="col-span-12 flex h-14 items-center justify-center gap-2 rounded-lg border border-dashed border-border-strong text-[12px] text-muted-foreground transition-colors hover:border-primary/60 hover:bg-primary/5 hover:text-foreground"
-          >
-            <Plus className="h-4 w-4" /> Arraste um componente ou clique para adicionar
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => onAddComponent("kpi")}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border-strong py-3 text-[12px] text-muted-foreground transition-colors hover:border-primary/60 hover:bg-primary/5 hover:text-foreground"
+        >
+          <Plus className="h-4 w-4" /> Adicionar componente
+        </button>
       </div>
     </div>
   );
