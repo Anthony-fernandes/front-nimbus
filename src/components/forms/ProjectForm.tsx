@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
+import { z } from "zod";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Save, Upload, X } from "lucide-react";
@@ -110,6 +111,7 @@ export function ProjectForm({
 }) {
   const navigate = useNavigate();
   const [data, setData] = useState<ProjectFormData>({ ...empty, ...initial });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [tagInput, setTagInput] = useState("");
   const [stageTitleInput, setStageTitleInput] = useState("");
   const [stageExpectedEndInput, setStageExpectedEndInput] = useState("");
@@ -168,10 +170,28 @@ export function ProjectForm({
     setTagInput("");
   };
 
+  const projectSchema = z.object({
+    name: z.string().min(1, "Nome do projeto é obrigatório"),
+    endAt: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), { message: "Data de término inválida" }),
+  });
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!data.name.trim() || !data.organization) {
-      toast.error("Preencha nome e organizacao atendida");
+
+    const validation = projectSchema.safeParse({ name: data.name, endAt: data.endAt });
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of validation.error.issues) {
+        const key = issue.path[0] as string;
+        fieldErrors[key] = issue.message;
+      }
+      setFormErrors(fieldErrors);
+      return;
+    }
+    setFormErrors({});
+
+    if (!data.organization) {
+      toast.error("Preencha organizacao atendida");
       return;
     }
 
@@ -197,6 +217,9 @@ export function ProjectForm({
               onChange={(event) => set("name", event.target.value)}
               required
             />
+            {formErrors.name && (
+              <p className="mt-1 text-xs text-destructive">{formErrors.name}</p>
+            )}
           </Field>
           <Field label="Descricao">
             <Textarea
@@ -291,6 +314,9 @@ export function ProjectForm({
                 value={data.endAt}
                 onChange={(event) => set("endAt", event.target.value)}
               />
+              {formErrors.endAt && (
+                <p className="mt-1 text-xs text-destructive">{formErrors.endAt}</p>
+              )}
             </Field>
           </div>
         </FormSection>

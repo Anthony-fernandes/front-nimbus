@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { z } from "zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, LayoutTemplate, Plus, Save, Upload, X } from "lucide-react";
@@ -235,6 +236,7 @@ export function TicketForm({
   const queryClient = useQueryClient();
   const currentUser = useMemo(() => getStoredUser<User>(), []);
   const [data, setData] = useState<TicketFormData>({ ...empty, ...initial });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [tagSearch, setTagSearch] = useState("");
   const [checkInput, setCheckInput] = useState("");
   const contactAutofillRef = useRef<{ name: string; phone: string } | null>(null);
@@ -561,11 +563,33 @@ export function TicketForm({
     );
   };
 
+  const ticketSchema = z.object({
+    title: z.string().min(3, "Título deve ter ao menos 3 caracteres"),
+    priority: z.string().min(1, "Prioridade é obrigatória"),
+    description: z.string().max(2000, "Descrição deve ter no máximo 2000 caracteres"),
+  });
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!data.title.trim() || !data.organization || !data.requesterUser) {
-      toast.error("Preencha titulo, organizacao atendida e solicitante.");
+    const validation = ticketSchema.safeParse({
+      title: data.title,
+      priority: data.priority,
+      description: data.description,
+    });
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of validation.error.issues) {
+        const key = issue.path[0] as string;
+        fieldErrors[key] = issue.message;
+      }
+      setFormErrors(fieldErrors);
+      return;
+    }
+    setFormErrors({});
+
+    if (!data.organization || !data.requesterUser) {
+      toast.error("Preencha organizacao atendida e solicitante.");
       return;
     }
 
@@ -612,6 +636,9 @@ export function TicketForm({
               required
               maxLength={140}
             />
+            {formErrors.title && (
+              <p className="mt-1 text-xs text-destructive">{formErrors.title}</p>
+            )}
           </Field>
           <Field
             label="Descricao"
@@ -625,6 +652,9 @@ export function TicketForm({
               required
               maxLength={4000}
             />
+            {formErrors.description && (
+              <p className="mt-1 text-xs text-destructive">{formErrors.description}</p>
+            )}
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
@@ -729,6 +759,9 @@ export function TicketForm({
                   label: formatPriorityLabel(item),
                 }))}
               />
+              {formErrors.priority && (
+                <p className="mt-1 text-xs text-destructive">{formErrors.priority}</p>
+              )}
             </Field>
             <Field label="Impacto">
               <Selectable

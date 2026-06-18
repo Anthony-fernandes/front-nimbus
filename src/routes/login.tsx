@@ -2,6 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Sparkles, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import type { User } from "@/lib/types";
 import { getHomeRoute, normalizeUser } from "@/lib/auth";
@@ -10,10 +13,19 @@ import { setSession } from "@/services/session";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar · Stratos Suite" }] }),
+  validateSearch: (search) => ({ reason: (search.reason as string) || "" }),
   component: LoginPage,
 });
 
+const loginSchema = z.object({
+  username: z.string().min(1, "Usuário obrigatório"),
+  password: z.string().min(6, "Senha deve ter ao menos 6 caracteres"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
 function LoginPage() {
+  const { reason } = Route.useSearch();
   return (
     <div className="dark min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground">
       <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden">
@@ -61,6 +73,12 @@ function LoginPage() {
           <h2 className="text-xl font-semibold tracking-tight">Entrar na workspace</h2>
           <p className="text-xs text-muted-foreground mt-1">Use seu usuário ou e-mail cadastrado</p>
 
+          {reason === "timeout" && (
+            <div className="mt-4 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-400">
+              Sua sessão expirou por inatividade. Por favor, entre novamente.
+            </div>
+          )}
+
           <LoginForm />
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
@@ -104,12 +122,19 @@ function Field({
 
 function LoginForm() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"credentials" | "mfa">("credentials");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [totpCode, setTotpCode] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: "admin", password: "admin123" },
+  });
   if (step === "mfa") {
     return (
       <form
@@ -189,8 +214,8 @@ function LoginForm() {
   return (
     <form
       className="mt-6 space-y-3"
-      onSubmit={async (event) => {
-        event.preventDefault();
+      onSubmit={handleSubmit(async (values) => {
+        const { username, password } = values;
         setLoading(true);
         try {
           const response = await api.post<
@@ -226,10 +251,36 @@ function LoginForm() {
         } finally {
           setLoading(false);
         }
-      }}
+      })}
     >
-      <Field label="Usuário ou e-mail" type="text" placeholder="admin" value={username} onChange={setUsername} />
-      <Field label="Senha" type="password" placeholder="••••••••" value={password} onChange={setPassword} />
+      <div>
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Usuário ou e-mail</span>
+          <input
+            {...register("username")}
+            type="text"
+            placeholder="admin"
+            className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
+          />
+        </label>
+        {errors.username && (
+          <p className="mt-1 text-xs text-destructive">{errors.username.message}</p>
+        )}
+      </div>
+      <div>
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Senha</span>
+          <input
+            {...register("password")}
+            type="password"
+            placeholder="••••••••"
+            className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
+          />
+        </label>
+        {errors.password && (
+          <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
+        )}
+      </div>
       <button
         type="submit"
         disabled={loading}

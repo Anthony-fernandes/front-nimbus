@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { Bell, Command, LogOut, Plus, Search, Settings } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -76,6 +77,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     () => canCreateFromPath(pathname, user),
     [pathname, user],
   );
+
+  useInactivityLogout();
 
   useEffect(() => {
     let active = true;

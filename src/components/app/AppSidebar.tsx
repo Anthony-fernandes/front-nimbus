@@ -227,7 +227,7 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const isActive = (url: string) => (url === "/" ? path === "/" : path.startsWith(url));
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+    <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2.5 px-2 py-2">
           <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-primary shadow-glow">

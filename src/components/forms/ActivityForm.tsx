@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save, Search, X } from "lucide-react";
@@ -108,6 +109,7 @@ export function ActivityForm({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [data, setData] = useState<ActivityFormData>({ ...empty, ...initial });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [tagSearch, setTagSearch] = useState("");
 
   const { data: users = [] } = useQuery({
@@ -239,13 +241,25 @@ export function ActivityForm({
     set("tagIds", data.tagIds.filter((entry) => entry !== tagId));
   };
 
+  const activitySchema = z.object({
+    title: z.string().min(1, "Título é obrigatório"),
+    status: z.string().min(1, "Status é obrigatório"),
+  });
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!data.title.trim()) {
-      toast.error("Informe o titulo da atividade.");
+    const validation = activitySchema.safeParse({ title: data.title, status: data.status });
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of validation.error.issues) {
+        const key = issue.path[0] as string;
+        fieldErrors[key] = issue.message;
+      }
+      setFormErrors(fieldErrors);
       return;
     }
+    setFormErrors({});
 
     if (!data.project) {
       toast.error("Selecione o projeto da atividade.");
@@ -322,6 +336,9 @@ export function ActivityForm({
               required
               maxLength={140}
             />
+            {formErrors.title && (
+              <p className="mt-1 text-xs text-destructive">{formErrors.title}</p>
+            )}
           </Field>
 
           <Field label="Descricao" hint="Descreva o objetivo, escopo e criterios da atividade.">
@@ -352,6 +369,9 @@ export function ActivityForm({
                   (item) => ({ value: item, label: formatActivityStatusLabel(item) }),
                 )}
               />
+              {formErrors.status && (
+                <p className="mt-1 text-xs text-destructive">{formErrors.status}</p>
+              )}
             </Field>
 
             <Field label="Prioridade">

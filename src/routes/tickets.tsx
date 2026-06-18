@@ -802,7 +802,34 @@ function TicketsPage() {
               />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-border">
+              {filteredTickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  onClick={() => navigate({ to: "/tickets/$id", params: { id: ticket.id } })}
+                  className="cursor-pointer p-4 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-xs text-muted-foreground">{(ticket as { code?: string }).code || ticket.id.slice(0, 8)}</div>
+                      <div className="mt-0.5 font-medium text-sm truncate">{ticket.title}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{(ticket as { organization_name?: string; client_name?: string }).organization_name || (ticket as { organization_name?: string; client_name?: string }).client_name || "—"}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getTicketPriorityClass(ticket.priority)}`}>
+                        {formatPriorityLabel(ticket.priority || "Pendente")}
+                      </span>
+                      <span className={`rounded-md px-2 py-1 text-[11px] ${getTicketStatusClass(ticket.status)}`}>
+                        {formatTicketStatusLabel(ticket.status || "Aberto")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -925,6 +952,7 @@ function TicketsPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
 
