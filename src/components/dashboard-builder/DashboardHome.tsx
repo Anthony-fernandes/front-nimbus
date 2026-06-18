@@ -147,6 +147,7 @@ import {
   updateDashboard,
 } from "@/services/dashboardBuilderService";
 import { listProjects } from "@/services/projectService";
+import { getTicketsReport } from "@/services/reportService";
 import { listSprintActivityPlans } from "@/services/sprintActivityPlanService";
 import { listSprints } from "@/services/sprintService";
 import { listTickets } from "@/services/ticketService";
@@ -1363,25 +1364,30 @@ function DashboardWorkspace({
               <LoadingState />
             </div>
           ) : dashboardInView ? (
-            <DashboardRuntimeView
-              dashboard={dashboardInView}
-              filterOptions={filterOptions}
-              filterState={filterState}
-              onChangeFilter={onFilterChange}
-              onResetFilters={onResetFilters}
-              metrics={metrics}
-              editing={false}
-              selectedComponentId={null}
-              onSelectComponent={() => {}}
-              onConfigureComponent={() => {}}
-              onAddComponentAtLayout={() => {}}
-              onDuplicateComponent={() => {}}
-              onMoveComponent={() => {}}
-              onToggleComponentVisibility={() => {}}
-              onDeleteComponent={() => {}}
-              onUpdateComponentLayout={() => {}}
-              mode="viewer"
-            />
+            <>
+              <DashboardRuntimeView
+                dashboard={dashboardInView}
+                filterOptions={filterOptions}
+                filterState={filterState}
+                onChangeFilter={onFilterChange}
+                onResetFilters={onResetFilters}
+                metrics={metrics}
+                editing={false}
+                selectedComponentId={null}
+                onSelectComponent={() => {}}
+                onConfigureComponent={() => {}}
+                onAddComponentAtLayout={() => {}}
+                onDuplicateComponent={() => {}}
+                onMoveComponent={() => {}}
+                onToggleComponentVisibility={() => {}}
+                onDeleteComponent={() => {}}
+                onUpdateComponentLayout={() => {}}
+                mode="viewer"
+              />
+              <div className="px-6 pb-8">
+                <TicketStatusDonut />
+              </div>
+            </>
           ) : (
             <div className="px-6 py-6">
               <EmptyDashboardState onCreate={canManageDashboards ? onCreateEmpty : undefined} />
@@ -3587,6 +3593,87 @@ function FunnelView({
           Nenhuma etapa disponivel.
         </div>
       )}
+    </div>
+  );
+}
+
+const STATUS_DONUT_COLORS = [
+  "oklch(0.72 0.20 260)",
+  "oklch(0.74 0.18 155)",
+  "oklch(0.78 0.16 75)",
+  "oklch(0.68 0.22 28)",
+  "oklch(0.64 0.03 260)",
+  "oklch(0.80 0.16 85)",
+];
+
+function TicketStatusDonut() {
+  const query = useQuery({
+    queryKey: ["dashboard-ticket-status-donut"],
+    queryFn: () => getTicketsReport(),
+  });
+
+  if (query.isLoading) {
+    return (
+      <div className="rounded-xl border border-border bg-surface/60 p-5">
+        <div className="h-4 w-40 animate-pulse rounded bg-muted/60" />
+        <div className="mt-4 h-[200px] animate-pulse rounded-lg bg-muted/40" />
+      </div>
+    );
+  }
+
+  const byStatus = query.data?.by_status ?? [];
+  if (!byStatus.length) return null;
+
+  const pieData = byStatus.map((item) => ({ name: item.status, value: item.count }));
+  const total = pieData.reduce((sum, item) => sum + item.value, 0);
+
+  return (
+    <div className="rounded-xl border border-border bg-surface/60 p-5">
+      <div className="text-[13px] font-semibold tracking-tight">Chamados por Status</div>
+      <div className="mt-1 text-[11.5px] text-muted-foreground">Distribuição atual dos chamados por status</div>
+      <div className="mt-4 flex flex-wrap items-center gap-8">
+        <div className="flex-shrink-0">
+          <ResponsiveContainer width={220} height={220}>
+            <RePieChart>
+              <Tooltip contentStyle={tooltipStyle} />
+              <Pie
+                data={pieData}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={60}
+                outerRadius={95}
+                paddingAngle={3}
+                stroke="none"
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${entry.name}`} fill={STATUS_DONUT_COLORS[index % STATUS_DONUT_COLORS.length]} />
+                ))}
+              </Pie>
+            </RePieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex-1 space-y-2 min-w-[160px]">
+          {pieData.map((entry, index) => (
+            <div key={entry.name} className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-3 w-3 rounded-full flex-shrink-0"
+                  style={{ background: STATUS_DONUT_COLORS[index % STATUS_DONUT_COLORS.length] }}
+                />
+                <span className="text-[13px] capitalize">{entry.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-semibold tabular-nums">{entry.value}</span>
+                <span className="text-[11px] text-muted-foreground">({total > 0 ? Math.round((entry.value / total) * 100) : 0}%)</span>
+              </div>
+            </div>
+          ))}
+          <div className="mt-3 border-t border-border pt-3 flex justify-between text-[12px]">
+            <span className="text-muted-foreground">Total</span>
+            <span className="font-semibold tabular-nums">{total}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

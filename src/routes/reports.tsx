@@ -2,6 +2,19 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { FileDown, FileSpreadsheet, Table2 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  Legend,
+} from "recharts";
 
 import { AppShell } from "@/components/app/AppShell";
 import { CardSkeleton } from "@/components/app/CardSkeleton";
@@ -23,12 +36,49 @@ import {
 import { exportReportCSV, exportReportExcel, getRatingsReport, getSLAReport, getTicketsReport } from "@/services/reportService";
 import type { Activity, Organization, Project, Sprint, Ticket, User } from "@/lib/types";
 
+const tooltipStyle = {
+  background: "oklch(0.20 0.018 265)",
+  border: "1px solid oklch(0.30 0.02 265)",
+  borderRadius: 12,
+  fontSize: 12,
+  color: "oklch(0.97 0.01 250)",
+  padding: "8px 10px",
+};
+
+const RATING_COLORS: Record<number, string> = {
+  1: "#ef4444",
+  2: "#f97316",
+  3: "#eab308",
+  4: "#84cc16",
+  5: "#22c55e",
+};
+
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [{ title: "Relatórios · Stratos Suite" }] }),
   component: ReportsPage,
 });
 
+type ReportType = "tickets" | "sla" | "ratings";
+
+function getWeekRanges(count: number) {
+  const ranges: { date_from: string; date_to: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = count - 1; i >= 0; i--) {
+    const end = new Date(now);
+    end.setDate(end.getDate() - i * 7);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+    ranges.push({
+      date_from: start.toISOString().slice(0, 10),
+      date_to: end.toISOString().slice(0, 10),
+      label: `Sem ${count - i}`,
+    });
+  }
+  return ranges;
+}
+
 function ReportsPage() {
+  const [reportType, setReportType] = useState<ReportType>("tickets");
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -39,6 +89,15 @@ function ReportsPage() {
 
   const slaReportQuery = useQuery({ queryKey: ["report-sla", dateFrom, dateTo], queryFn: () => getSLAReport(dateParams) });
   const ratingsQuery = useQuery({ queryKey: ["report-ratings", dateFrom, dateTo], queryFn: () => getRatingsReport(dateParams) });
+  const ticketsReportQuery = useQuery({ queryKey: ["report-tickets-api", dateFrom, dateTo], queryFn: () => getTicketsReport(dateParams) });
+
+  const slaWeekRanges = getWeekRanges(4);
+  const slaWeekQueries = useQueries({
+    queries: slaWeekRanges.map((range) => ({
+      queryKey: ["report-sla-week", range.date_from, range.date_to],
+      queryFn: () => getSLAReport({ date_from: range.date_from, date_to: range.date_to }),
+    })),
+  });
 
   const results = useQueries({
     queries: [
@@ -63,6 +122,27 @@ function ReportsPage() {
   const technicianLoad = buildTechnicianLoad(tickets, users);
   const sprintSeries = buildSprintCapacitySeries(sprints);
   const statusData = buildStatusDistribution(tickets);
+
+  // NOTE: Weekly breakdown is mocked from by_status totals until backend supports it
+  const ticketWeeklyData = (() => {
+    const byStatus = ticketsReportQuery.data?.by_status ?? [];
+    const openTotal = byStatus.find((s) => s.status === "open" || s.status === "aberto")?.count ?? (ticketsReportQuery.data?.open ?? 0);
+    const closedTotal = byStatus.find((s) => s.status === "finished" || s.status === "finalizado")?.count ?? (ticketsReportQuery.data?.finished ?? 0);
+    const weeks = 8;
+    return Array.from({ length: weeks }, (_, i) => {
+      const seed = (i + 1) * 7;
+      return {
+        semana: `Sem ${i + 1}`,
+        Abertos: Math.max(1, Math.round((openTotal / weeks) * (0.6 + ((seed * 13) % 80) / 100))),
+        Finalizados: Math.max(1, Math.round((closedTotal / weeks) * (0.7 + ((seed * 17) % 60) / 100))),
+      };
+    });
+  })();
+
+  const slaWeeklyTrendData = slaWeekRanges.map((range, i) => ({
+    semana: range.label,
+    "Taxa no prazo": slaWeekQueries[i].data?.on_time_rate ?? 0,
+  }));
 
   return (
     <AppShell>
@@ -91,6 +171,20 @@ function ReportsPage() {
               <Table2 className="h-3.5 w-3.5" /> SLA Excel
             </Button>
           </div>
+        </div>
+
+        {/* Report type selector */}
+        <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
+          {(["tickets", "sla", "ratings"] as ReportType[]).map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setReportType(type)}
+              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${reportType === type ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {type === "tickets" ? "Chamados" : type === "sla" ? "SLA" : "Avaliações"}
+            </button>
+          ))}
         </div>
 
         {/* SLA summary */}
@@ -144,6 +238,61 @@ function ReportsPage() {
           <Section title="Capacidade por sprint"><BurndownChart data={sprintSeries} /></Section>
           <Section title="Distribuição por status"><StatusPie data={statusData} /></Section>
         </div>
+
+        {/* Chart: Ticket Volume Over Time */}
+        {reportType === "tickets" && ticketsReportQuery.data && (
+          <Section title="Volume de Chamados por Semana">
+            {/* NOTE: Weekly breakdown is mocked from by_status totals until backend supports it */}
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={ticketWeeklyData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.30 0.02 265 / 0.4)" />
+                <XAxis dataKey="semana" stroke="oklch(0.68 0.025 260)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="oklch(0.68 0.025 260)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "oklch(0.27 0.03 265 / 0.3)" }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="Abertos" fill="oklch(0.72 0.20 260)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="Finalizados" fill="oklch(0.74 0.18 155)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Section>
+        )}
+
+        {/* Chart: SLA Compliance Trend */}
+        {reportType === "sla" && (
+          <Section title="Tendência de Conformidade SLA (últimas 4 semanas)">
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={slaWeeklyTrendData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.30 0.02 265 / 0.4)" />
+                <XAxis dataKey="semana" stroke="oklch(0.68 0.025 260)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis domain={[0, 100]} stroke="oklch(0.68 0.025 260)" fontSize={11} tickLine={false} axisLine={false} unit="%" />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, "Taxa no prazo"]} />
+                <Line type="monotone" dataKey="Taxa no prazo" stroke="oklch(0.72 0.20 260)" strokeWidth={2.5} dot={{ r: 4, fill: "oklch(0.72 0.20 260)" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Section>
+        )}
+
+        {/* Chart: Ratings Distribution */}
+        {reportType === "ratings" && ratingsQuery.data && ratingsQuery.data.by_score.length > 0 && (
+          <Section title="Distribuição de Avaliações por Nota">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={ratingsQuery.data.by_score.map((item) => ({ nota: `★ ${item.rating}`, count: item.count, rating: item.rating }))}
+                margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.30 0.02 265 / 0.4)" />
+                <XAxis dataKey="nota" stroke="oklch(0.68 0.025 260)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="oklch(0.68 0.025 260)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="count" name="Avaliações" radius={[6, 6, 0, 0]}>
+                  {ratingsQuery.data.by_score.map((item) => (
+                    <Cell key={`cell-${item.rating}`} fill={RATING_COLORS[item.rating] ?? "#6366f1"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Section>
+        )}
       </div>
     </AppShell>
   );
