@@ -7,6 +7,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  redirect,
 } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -14,7 +15,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/app/ErrorBoundary";
 import { API_BASE_URL } from "@/services/api";
-import { getAccessToken } from "@/services/session";
+import { getAccessToken, isAuthenticated } from "@/services/session";
 import {
   ThemeContext,
   applyTheme,
@@ -87,6 +88,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: ({ location }) => {
+    const publicPaths = ["/login", "/client", "/onboarding"];
+    const isPublic = publicPaths.some((p) => location.pathname.startsWith(p));
+    if (!isPublic && !isAuthenticated()) {
+      throw redirect({ to: "/login" });
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
