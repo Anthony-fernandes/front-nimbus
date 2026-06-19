@@ -12,7 +12,7 @@ import type {
 } from "@/lib/types";
 
 import { api } from "./api";
-import { createResource, getResource, listResource } from "./crud";
+import { createResource, deleteResource, getResource, listResource, updateResource } from "./crud";
 
 // ─── Knowledge ───────────────────────────────────────────────────────────────
 
@@ -57,6 +57,18 @@ export function listKnowledgeTags() {
 
 export function listForumCategories() {
   return listResource<ForumCategory>("/communication/forum-categories");
+}
+
+export function createForumCategory(data: Partial<ForumCategory>) {
+  return createResource<ForumCategory>("/communication/forum-categories", data);
+}
+
+export function updateForumCategory(id: string, data: Partial<ForumCategory>) {
+  return updateResource<ForumCategory>("/communication/forum-categories", id, data);
+}
+
+export function deleteForumCategory(id: string) {
+  return deleteResource("/communication/forum-categories", id);
 }
 
 export function listForumTopics(params?: Record<string, unknown>) {

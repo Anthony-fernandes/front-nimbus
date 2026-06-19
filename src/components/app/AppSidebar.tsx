@@ -21,6 +21,7 @@ import {
   ScrollText,
   Settings,
   Sparkles,
+  Tag,
   Tags,
   Ticket,
   Users,
@@ -110,6 +111,12 @@ function getInternalMenu(user: User | null | undefined) {
     },
     { title: "Conhecimento", url: "/knowledge", icon: BookOpen, visible: true },
     { title: "Forum", url: "/forum", icon: MessagesSquare, visible: true },
+    {
+      title: "Categorias do Forum",
+      url: "/forum-categories",
+      icon: Tag,
+      visible: getUserRole(user) !== "CLIENT",
+    },
     { title: "Duvidas", url: "/doubts", icon: HelpCircle, visible: true },
     { title: "Chat", url: "/chat", icon: MessageCircle, visible: true },
   ].filter((item) => item.visible);
