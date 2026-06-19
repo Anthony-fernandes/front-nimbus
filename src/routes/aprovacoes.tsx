@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ClipboardCheck, MessageSquareWarning, X } from "lucide-react";
+import { Check, CheckCircle2, ClipboardCheck, Clock, MessageSquareWarning, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -26,13 +26,29 @@ export const Route = createFileRoute("/aprovacoes")({
 
 function ApprovalsPage() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
 
   const approvalsQuery = useQuery({
     queryKey: ["tickets", "pending-approval"],
     queryFn: () => listTickets({ approval_status: "Aguardando Aprovacao", ordering: "-created_at" }),
   });
 
+  const historyApprovedQuery = useQuery({
+    queryKey: ["tickets", "approval-history", "approved"],
+    queryFn: () => listTickets({ approval_status: "Aprovado", ordering: "-updated_at" }),
+    enabled: activeTab === "history",
+  });
+  const historyRejectedQuery = useQuery({
+    queryKey: ["tickets", "approval-history", "reprovado"],
+    queryFn: () => listTickets({ approval_status: "Reprovado", ordering: "-updated_at" }),
+    enabled: activeTab === "history",
+  });
+
   const tickets = approvalsQuery.data ?? [];
+  const historyTickets = [
+    ...(historyApprovedQuery.data ?? []),
+    ...(historyRejectedQuery.data ?? []),
+  ].sort((a, b) => new Date(b.updated_at ?? "").getTime() - new Date(a.updated_at ?? "").getTime());
 
   function invalidate() {
     void queryClient.invalidateQueries({ queryKey: ["tickets", "pending-approval"] });
@@ -52,7 +68,79 @@ function ApprovalsPage() {
           }
         />
 
-        {approvalsQuery.isLoading ? (
+        {/* Tab navigation */}
+        <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab("pending")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              activeTab === "pending" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            Pendentes
+            {tickets.length > 0 && (
+              <span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] text-primary font-semibold">
+                {tickets.length}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("history")}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              activeTab === "history" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <ClipboardCheck className="h-3.5 w-3.5" />
+            Histórico
+          </button>
+        </div>
+
+        {activeTab === "history" ? (
+          <div className="glass divide-y divide-border rounded-2xl shadow-card">
+            {(historyApprovedQuery.isLoading || historyRejectedQuery.isLoading) ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">Carregando...</div>
+            ) : historyTickets.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">Nenhum histórico encontrado.</div>
+            ) : historyTickets.map((t) => {
+              const statusIcon = t.approval_status === "Aprovado"
+                ? <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                : t.approval_status === "Reprovado"
+                  ? <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                  : <Clock className="h-4 w-4 text-warning shrink-0" />;
+              return (
+                <div key={t.id} className="flex items-center gap-3 px-4 py-3">
+                  {statusIcon}
+                  <Link
+                    to="/tickets/$id"
+                    params={{ id: t.id }}
+                    className="flex-1 text-sm font-medium hover:text-primary transition-colors"
+                  >
+                    {t.title}
+                  </Link>
+                  <span className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                    t.approval_status === "Aprovado"
+                      ? "bg-success/15 text-success"
+                      : t.approval_status === "Reprovado"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-warning/15 text-warning",
+                  )}>
+                    {t.approval_status}
+                  </span>
+                  {t.approved_by_name && (
+                    <span className="text-xs text-muted-foreground shrink-0">por {t.approved_by_name}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {activeTab === "pending" && approvalsQuery.isLoading ? (
           <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
             Carregando aprovações...
           </div>
