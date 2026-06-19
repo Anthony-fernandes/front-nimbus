@@ -1384,7 +1384,11 @@ function DashboardWorkspace({
                 onUpdateComponentLayout={() => {}}
                 mode="viewer"
               />
-              <div className="px-6 pb-8">
+              <div className="px-6 pb-8 space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <AvgResolutionTimeKPI />
+                  <SlaRateKPI />
+                </div>
                 <TicketStatusDonut />
               </div>
             </>
@@ -3589,6 +3593,84 @@ function FunnelView({
           Nenhuma etapa disponivel.
         </div>
       )}
+    </div>
+  );
+}
+
+function AvgResolutionTimeKPI() {
+  const query = useQuery({
+    queryKey: ["dashboard-ticket-status-donut"],
+    queryFn: () => getTicketsReport(),
+  });
+
+  if (query.isLoading) {
+    return (
+      <div className="rounded-xl border border-border bg-surface/60 p-5">
+        <div className="h-3 w-32 animate-pulse rounded bg-muted/60" />
+        <div className="mt-4 h-10 w-24 animate-pulse rounded bg-muted/40" />
+      </div>
+    );
+  }
+
+  const raw = query.data?.avg_resolution_time_hours;
+  const value = raw != null ? `${Number(raw).toFixed(1)}h` : "N/A";
+
+  return (
+    <div className="rounded-xl border border-border bg-surface/60 p-5">
+      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+        <Clock3 className="h-3.5 w-3.5" />
+        Tempo médio de resolução
+      </div>
+      <div className="mt-3 text-[32px] font-semibold leading-none tabular-nums tracking-tight">
+        {value}
+      </div>
+      <div className="mt-2 text-[11.5px] text-muted-foreground">
+        Média de horas até resolução dos chamados
+      </div>
+    </div>
+  );
+}
+
+function SlaRateKPI() {
+  const query = useQuery({
+    queryKey: ["dashboard-ticket-status-donut"],
+    queryFn: () => getTicketsReport(),
+  });
+
+  if (query.isLoading) {
+    return (
+      <div className="rounded-xl border border-border bg-surface/60 p-5">
+        <div className="h-3 w-32 animate-pulse rounded bg-muted/60" />
+        <div className="mt-4 h-10 w-24 animate-pulse rounded bg-muted/40" />
+      </div>
+    );
+  }
+
+  const raw = query.data?.sla_met_rate;
+  const hasValue = raw != null;
+  const pct = hasValue ? Number(raw) : null;
+  const display = hasValue ? `${Math.round(pct!)}%` : "N/A";
+  const colorClass =
+    pct == null
+      ? "text-muted-foreground"
+      : pct >= 80
+        ? "text-success"
+        : pct >= 60
+          ? "text-warning"
+          : "text-destructive";
+
+  return (
+    <div className="rounded-xl border border-border bg-surface/60 p-5">
+      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+        <ShieldAlert className="h-3.5 w-3.5" />
+        Taxa de SLA
+      </div>
+      <div className={cn("mt-3 text-[32px] font-semibold leading-none tabular-nums tracking-tight", colorClass)}>
+        {display}
+      </div>
+      <div className="mt-2 text-[11.5px] text-muted-foreground">
+        Chamados finalizados dentro do prazo de SLA
+      </div>
     </div>
   );
 }
