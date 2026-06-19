@@ -804,7 +804,7 @@ function TicketsPage() {
           ) : (
             <>
             {/* Mobile card list */}
-            <div className="sm:hidden divide-y divide-border">
+            <div className="md:hidden divide-y divide-border">
               {filteredTickets.map((ticket) => (
                 <div
                   key={ticket.id}
@@ -829,7 +829,7 @@ function TicketsPage() {
                 </div>
               ))}
             </div>
-            <div className="hidden sm:block overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -842,12 +842,12 @@ function TicketsPage() {
                     </th>
                     <th className="px-2 py-2.5 text-left font-medium">ID</th>
                     <th className="px-2 py-2.5 text-left font-medium">Titulo</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Organizacao atendida</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Categoria</th>
+                    <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Organizacao atendida</th>
+                    <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Categoria</th>
                     <th className="px-2 py-2.5 text-left font-medium">Prioridade</th>
                     <th className="px-2 py-2.5 text-left font-medium">Status</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Tecnico</th>
-                    <th className="px-2 py-2.5 text-left font-medium">SLA</th>
+                    <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Tecnico</th>
+                    <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">SLA</th>
                     <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
@@ -890,10 +890,10 @@ function TicketsPage() {
                             {ticket.title}
                           </Link>
                         </td>
-                        <td className="px-2 py-3 text-muted-foreground">
+                        <td className="hidden lg:table-cell px-2 py-3 text-muted-foreground">
                           {ticket.organization_name || ticket.client_name || ticket.client || "—"}
                         </td>
-                        <td className="px-2 py-3 text-muted-foreground">
+                        <td className="hidden lg:table-cell px-2 py-3 text-muted-foreground">
                           {ticket.category_name || ticket.category || "Sem categoria"}
                         </td>
                         <td className="px-2 py-3">
@@ -908,10 +908,10 @@ function TicketsPage() {
                             {formatTicketStatusLabel(ticket.status || "Aberto")}
                           </span>
                         </td>
-                        <td className="px-2 py-3 text-muted-foreground">
+                        <td className="hidden lg:table-cell px-2 py-3 text-muted-foreground">
                           {getPrimaryTicketTechnician(ticket) || "—"}
                         </td>
-                        <td className="px-2 py-3">
+                        <td className="hidden lg:table-cell px-2 py-3">
                           <div className="space-y-1">
                             <span
                               className={`inline-flex items-center gap-1 text-xs ${

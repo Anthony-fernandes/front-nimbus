@@ -1,12 +1,12 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
-import { Bell, Command, LogOut, Plus, Search, Settings } from "lucide-react";
+import { Bell, Command, LogOut, Menu, Plus, Search, Settings } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { getUnreadCount } from "@/services/notificationService";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import type { User } from "@/lib/types";
 import {
   getCreateRoute,
@@ -67,10 +67,20 @@ function canCreateFromPath(pathname: string, user: User | null) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <SidebarProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </SidebarProvider>
+  );
+}
+
+function AppShellInner({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [user, setUser] = useState<User | null>(() => getStoredUser<User>());
   const [searchOpen, setSearchOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { toggleSidebar } = useSidebar();
   const initials = getUserInitials(user);
   const createRoute = getCreateRoute(pathname, user);
   const clientUser = isClientUser(user);
@@ -140,14 +150,40 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [navigate]);
 
+  const handleHamburgerClick = () => {
+    setSidebarOpen((prev) => !prev);
+    toggleSidebar();
+  };
+
   return (
-    <SidebarProvider>
+    <>
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {/* Mobile backdrop overlay */}
+      {sidebarOpen ? (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => {
+            setSidebarOpen(false);
+            toggleSidebar();
+          }}
+          aria-hidden="true"
+        />
+      ) : null}
       <div className="flex min-h-screen w-full bg-background text-foreground">
         <AppSidebar user={user} />
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="glass-strong sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border px-4">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+            {/* Hamburger button — mobile only */}
+            <button
+              type="button"
+              aria-label="Abrir menu"
+              onClick={handleHamburgerClick}
+              className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            {/* Desktop sidebar trigger */}
+            <SidebarTrigger className="hidden text-muted-foreground hover:text-foreground lg:grid" />
             <div className="hidden min-w-[280px] cursor-text items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 md:flex md:h-9" onClick={() => setSearchOpen(true)}>
               <Search className="h-4 w-4" />
               <span className="flex-1">
@@ -199,7 +235,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="flex-1 overflow-x-hidden p-6">{children}</main>
         </div>
       </div>
-    </SidebarProvider>
+    </>
   );
 }
 
