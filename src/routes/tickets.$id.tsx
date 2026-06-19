@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,6 +8,12 @@ import {
   Check,
   CheckCheck,
   Clock,
+  Download,
+  Eye,
+  File,
+  FileImage,
+  FileText,
+  FileVideo,
   Link2,
   Pause,
   Pencil,
@@ -15,8 +21,10 @@ import {
   ShieldCheck,
   Tags,
   TicketCheck,
+  Upload,
   UserRoundCheck,
   Workflow,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -65,7 +73,7 @@ import {
   type TicketWorkflowActionDefinition,
   type TicketWorkflowActionId,
 } from "@/lib/ticketWorkflow";
-import type { Ticket, User } from "@/lib/types";
+import type { Ticket, TicketAttachment, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getStoredUser } from "@/services/authService";
 import { listActivities } from "@/services/activityService";
@@ -73,7 +81,7 @@ import { listSprints } from "@/services/sprintService";
 import { listTicketCategories } from "@/services/ticketCategoryService";
 import { listTicketTimeline, createTicketTimelineComment } from "@/services/ticketTimelineService";
 import { convertTicketToKb, listKnowledgeCategories } from "@/services/knowledgeService";
-import { deleteTicket, getTicket, transitionTicket } from "@/services/ticketService";
+import { deleteTicket, getTicket, listTicketAttachments, transitionTicket, uploadTicketAttachment } from "@/services/ticketService";
 import { listTicketWorkflowStatuses } from "@/services/ticketWorkflowService";
 import { listUsers } from "@/services/userService";
 import { formatDate, formatDateTime } from "@/services/utils";
@@ -107,6 +115,9 @@ function TicketDetail() {
   const [confirmGenerateActivityOpen, setConfirmGenerateActivityOpen] = useState(false);
   const [convertKbOpen, setConvertKbOpen] = useState(false);
   const [convertKbCategory, setConvertKbCategory] = useState<string>("");
+  const [viewerAttachment, setViewerAttachment] = useState<TicketAttachment | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const canViewTickets = hasAnyPermission(currentUser, [
     "tickets.viewAll",
     "tickets.viewAssigned",
@@ -164,6 +175,30 @@ function TicketDetail() {
     },
     onError: () => toast.error("Não foi possível converter o chamado."),
   });
+
+  const attachmentsQuery = useQuery({
+    queryKey: ["ticket-attachments", id],
+    queryFn: () => listTicketAttachments(id),
+    enabled: canViewTickets,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadTicketAttachment(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ticket-attachments", id] });
+      toast.success("Anexo enviado com sucesso!");
+    },
+    onError: () => toast.error("Erro ao enviar anexo."),
+    onSettled: () => setUploading(false),
+  });
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    uploadMutation.mutate(file);
+    e.target.value = "";
+  }
 
   if (pathname !== `/tickets/${id}`) {
     return <Outlet />;
@@ -518,10 +553,41 @@ function TicketDetail() {
               <div className="rounded-xl border border-border bg-muted/15 p-4 text-sm leading-relaxed">
                 {ticket.description || "Sem descricao cadastrada."}
               </div>
-              <div className="rounded-xl border border-border bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
-                {ticket.attachments?.length
-                  ? `${ticket.attachments.length} anexo(s) registrados pela API.`
-                  : "A API atual ainda pode nao expor anexos. A interface ja esta preparada para isso."}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Anexos</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 gap-1 text-xs"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    {uploading ? "Enviando..." : "Enviar anexo"}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+                {attachmentsQuery.isLoading ? (
+                  <p className="text-xs text-muted-foreground">Carregando anexos...</p>
+                ) : !attachmentsQuery.data?.length ? (
+                  <p className="text-xs text-muted-foreground">Nenhum anexo registrado.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {attachmentsQuery.data.map((att) => (
+                      <AttachmentCard
+                        key={att.id}
+                        attachment={att}
+                        onView={() => setViewerAttachment(att)}
+                      />
+                    ))}
+                  </ul>
+                )}
               </div>
             </SectionCard>
 
@@ -829,6 +895,11 @@ function TicketDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AttachmentViewerDialog
+        attachment={viewerAttachment}
+        onClose={() => setViewerAttachment(null)}
+      />
     </AppShell>
   );
 }
@@ -919,5 +990,119 @@ function StatCard({
       </div>
       <div className="mt-1 text-xl font-semibold">{value}</div>
     </div>
+  );
+}
+
+function getAttachmentType(att: TicketAttachment): "image" | "pdf" | "video" | "other" {
+  const ct = att.content_type?.toLowerCase() ?? "";
+  const name = att.name?.toLowerCase() ?? "";
+  if (ct.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg)$/.test(name)) return "image";
+  if (ct === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+  if (ct.startsWith("video/") || /\.(mp4|webm)$/.test(name)) return "video";
+  return "other";
+}
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function AttachmentTypeIcon({ att }: { att: TicketAttachment }) {
+  const type = getAttachmentType(att);
+  if (type === "image") return <FileImage className="h-4 w-4 text-blue-500" />;
+  if (type === "pdf") return <FileText className="h-4 w-4 text-red-500" />;
+  if (type === "video") return <FileVideo className="h-4 w-4 text-purple-500" />;
+  return <File className="h-4 w-4 text-muted-foreground" />;
+}
+
+function AttachmentCard({ attachment, onView }: { attachment: TicketAttachment; onView: () => void }) {
+  const url = attachment.url ?? "";
+  return (
+    <li className="flex items-center gap-3 rounded-xl border border-border bg-muted/10 px-3 py-2.5">
+      <AttachmentTypeIcon att={attachment} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{attachment.name}</p>
+        {attachment.size ? (
+          <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 gap-1">
+        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={onView}>
+          <Eye className="h-3.5 w-3.5" />
+          Visualizar
+        </Button>
+        <a href={url} download={attachment.name} target="_blank" rel="noreferrer">
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs">
+            <Download className="h-3.5 w-3.5" />
+            Baixar
+          </Button>
+        </a>
+      </div>
+    </li>
+  );
+}
+
+function AttachmentViewerDialog({
+  attachment,
+  onClose,
+}: {
+  attachment: TicketAttachment | null;
+  onClose: () => void;
+}) {
+  if (!attachment) return null;
+  const url = attachment.url ?? "";
+  const type = getAttachmentType(attachment);
+
+  return (
+    <Dialog open={Boolean(attachment)} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader className="flex flex-row items-center justify-between gap-2">
+          <DialogTitle className="truncate text-sm">{attachment.name}</DialogTitle>
+          <div className="flex shrink-0 gap-2">
+            <a href={url} download={attachment.name} target="_blank" rel="noreferrer">
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs">
+                <Download className="h-3.5 w-3.5" />
+                Baixar
+              </Button>
+            </a>
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+        <div className="flex items-center justify-center overflow-hidden rounded-xl bg-muted/20">
+          {type === "image" && (
+            <img src={url} alt={attachment.name} className="max-h-[70vh] w-full object-contain" />
+          )}
+          {type === "pdf" && (
+            <iframe
+              src={url}
+              title={attachment.name}
+              className="w-full border-0"
+              style={{ height: "70vh" }}
+            />
+          )}
+          {type === "video" && (
+            <video controls src={url} className="max-h-[70vh] w-full" />
+          )}
+          {type === "other" && (
+            <div className="flex flex-col items-center gap-4 py-12 text-center">
+              <File className="h-12 w-12 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Este tipo de arquivo não pode ser visualizado. Use o botão Baixar.
+              </p>
+              <a href={url} download={attachment.name} target="_blank" rel="noreferrer">
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Baixar arquivo
+                </Button>
+              </a>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

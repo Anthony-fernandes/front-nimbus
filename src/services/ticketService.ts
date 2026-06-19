@@ -494,3 +494,17 @@ export function toTicketFormData(ticket: Ticket): Partial<TicketFormData> {
     convertToProjectActivity: Boolean(ticket.converted_to_activity),
   };
 }
+
+export async function listTicketAttachments(ticketId: string): Promise<TicketAttachment[]> {
+  const response = await api.get<TicketAttachment[]>(`/tickets/${ticketId}/attachments/`);
+  return response.data;
+}
+
+export async function uploadTicketAttachment(ticketId: string, file: File): Promise<TicketAttachment> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await api.post<TicketAttachment>(`/tickets/${ticketId}/attachments/`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+}

@@ -79,6 +79,15 @@ export async function syncThemeToDb(themeConfig: Record<string, unknown>): Promi
   await api.patch("/auth/me/", { theme_config: themeConfig });
 }
 
+export async function requestPasswordReset(email: string): Promise<{ uid: string; token: string }> {
+  const res = await api.post<{ uid: string; token: string }>("/auth/password-reset/", { email });
+  return res.data;
+}
+
+export async function confirmPasswordReset(uid: string, token: string, newPassword: string): Promise<void> {
+  await api.post("/auth/password-reset/confirm/", { uid, token, new_password: newPassword });
+}
+
 export async function logout() {
   const refresh = getRefreshToken();
 

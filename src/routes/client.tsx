@@ -1,4 +1,5 @@
-import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CheckCircle2, Clock, Ticket } from "lucide-react";
 
@@ -11,6 +12,7 @@ import { hasPermission } from "@/lib/permissions";
 import { getTicketStatusClass } from "@/lib/tickets";
 import type { User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
+import { isAuthenticated } from "@/services/session";
 import { getClient } from "@/services/clientService";
 import { listTickets } from "@/services/ticketService";
 import { formatDate } from "@/services/utils";
@@ -22,8 +24,15 @@ export const Route = createFileRoute("/client")({
 
 function ClientPortalPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const navigate = useNavigate();
   const user = getStoredUser<User>();
   const clientId = getUserClientId(user);
+
+  useEffect(() => {
+    if (!isAuthenticated() && pathname === "/client") {
+      navigate({ to: "/client/login" });
+    }
+  }, [pathname, navigate]);
   const clientName = getUserClientName(user) || "Sua conta";
   const canCreateTickets = hasPermission(user, "tickets.create");
 

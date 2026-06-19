@@ -53,6 +53,7 @@ import { deleteSprint, getSprint } from "@/services/sprintService";
 import { formatDate, toNumber } from "@/services/utils";
 import { listUsers } from "@/services/userService";
 import { api } from "@/services/api";
+import { BurndownChart } from "@/components/dashboard/Charts";
 
 export const Route = createFileRoute("/sprints/$id")({
   head: () => ({ meta: [{ title: "Detalhes da sprint · NimbusDesk" }] }),
@@ -88,16 +89,26 @@ function SprintDetail() {
     queryKey: ["activity-tag-configs"],
     queryFn: () => listActivityTags(),
   });
+  type BurndownRaw = { day?: string; date?: string; ideal: number; real?: number; actual?: number };
   const burndownQuery = useQuery({
     queryKey: ["sprint-burndown", id],
     queryFn: async () => {
-      const response = await api.get<{ data?: BurndownPoint[] } | BurndownPoint[]>(
+      const response = await api.get<{ data?: BurndownRaw[]; results?: BurndownRaw[] } | BurndownRaw[]>(
         `/dashboard/widget-data/?source=sprint_burndown&sprint_id=${id}`,
       );
       const raw = response.data;
-      if (Array.isArray(raw)) return raw;
-      if ("data" in raw && Array.isArray(raw.data)) return raw.data;
-      return [] as BurndownPoint[];
+      const list: BurndownRaw[] = Array.isArray(raw)
+        ? raw
+        : ("results" in raw && Array.isArray(raw.results))
+          ? raw.results
+          : ("data" in raw && Array.isArray(raw.data))
+            ? raw.data
+            : [];
+      return list.map((p) => ({
+        name: p.day ?? p.date ?? "",
+        Planejado: p.ideal,
+        Realizado: p.real ?? p.actual ?? 0,
+      }));
     },
     enabled: activeTab === "burndown",
   });
