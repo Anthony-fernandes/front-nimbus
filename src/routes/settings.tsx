@@ -11,6 +11,7 @@ import {
   Tags,
   TimerReset,
   Trash2,
+  SlidersHorizontal,
   Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -54,6 +55,13 @@ import {
   listTicketWorkflowStatuses,
   saveTicketWorkflowStatus,
 } from "@/services/ticketWorkflowService";
+import {
+  listCustomFields,
+  createCustomField,
+  updateCustomField,
+  deleteCustomField,
+  type TicketCustomField,
+} from "@/services/customFieldService";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Configuracoes - Nimbus" }] }),
@@ -72,7 +80,7 @@ function SettingsPage() {
   const canManageWorkflow =
     hasAnyPermission(currentUser, ["settings.edit", "categories.manage", "categories.edit"])
     || canManageTicketCategories(currentUser);
-  const [activeTab, setActiveTab] = useState<"workflow" | "empresa" | "perfil">("workflow");
+  const [activeTab, setActiveTab] = useState<"workflow" | "empresa" | "perfil" | "campos">("workflow");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -117,6 +125,12 @@ function SettingsPage() {
   const { data: activityTags = [] } = useQuery({
     queryKey: ["activity-tag-configs"],
     queryFn: () => listActivityTags(),
+    enabled: canViewSettings,
+  });
+
+  const { data: customFields = [], refetch: refetchCustomFields } = useQuery({
+    queryKey: ["ticket-custom-fields"],
+    queryFn: () => listCustomFields(),
     enabled: canViewSettings,
   });
 
@@ -277,12 +291,13 @@ function SettingsPage() {
 
         {/* Tab navigation */}
         <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
-          {(["workflow", "empresa", "perfil"] as const).map((tab) => {
-            const labels = { workflow: "Workflow", empresa: "Empresa", perfil: "Meu perfil" };
+          {(["workflow", "empresa", "perfil", "campos"] as const).map((tab) => {
+            const labels = { workflow: "Workflow", empresa: "Empresa", perfil: "Meu perfil", campos: "Campos" };
             const icons = {
               workflow: <Workflow className="h-3.5 w-3.5" />,
               empresa: <Building2 className="h-3.5 w-3.5" />,
               perfil: <ShieldCheck className="h-3.5 w-3.5" />,
+              campos: <SlidersHorizontal className="h-3.5 w-3.5" />,
             };
             return (
               <button
@@ -707,6 +722,15 @@ function SettingsPage() {
 
         <MfaSection />
         </> : null}
+
+        {activeTab === "campos" ? (
+          <CustomFieldsTab
+            customFields={customFields}
+            canManage={canManageWorkflow}
+            onRefresh={() => void refetchCustomFields()}
+          />
+        ) : null}
+
       </div>
     </AppShell>
   );
@@ -975,6 +999,351 @@ function SummaryCard({
       </div>
       <div className="mt-2 text-2xl font-semibold">{value}</div>
       <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+const FIELD_TYPE_LABELS: Record<string, string> = {
+  text: "Texto",
+  number: "Número",
+  date: "Data",
+  select: "Seleção",
+  boolean: "Sim/Não",
+};
+
+function CustomFieldsTab({
+  customFields,
+  canManage,
+  onRefresh,
+}: {
+  customFields: TicketCustomField[];
+  canManage: boolean;
+  onRefresh: () => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const emptyForm = { name: "", label: "", field_type: "text" as TicketCustomField["field_type"], required: false, is_active: true };
+  const [form, setForm] = useState(emptyForm);
+
+  const handleCreate = async () => {
+    if (!form.label.trim() || !form.name.trim()) {
+      toast.error("Preencha o nome e o rótulo do campo.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await createCustomField(form);
+      toast.success("Campo criado.");
+      setForm(emptyForm);
+      setShowForm(false);
+      onRefresh();
+    } catch {
+      toast.error("Não foi possível criar o campo.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async (id: string) => {
+    setSaving(true);
+    try {
+      await updateCustomField(id, form);
+      toast.success("Campo atualizado.");
+      setEditingId(null);
+      onRefresh();
+    } catch {
+      toast.error("Não foi possível atualizar o campo.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (field: TicketCustomField) => {
+    try {
+      await updateCustomField(field.id, { is_active: !field.is_active });
+      onRefresh();
+    } catch {
+      toast.error("Não foi possível atualizar o campo.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCustomField(id);
+      toast.success("Campo removido.");
+      setConfirmDeleteId(null);
+      onRefresh();
+    } catch {
+      toast.error("Não foi possível remover o campo.");
+    }
+  };
+
+  const startEdit = (field: TicketCustomField) => {
+    setEditingId(field.id);
+    setShowForm(false);
+    setForm({ name: field.name, label: field.label, field_type: field.field_type, required: field.required, is_active: field.is_active });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="glass overflow-hidden rounded-2xl shadow-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div>
+            <h2 className="font-semibold">Campos personalizados</h2>
+            <p className="text-xs text-muted-foreground">
+              Campos extras que aparecem nos chamados desta empresa.
+            </p>
+          </div>
+          {canManage && (
+            <Button
+              type="button"
+              className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+              onClick={() => { setShowForm((v) => !v); setEditingId(null); setForm(emptyForm); }}
+            >
+              <Plus className="h-4 w-4" />
+              Novo campo
+            </Button>
+          )}
+        </div>
+
+        {showForm && (
+          <div className="border-b border-border bg-muted/10 px-4 py-4">
+            <h3 className="mb-3 text-sm font-semibold">Novo campo</h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1">
+                <Label>Rótulo (exibido)</Label>
+                <Input
+                  placeholder="Ex: Número do contrato"
+                  value={form.label}
+                  onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Nome interno (slug)</Label>
+                <Input
+                  placeholder="Ex: numero_contrato"
+                  value={form.name}
+                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Tipo</Label>
+                <select
+                  value={form.field_type}
+                  onChange={(e) => setForm((p) => ({ ...p, field_type: e.target.value as TicketCustomField["field_type"] }))}
+                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                >
+                  {Object.entries(FIELD_TYPE_LABELS).map(([val, lbl]) => (
+                    <option key={val} value={val}>{lbl}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end gap-3">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 h-9">
+                  <input
+                    id="new-required"
+                    type="checkbox"
+                    checked={form.required}
+                    onChange={(e) => setForm((p) => ({ ...p, required: e.target.checked }))}
+                    className="h-4 w-4 rounded border border-border"
+                  />
+                  <label htmlFor="new-required" className="text-sm cursor-pointer">Obrigatório</label>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Button
+                type="button"
+                className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                onClick={handleCreate}
+                disabled={saving}
+              >
+                {saving ? "Criando..." : "Criar campo"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { setShowForm(false); setForm(emptyForm); }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-2.5 text-left font-medium">Rótulo</th>
+                <th className="px-2 py-2.5 text-left font-medium">Nome</th>
+                <th className="px-2 py-2.5 text-left font-medium">Tipo</th>
+                <th className="px-2 py-2.5 text-left font-medium">Obrigatório</th>
+                <th className="px-2 py-2.5 text-left font-medium">Ativo</th>
+                <th className="px-4 py-2.5 text-right font-medium">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customFields.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    Nenhum campo personalizado cadastrado.
+                  </td>
+                </tr>
+              ) : customFields.map((field) => (
+                <tr key={field.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                  {editingId === field.id ? (
+                    <td colSpan={6} className="px-4 py-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-3">
+                        <div className="space-y-1">
+                          <Label>Rótulo (exibido)</Label>
+                          <Input
+                            value={form.label}
+                            onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Nome interno (slug)</Label>
+                          <Input
+                            value={form.name}
+                            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Tipo</Label>
+                          <select
+                            value={form.field_type}
+                            onChange={(e) => setForm((p) => ({ ...p, field_type: e.target.value as TicketCustomField["field_type"] }))}
+                            className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                          >
+                            {Object.entries(FIELD_TYPE_LABELS).map(([val, lbl]) => (
+                              <option key={val} value={val}>{lbl}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex items-end gap-3">
+                          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 h-9">
+                            <input
+                              id={`edit-required-${field.id}`}
+                              type="checkbox"
+                              checked={form.required}
+                              onChange={(e) => setForm((p) => ({ ...p, required: e.target.checked }))}
+                              className="h-4 w-4 rounded border border-border"
+                            />
+                            <label htmlFor={`edit-required-${field.id}`} className="text-sm cursor-pointer">Obrigatório</label>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                          onClick={() => handleUpdate(field.id)}
+                          disabled={saving}
+                        >
+                          {saving ? "Salvando..." : "Salvar"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setEditingId(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </td>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 font-medium">{field.label}</td>
+                      <td className="px-2 py-3 font-mono text-xs text-muted-foreground">{field.name}</td>
+                      <td className="px-2 py-3">
+                        <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {FIELD_TYPE_LABELS[field.field_type] ?? field.field_type}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3">
+                        {field.required ? (
+                          <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                            Sim
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Não</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-3">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(field)}
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider transition-colors",
+                            field.is_active
+                              ? "bg-green-500/15 text-green-400 hover:bg-green-500/25"
+                              : "bg-muted/40 text-muted-foreground hover:bg-muted/60",
+                          )}
+                        >
+                          {field.is_active ? "Ativo" : "Inativo"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          {canManage && (
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                onClick={() => startEdit(field)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Editar
+                              </Button>
+                              {confirmDeleteId === field.id ? (
+                                <>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    onClick={() => handleDelete(field.id)}
+                                  >
+                                    Confirmar
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setConfirmDeleteId(null)}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => setConfirmDeleteId(field.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Remover
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
