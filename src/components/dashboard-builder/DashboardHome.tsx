@@ -463,7 +463,19 @@ export function DashboardHome({ screen = "viewer" }: { screen?: DashboardHomeScr
         return current;
       }
 
-      return cloneDashboard(selectedDashboard);
+      const cloned = cloneDashboard(selectedDashboard);
+
+      // If all components have x=0 (legacy/unpositioned), auto-pack them so
+      // the fixed positions are stored in the draft and saved when the user hits Save.
+      const allUnpositioned =
+        cloned.components.length > 0 &&
+        cloned.components.every((c) => (c.layout.x ?? 0) === 0);
+      if (allUnpositioned) {
+        const packed = autoPackComponents(cloned.components);
+        return { ...cloned, components: packed };
+      }
+
+      return cloned;
     });
   }, [editing, selectedDashboard]);
 
