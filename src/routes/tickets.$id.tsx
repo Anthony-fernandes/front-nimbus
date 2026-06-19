@@ -8,6 +8,7 @@ import {
   Check,
   CheckCheck,
   Clock,
+  Link2,
   Pause,
   Pencil,
   Play,
@@ -396,6 +397,21 @@ function TicketDetail() {
           }
           actions={
             <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href).then(() => {
+                    toast.success("Link copiado!");
+                  }).catch(() => {
+                    toast.error("Nao foi possivel copiar o link.");
+                  });
+                }}
+              >
+                <Link2 className="h-3.5 w-3.5" /> Compartilhar
+              </Button>
               <Button variant="outline" size="sm" className="gap-1.5" asChild>
                 <Link to="/tickets/$id/edit" params={{ id }}>
                   <Pencil className="h-3.5 w-3.5" /> Editar
@@ -605,6 +621,19 @@ function TicketDetail() {
                 )}
               </div>
             </SectionCard>
+
+            {ticket.custom_values && ticket.custom_values.length > 0 ? (
+              <SectionCard
+                title="Campos extras"
+                description="Campos personalizados configurados para este tipo de chamado."
+              >
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  {ticket.custom_values.map((cv) => (
+                    <DataRow key={cv.id} label={cv.field_label} value={cv.value || "-"} />
+                  ))}
+                </dl>
+              </SectionCard>
+            ) : null}
 
             <TicketTimeline events={timeline} allowComposer onCommentSubmit={publishComment} />
 

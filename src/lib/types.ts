@@ -405,6 +405,7 @@ export type Ticket = {
   rating?: number | null;
   rating_comment?: string;
   rated_at?: string | null;
+  custom_values?: { id: string; field_id: string; field_label: string; value: string }[];
 };
 
 export type User = {
