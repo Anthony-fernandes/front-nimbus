@@ -2,6 +2,16 @@ import { useMemo, useState } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, TimerReset, Trash2, TrendingUp } from "lucide-react";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -42,6 +52,7 @@ import {
 import { deleteSprint, getSprint } from "@/services/sprintService";
 import { formatDate, toNumber } from "@/services/utils";
 import { listUsers } from "@/services/userService";
+import { api } from "@/services/api";
 
 export const Route = createFileRoute("/sprints/$id")({
   head: () => ({ meta: [{ title: "Detalhes da sprint · NimbusDesk" }] }),
@@ -56,6 +67,7 @@ function SprintDetail() {
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<SprintActivityPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const sprintQuery = useQuery({ queryKey: ["sprint", id], queryFn: () => getSprint(id) });
   const activitiesQuery = useQuery({ queryKey: ["activities"], queryFn: () => listActivities() });
@@ -75,6 +87,19 @@ function SprintDetail() {
   const activityTagsQuery = useQuery({
     queryKey: ["activity-tag-configs"],
     queryFn: () => listActivityTags(),
+  });
+  const burndownQuery = useQuery({
+    queryKey: ["sprint-burndown", id],
+    queryFn: async () => {
+      const response = await api.get<{ data?: BurndownPoint[] } | BurndownPoint[]>(
+        `/dashboard/widget-data/?source=sprint_burndown&sprint_id=${id}`,
+      );
+      const raw = response.data;
+      if (Array.isArray(raw)) return raw;
+      if ("data" in raw && Array.isArray(raw.data)) return raw.data;
+      return [] as BurndownPoint[];
+    },
+    enabled: activeTab === "burndown",
   });
 
   const sprint = sprintQuery.data;
@@ -281,10 +306,11 @@ function SprintDetail() {
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <Tabs defaultValue="overview" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="border border-border bg-muted/40">
                 <TabsTrigger value="overview">Visao geral</TabsTrigger>
                 <TabsTrigger value="planning">Planejamento</TabsTrigger>
+                <TabsTrigger value="burndown">Burndown</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
@@ -406,6 +432,21 @@ function SprintDetail() {
                   })
                 )}
               </TabsContent>
+
+              <TabsContent value="burndown" className="space-y-4">
+                <div className="glass rounded-2xl p-5 shadow-card">
+                  <h3 className="mb-4 text-sm font-semibold">Burndown da sprint</h3>
+                  {burndownQuery.isLoading ? (
+                    <div className="text-sm text-muted-foreground">Carregando...</div>
+                  ) : !burndownQuery.data || burndownQuery.data.length === 0 ? (
+                    <div className="glass rounded-2xl p-5 text-sm text-muted-foreground">
+                      Sem dados de burndown disponíveis para este sprint.
+                    </div>
+                  ) : (
+                    <SprintBurndownChart data={burndownQuery.data} />
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -490,6 +531,50 @@ function SprintDetail() {
         </DialogContent>
       </Dialog>
     </AppShell>
+  );
+}
+
+interface BurndownPoint {
+  name: string;
+  Planejado: number;
+  Realizado: number;
+}
+
+function SprintBurndownChart({ data }: { data: BurndownPoint[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip
+          contentStyle={{
+            background: "hsl(var(--background))",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: "8px",
+            fontSize: "12px",
+          }}
+        />
+        <Legend wrapperStyle={{ fontSize: "12px" }} />
+        <Line
+          type="monotone"
+          dataKey="Planejado"
+          name="Ideal"
+          stroke="hsl(var(--muted-foreground))"
+          strokeDasharray="5 5"
+          dot={false}
+          strokeWidth={2}
+        />
+        <Line
+          type="monotone"
+          dataKey="Realizado"
+          name="Real"
+          stroke="hsl(var(--primary))"
+          dot={{ r: 3 }}
+          strokeWidth={2}
+        />
+      </LineChart>
+    </ResponsiveContainer>
   );
 }
 
