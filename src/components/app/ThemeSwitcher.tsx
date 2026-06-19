@@ -8,6 +8,7 @@ import {
   useTheme,
   type ThemeConfig,
 } from "@/hooks/useTheme";
+import { syncThemeToDb } from "@/services/authService";
 
 const PRESET_COLORS: { label: string; hue: number; hex: string }[] = [
   { label: "Azul", hue: 260, hex: "#6366f1" },
@@ -46,6 +47,7 @@ export function ThemeSwitcher() {
     setConfig(newConfig);
     applyTheme(newConfig);
     saveThemeConfig(newConfig);
+    void syncThemeToDb(newConfig as unknown as Record<string, unknown>);
   }
 
   function previewApply(newConfig: ThemeConfig) {

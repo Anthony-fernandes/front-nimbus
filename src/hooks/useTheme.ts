@@ -33,6 +33,19 @@ export function saveThemeConfig(config: ThemeConfig) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 }
 
+// Load theme from a user object returned by the API and apply it.
+// Call this after login so the DB config overrides the local cache.
+export function loadThemeFromUser(user: { theme_config?: Record<string, unknown> | null }) {
+  if (!user.theme_config || Object.keys(user.theme_config).length === 0) return;
+  try {
+    const config = { ...DEFAULT_CONFIG, ...(user.theme_config as Partial<ThemeConfig>) };
+    saveThemeConfig(config);
+    if (typeof document !== "undefined") applyTheme(config);
+  } catch {
+    // ignore
+  }
+}
+
 function buildCustomVars(config: ThemeConfig): Record<string, string> {
   const h = config.primaryHue;
   const a = config.accentHue;

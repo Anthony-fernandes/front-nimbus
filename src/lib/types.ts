@@ -446,6 +446,7 @@ export type User = {
   manager_name?: string;
   approval_mode?: string;
   is_service_desk_approver?: boolean;
+  theme_config?: Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 };

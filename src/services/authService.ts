@@ -1,5 +1,6 @@
 import type { User } from "@/lib/types";
 import { normalizeUser } from "@/lib/auth";
+import { loadThemeFromUser } from "@/hooks/useTheme";
 
 import { api, AUTH_REQUIRED_EVENT } from "./api";
 import {
@@ -41,6 +42,7 @@ export async function login(username: string, password: string) {
       user,
     };
     setSession(session);
+    if (user) loadThemeFromUser(user as { theme_config?: Record<string, unknown> | null });
     return session;
   } catch (error) {
     clearSession();
@@ -52,6 +54,7 @@ export async function fetchCurrentUser() {
   const response = await api.get<User>("/auth/me/");
   const user = normalizeUser(response.data);
   updateStoredUser(user);
+  if (response.data) loadThemeFromUser(response.data as { theme_config?: Record<string, unknown> | null });
   return user;
 }
 
@@ -70,6 +73,10 @@ export async function updateMyProfile(data: {
 
 export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
   await api.post("/auth/change-password/", { old_password: oldPassword, new_password: newPassword });
+}
+
+export async function syncThemeToDb(themeConfig: Record<string, unknown>): Promise<void> {
+  await api.patch("/auth/me/", { theme_config: themeConfig });
 }
 
 export async function logout() {
