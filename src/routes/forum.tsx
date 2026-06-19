@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessagesSquare, Pin, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -137,10 +137,11 @@ function ForumPage() {
               </div>
             ) : (
               topics.map((topic) => (
-                <div
+                <Link
                   key={topic.id}
-                  className="glass cursor-pointer space-y-1.5 rounded-2xl p-4 shadow-card transition-colors hover:border-primary/40"
-                  onClick={() => navigate({ to: "/forum/$id", params: { id: topic.id } })}
+                  to="/forum/$id"
+                  params={{ id: topic.id }}
+                  className="glass block cursor-pointer space-y-1.5 rounded-2xl p-4 shadow-card transition-colors hover:border-primary/40"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     {topic.is_pinned ? (
@@ -157,7 +158,7 @@ function ForumPage() {
                     <span>{topic.views_count} visualizações</span>
                     <span>{formatDate(topic.created_at)}</span>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>

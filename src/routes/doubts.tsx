@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HelpCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -130,10 +130,11 @@ function DoubtsPage() {
         ) : (
           <div className="space-y-3">
             {questions.map((q) => (
-              <div
+              <Link
                 key={q.id}
-                className="glass cursor-pointer space-y-1.5 rounded-2xl p-4 shadow-card transition-colors hover:border-primary/40"
-                onClick={() => navigate({ to: "/doubts/$id", params: { id: q.id } })}
+                to="/doubts/$id"
+                params={{ id: q.id }}
+                className="glass block cursor-pointer space-y-1.5 rounded-2xl p-4 shadow-card transition-colors hover:border-primary/40"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -155,7 +156,7 @@ function DoubtsPage() {
                   <span>{q.answers_count} respostas</span>
                   <span>{q.views_count} visualizações</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
