@@ -55,6 +55,19 @@ export async function fetchCurrentUser() {
   return user;
 }
 
+export async function updateMyProfile(data: {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  job_title?: string;
+}): Promise<User> {
+  const response = await api.patch<User>("/auth/me/", data);
+  const user = normalizeUser(response.data) ?? response.data;
+  updateStoredUser(user);
+  return user;
+}
+
 export async function logout() {
   const refresh = getRefreshToken();
 

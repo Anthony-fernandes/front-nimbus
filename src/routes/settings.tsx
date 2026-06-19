@@ -46,7 +46,7 @@ import {
   listActivityTags,
   saveActivityTag,
 } from "@/services/activityTagService";
-import { getStoredUser } from "@/services/authService";
+import { getStoredUser, updateMyProfile } from "@/services/authService";
 import { api } from "@/services/api";
 import { getMyCompany, updateCompany, type Company } from "@/services/companyService";
 import {
@@ -72,7 +72,7 @@ function SettingsPage() {
   const canManageWorkflow =
     hasAnyPermission(currentUser, ["settings.edit", "categories.manage", "categories.edit"])
     || canManageTicketCategories(currentUser);
-  const [activeTab, setActiveTab] = useState<"workflow" | "empresa">("workflow");
+  const [activeTab, setActiveTab] = useState<"workflow" | "empresa" | "perfil">("workflow");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -93,6 +93,19 @@ function SettingsPage() {
       void queryClient.invalidateQueries({ queryKey: ["my-company"] });
       setCompanyForm({});
     },
+    onError: () => toast.error("Não foi possível salvar."),
+  });
+
+  const [profileForm, setProfileForm] = useState({
+    first_name: currentUser?.first_name ?? "",
+    last_name: currentUser?.last_name ?? "",
+    email: currentUser?.email ?? "",
+    phone: (currentUser as { phone?: string } | null)?.phone ?? "",
+    job_title: (currentUser as { job_title?: string } | null)?.job_title ?? "",
+  });
+  const profileMutation = useMutation({
+    mutationFn: () => updateMyProfile(profileForm),
+    onSuccess: () => toast.success("Perfil atualizado."),
     onError: () => toast.error("Não foi possível salvar."),
   });
 
@@ -264,22 +277,30 @@ function SettingsPage() {
 
         {/* Tab navigation */}
         <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
-          {(["workflow", "empresa"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                activeTab === tab
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {tab === "workflow" ? <Workflow className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
-              {tab === "workflow" ? "Workflow" : "Empresa"}
-            </button>
-          ))}
+          {(["workflow", "empresa", "perfil"] as const).map((tab) => {
+            const labels = { workflow: "Workflow", empresa: "Empresa", perfil: "Meu perfil" };
+            const icons = {
+              workflow: <Workflow className="h-3.5 w-3.5" />,
+              empresa: <Building2 className="h-3.5 w-3.5" />,
+              perfil: <ShieldCheck className="h-3.5 w-3.5" />,
+            };
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                  activeTab === tab
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {icons[tab]}
+                {labels[tab]}
+              </button>
+            );
+          })}
         </div>
 
         {activeTab === "empresa" ? (
@@ -336,6 +357,54 @@ function SettingsPage() {
             ) : (
               <p className="text-sm text-muted-foreground">Sem dados disponíveis.</p>
             )}
+          </div>
+        ) : null}
+
+        {activeTab === "perfil" ? (
+          <div className="glass rounded-2xl shadow-card p-6 max-w-xl space-y-5">
+            <div>
+              <h2 className="font-semibold">Meu perfil</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Informações pessoais da sua conta.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {(
+                [
+                  { key: "first_name", label: "Nome" },
+                  { key: "last_name", label: "Sobrenome" },
+                ] as const
+              ).map(({ key, label }) => (
+                <div key={key} className="space-y-1">
+                  <Label>{label}</Label>
+                  <Input
+                    value={profileForm[key]}
+                    onChange={(e) => setProfileForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+            {(
+              [
+                { key: "email", label: "E-mail", type: "email" },
+                { key: "phone", label: "Telefone", type: "tel" },
+                { key: "job_title", label: "Cargo / Título", type: "text" },
+              ] as const
+            ).map(({ key, label, type }) => (
+              <div key={key} className="space-y-1">
+                <Label>{label}</Label>
+                <Input
+                  type={type}
+                  value={profileForm[key]}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                />
+              </div>
+            ))}
+            <Button
+              onClick={() => profileMutation.mutate()}
+              disabled={profileMutation.isPending}
+              className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+            >
+              {profileMutation.isPending ? "Salvando..." : "Salvar perfil"}
+            </Button>
           </div>
         ) : null}
 
