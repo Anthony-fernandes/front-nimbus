@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Columns3,
   FolderKanban,
+  FolderOpen,
   HelpCircle,
   Shield,
   ShieldCheck,
@@ -110,6 +111,12 @@ function getInternalMenu(user: User | null | undefined) {
       visible: hasAnyPermission(user, ["activities.view", "projects.view"]),
     },
     { title: "Conhecimento", url: "/knowledge", icon: BookOpen, visible: true },
+    {
+      title: "Categorias KB",
+      url: "/knowledge-categories",
+      icon: FolderOpen,
+      visible: getUserRole(user) !== "CLIENT",
+    },
     { title: "Forum", url: "/forum", icon: MessagesSquare, visible: true },
     {
       title: "Categorias do Forum",

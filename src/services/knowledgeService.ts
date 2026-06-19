@@ -20,6 +20,18 @@ export function listKnowledgeCategories() {
   return listResource<KnowledgeCategory>("/knowledge/categories");
 }
 
+export function createKnowledgeCategory(data: Partial<KnowledgeCategory>) {
+  return createResource<KnowledgeCategory>("/knowledge/categories", data);
+}
+
+export function updateKnowledgeCategory(id: string, data: Partial<KnowledgeCategory>) {
+  return updateResource<KnowledgeCategory>("/knowledge/categories", id, data);
+}
+
+export function deleteKnowledgeCategory(id: string) {
+  return deleteResource("/knowledge/categories", id);
+}
+
 export function listKnowledgeArticles(params?: Record<string, unknown>) {
   return listResource<KnowledgeArticle>("/knowledge/articles", {
     status: "PUBLISHED",

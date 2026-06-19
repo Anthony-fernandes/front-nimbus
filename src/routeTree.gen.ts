@@ -27,6 +27,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as KnowledgeCategoriesRouteImport } from './routes/knowledge-categories'
 import { Route as ForumCategoriesRouteImport } from './routes/forum-categories'
 import { Route as ForumRouteImport } from './routes/forum'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -175,6 +176,11 @@ const KanbanRoute = KanbanRouteImport.update({
 const InboxRoute = InboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeCategoriesRoute = KnowledgeCategoriesRouteImport.update({
+  id: '/knowledge-categories',
+  path: '/knowledge-categories',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForumCategoriesRoute = ForumCategoriesRouteImport.update({
@@ -492,6 +498,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
+  '/knowledge-categories': typeof KnowledgeCategoriesRoute
   '/login': typeof LoginRoute
   '/notification-preferences': typeof NotificationPreferencesRoute
   '/onboarding': typeof OnboardingRoute
@@ -571,6 +578,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
+  '/knowledge-categories': typeof KnowledgeCategoriesRoute
   '/login': typeof LoginRoute
   '/notification-preferences': typeof NotificationPreferencesRoute
   '/onboarding': typeof OnboardingRoute
@@ -651,6 +659,7 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
+  '/knowledge-categories': typeof KnowledgeCategoriesRoute
   '/login': typeof LoginRoute
   '/notification-preferences': typeof NotificationPreferencesRoute
   '/onboarding': typeof OnboardingRoute
@@ -732,6 +741,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/kanban'
     | '/knowledge'
+    | '/knowledge-categories'
     | '/login'
     | '/notification-preferences'
     | '/onboarding'
@@ -811,6 +821,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/kanban'
     | '/knowledge'
+    | '/knowledge-categories'
     | '/login'
     | '/notification-preferences'
     | '/onboarding'
@@ -890,6 +901,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/kanban'
     | '/knowledge'
+    | '/knowledge-categories'
     | '/login'
     | '/notification-preferences'
     | '/onboarding'
@@ -970,6 +982,7 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   KanbanRoute: typeof KanbanRoute
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
+  KnowledgeCategoriesRoute: typeof KnowledgeCategoriesRoute
   LoginRoute: typeof LoginRoute
   NotificationPreferencesRoute: typeof NotificationPreferencesRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -1108,6 +1121,13 @@ declare module '@tanstack/react-router' {
       path: '/knowledge'
       fullPath: '/knowledge'
       preLoaderRoute: typeof KnowledgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge-categories': {
+      id: '/knowledge-categories'
+      path: '/knowledge-categories'
+      fullPath: '/knowledge-categories'
+      preLoaderRoute: typeof KnowledgeCategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kanban': {
@@ -1848,6 +1868,7 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRoute: InboxRoute,
   KanbanRoute: KanbanRoute,
   KnowledgeRoute: KnowledgeRouteWithChildren,
+  KnowledgeCategoriesRoute: KnowledgeCategoriesRoute,
   LoginRoute: LoginRoute,
   NotificationPreferencesRoute: NotificationPreferencesRoute,
   OnboardingRoute: OnboardingRoute,
