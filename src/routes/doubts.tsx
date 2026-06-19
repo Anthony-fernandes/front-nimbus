@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HelpCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -48,6 +48,8 @@ function formatDate(value?: string | null) {
 }
 
 function DoubtsPage() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/doubts") return <Outlet />;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");

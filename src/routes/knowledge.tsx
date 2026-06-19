@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -59,6 +59,8 @@ function formatDate(value?: string | null) {
 }
 
 function KnowledgePage() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname !== "/knowledge") return <Outlet />;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = getStoredUser();
