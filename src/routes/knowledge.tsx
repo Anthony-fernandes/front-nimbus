@@ -185,7 +185,7 @@ function KnowledgePage() {
               <p className="text-xs text-muted-foreground mt-1">
                 {search
                   ? `Nenhum resultado para "${search}". Tente outros termos.`
-                  : "Crie o primeiro artigo clicando em "Novo artigo"."}
+                  : 'Crie o primeiro artigo clicando em "Novo artigo".'}
               </p>
             </div>
           </div>
