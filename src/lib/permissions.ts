@@ -673,6 +673,13 @@ function canAccessInternalPath(user: Partial<User> | null | undefined, pathname:
     return { allowed: true };
   }
 
+  if (pathname.startsWith("/superadmin")) {
+    return {
+      allowed: !!(user?.is_staff || user?.is_superuser),
+      fallbackTo: "/access-denied",
+    };
+  }
+
   if (pathname.startsWith("/tickets")) {
     if (pathname.endsWith("/new")) {
       return { allowed: hasPermission(user, "tickets.create"), fallbackTo: getDeniedFallback(user) };

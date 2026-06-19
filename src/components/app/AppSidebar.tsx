@@ -8,6 +8,7 @@ import {
   Columns3,
   FolderKanban,
   HelpCircle,
+  Shield,
   ShieldCheck,
   Inbox,
   LayoutDashboard,
@@ -282,6 +283,24 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
+
+        {!clientUser && (user?.is_staff || user?.is_superuser) ? (
+          <SidebarGroup>
+            {!collapsed ? <SidebarGroupLabel>Plataforma</SidebarGroupLabel> : null}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/superadmin")} tooltip="Super Admin">
+                    <Link to="/superadmin">
+                      <Shield className="h-4 w-4" />
+                      <span>Super Admin</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

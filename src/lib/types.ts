@@ -436,6 +436,8 @@ export type User = {
   resolved_permissions?: PermissionMap;
   permissions_json?: string[];
   is_active?: boolean;
+  is_staff?: boolean;
+  is_superuser?: boolean;
   department?: string | null;
   department_name?: string;
   position?: string | null;
