@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessagesSquare, Pin, Plus } from "lucide-react";
+import { Eye, Lock, MessagesSquare, Pin, Plus, Search, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -43,6 +43,8 @@ function formatDate(value?: string | null) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+type SortKey = "recentes" | "respostas" | "visualizacoes";
+
 function ForumPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname !== "/forum") return <Outlet />;
@@ -50,7 +52,9 @@ function ForumPage() {
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", content: "", category: "" });
+  const [form, setForm] = useState({ title: "", content: "", category: "", tags: "" });
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortKey>("recentes");
 
   const categoriesQuery = useQuery({
     queryKey: ["forum-categories"],
@@ -63,18 +67,53 @@ function ForumPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => createForumTopic(form),
+    mutationFn: () =>
+      createForumTopic({
+        title: form.title,
+        content: form.content,
+        category: form.category,
+        tags: form.tags
+          ? form.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : undefined,
+      } as Parameters<typeof createForumTopic>[0]),
     onSuccess: () => {
       toast.success("Tópico criado com sucesso.");
       setDialogOpen(false);
-      setForm({ title: "", content: "", category: "" });
+      setForm({ title: "", content: "", category: "", tags: "" });
       void queryClient.invalidateQueries({ queryKey: ["forum-topics"] });
     },
     onError: () => toast.error("Não foi possível criar o tópico."),
   });
 
   const categories = categoriesQuery.data ?? [];
-  const topics = topicsQuery.data ?? [];
+  const rawTopics = topicsQuery.data ?? [];
+
+  // Client-side filter
+  const filtered = search.trim()
+    ? rawTopics.filter((t) => t.title.toLowerCase().includes(search.toLowerCase()))
+    : rawTopics;
+
+  // Sort
+  const topics = [...filtered].sort((a, b) => {
+    if (sort === "respostas") return (b.replies_count ?? 0) - (a.replies_count ?? 0);
+    if (sort === "visualizacoes") return (b.views_count ?? 0) - (a.views_count ?? 0);
+    // recentes: pinned first, then by date
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+  });
+
+  const sortTabs: { key: SortKey; label: string }[] = [
+    { key: "recentes", label: "Recentes" },
+    { key: "respostas", label: "Mais respostas" },
+    { key: "visualizacoes", label: "Mais visualizações" },
+  ];
+
+  // suppress unused navigate warning — navigate is used implicitly by Link
+  void navigate;
 
   return (
     <AppShell>
@@ -126,8 +165,39 @@ function ForumPage() {
             ))}
           </aside>
 
-          {/* Topic list */}
+          {/* Main area */}
           <div className="flex-1 space-y-3">
+            {/* Top bar: search + sort tabs */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  className="pl-8 h-8 text-sm"
+                  placeholder="Buscar tópicos..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                {sortTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setSort(tab.key)}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                      sort === tab.key
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Topic list */}
             {topicsQuery.isLoading ? (
               <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
                 Carregando tópicos...
@@ -135,32 +205,82 @@ function ForumPage() {
             ) : topics.length === 0 ? (
               <div className="glass flex flex-col items-center gap-2 rounded-2xl p-10 text-center">
                 <MessagesSquare className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Nenhum tópico nesta categoria.</p>
+                <p className="text-sm text-muted-foreground">Nenhum tópico encontrado.</p>
               </div>
             ) : (
               topics.map((topic) => (
-                <Link
+                <div
                   key={topic.id}
-                  to="/forum/$id"
-                  params={{ id: topic.id }}
-                  className="glass block cursor-pointer space-y-1.5 rounded-2xl p-4 shadow-card transition-colors hover:border-primary/40"
+                  className={cn(
+                    "glass flex gap-0 rounded-2xl shadow-card transition-colors hover:border-primary/40 overflow-hidden",
+                    topic.is_pinned && "bg-primary/[0.03]",
+                  )}
                 >
-                  <div className="flex flex-wrap items-center gap-2">
-                    {topic.is_pinned ? (
-                      <Pin className="h-3.5 w-3.5 text-primary" />
+                  {/* Stats column */}
+                  <div className="flex w-20 shrink-0 flex-col items-center justify-center gap-3 border-r border-border/50 py-4 px-2">
+                    {/* Respondido badge */}
+                    {topic.best_answer ? (
+                      <span className="rounded-md bg-success/15 px-1.5 py-0.5 text-[10px] font-semibold text-success leading-tight text-center">
+                        Respondido
+                      </span>
                     ) : null}
-                    <span className="text-sm font-semibold">{topic.title}</span>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-base font-bold text-foreground leading-none">
+                        {topic.replies_count ?? 0}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">respostas</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-base font-bold text-foreground leading-none">
+                        {topic.views_count ?? 0}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">visitas</span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                    {topic.author_name ? <span>{topic.author_name}</span> : null}
-                    {topic.category_name ? (
-                      <span className="rounded px-1.5 py-0.5 bg-muted/60">{topic.category_name}</span>
-                    ) : null}
-                    <span>{topic.replies_count} respostas</span>
-                    <span>{topic.views_count} visualizações</span>
-                    <span>{formatDate(topic.created_at)}</span>
-                  </div>
-                </Link>
+
+                  {/* Content column */}
+                  <Link
+                    to="/forum/$id"
+                    params={{ id: topic.id }}
+                    className="flex flex-1 flex-col gap-1.5 px-4 py-3 min-w-0"
+                  >
+                    {/* Title row */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {topic.is_pinned ? (
+                        <Pin className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      ) : null}
+                      {topic.is_locked ? (
+                        <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      ) : null}
+                      <span className="font-semibold text-sm leading-snug line-clamp-2 hover:text-primary transition-colors">
+                        {topic.title}
+                      </span>
+                    </div>
+
+                    {/* Excerpt */}
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                      {topic.content}
+                    </p>
+
+                    {/* Footer */}
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                      {topic.category_name ? (
+                        <span className="flex items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 font-medium">
+                          <Tag className="h-2.5 w-2.5" />
+                          {topic.category_name}
+                        </span>
+                      ) : null}
+                      <span className="ml-auto flex items-center gap-1">
+                        {topic.author_name ? (
+                          <span className="rounded-full bg-muted/60 px-2 py-0.5 font-medium">
+                            {topic.author_name}
+                          </span>
+                        ) : null}
+                        <span>{formatDate(topic.created_at)}</span>
+                      </span>
+                    </div>
+                  </Link>
+                </div>
               ))
             )}
           </div>
@@ -204,6 +324,14 @@ function ForumPage() {
                 onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
                 placeholder="Descreva o assunto..."
                 className="min-h-[120px]"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Tags</Label>
+              <Input
+                value={form.tags}
+                onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                placeholder="Ex: dúvida, processo, ti (separadas por vírgula)"
               />
             </div>
           </div>
