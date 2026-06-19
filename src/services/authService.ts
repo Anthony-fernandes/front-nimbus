@@ -68,6 +68,10 @@ export async function updateMyProfile(data: {
   return user;
 }
 
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  await api.post("/auth/change-password/", { old_password: oldPassword, new_password: newPassword });
+}
+
 export async function logout() {
   const refresh = getRefreshToken();
 

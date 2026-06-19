@@ -47,7 +47,7 @@ import {
   listActivityTags,
   saveActivityTag,
 } from "@/services/activityTagService";
-import { getStoredUser, updateMyProfile } from "@/services/authService";
+import { getStoredUser, updateMyProfile, changePassword } from "@/services/authService";
 import { api } from "@/services/api";
 import { getMyCompany, updateCompany, type Company } from "@/services/companyService";
 import {
@@ -115,6 +115,16 @@ function SettingsPage() {
     mutationFn: () => updateMyProfile(profileForm),
     onSuccess: () => toast.success("Perfil atualizado."),
     onError: () => toast.error("Não foi possível salvar."),
+  });
+
+  const [passwordForm, setPasswordForm] = useState({ senha_atual: "", nova_senha: "", confirmar_senha: "" });
+  const passwordMutation = useMutation({
+    mutationFn: () => changePassword(passwordForm.senha_atual, passwordForm.nova_senha),
+    onSuccess: () => {
+      toast.success("Senha alterada com sucesso.");
+      setPasswordForm({ senha_atual: "", nova_senha: "", confirmar_senha: "" });
+    },
+    onError: () => toast.error("Não foi possível alterar a senha. Verifique a senha atual."),
   });
 
   const { data: statusConfigs = [] } = useQuery({
@@ -376,7 +386,8 @@ function SettingsPage() {
         ) : null}
 
         {activeTab === "perfil" ? (
-          <div className="glass rounded-2xl shadow-card p-6 max-w-xl space-y-5">
+          <div className="max-w-xl space-y-5">
+          <div className="glass rounded-2xl shadow-card p-6 space-y-5">
             <div>
               <h2 className="font-semibold">Meu perfil</h2>
               <p className="text-xs text-muted-foreground mt-0.5">Informações pessoais da sua conta.</p>
@@ -420,6 +431,55 @@ function SettingsPage() {
             >
               {profileMutation.isPending ? "Salvando..." : "Salvar perfil"}
             </Button>
+          </div>
+
+          <div className="glass rounded-2xl shadow-card p-6 space-y-4">
+            <div>
+              <h3 className="font-semibold">Alterar senha</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Redefina a senha da sua conta.</p>
+            </div>
+            <div className="space-y-1">
+              <Label>Senha atual</Label>
+              <Input
+                type="password"
+                value={passwordForm.senha_atual}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, senha_atual: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Nova senha</Label>
+              <Input
+                type="password"
+                value={passwordForm.nova_senha}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, nova_senha: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Confirmar nova senha</Label>
+              <Input
+                type="password"
+                value={passwordForm.confirmar_senha}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmar_senha: e.target.value }))}
+              />
+            </div>
+            <Button
+              onClick={() => {
+                if (passwordForm.nova_senha !== passwordForm.confirmar_senha) {
+                  toast.error("As senhas não coincidem.");
+                  return;
+                }
+                if (!passwordForm.senha_atual || !passwordForm.nova_senha) {
+                  toast.error("Preencha todos os campos de senha.");
+                  return;
+                }
+                passwordMutation.mutate();
+              }}
+              disabled={passwordMutation.isPending}
+              className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+            >
+              {passwordMutation.isPending ? "Salvando..." : "Alterar senha"}
+            </Button>
+          </div>
           </div>
         ) : null}
 
