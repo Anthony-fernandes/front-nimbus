@@ -38,12 +38,142 @@ import {
 } from "@/services/orgService";
 import { listUsers } from "@/services/userService";
 
+// ---------------------------------------------------------------------------
+// OrgChartTree — pure CSS/SVG org chart, no extra dependencies
+// ---------------------------------------------------------------------------
+type OrgChartTreeProps = {
+  departments: Department[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+};
+
+function OrgChartTree({ departments, selectedId, onSelect }: OrgChartTreeProps) {
+  // Show active departments first, then inactive; sort alphabetically within groups
+  const sorted = [...departments].sort((a, b) => {
+    const aActive = a.active ?? true;
+    const bActive = b.active ?? true;
+    if (aActive !== bActive) return aActive ? -1 : 1;
+    return a.name.localeCompare(b.name, "pt-BR");
+  });
+
+  // Split into rows of up to 4 for a tree-like look
+  const cols = Math.min(4, sorted.length);
+  const rows: Department[][] = [];
+  for (let i = 0; i < sorted.length; i += cols) {
+    rows.push(sorted.slice(i, i + cols));
+  }
+
+  return (
+    <div className="overflow-x-auto pb-4">
+      <div className="min-w-[320px] space-y-8">
+        {rows.map((row, rowIdx) => (
+          <div key={rowIdx} className="relative">
+            {/* Horizontal connector bar above cards (except first row) */}
+            {rowIdx > 0 && (
+              <div
+                className="mx-auto mb-4 border-t-2 border-border"
+                style={{ width: `${Math.max(50, (row.length / cols) * 80)}%` }}
+              />
+            )}
+
+            {/* Vertical drop line from bar into row */}
+            {rowIdx > 0 && (
+              <div className="mx-auto mb-4 h-4 w-px bg-border" />
+            )}
+
+            <div
+              className="grid gap-4"
+              style={{ gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))` }}
+            >
+              {row.map((dept) => {
+                const isSelected = selectedId === dept.id;
+                const isActive = dept.active ?? true;
+                return (
+                  <button
+                    key={dept.id}
+                    type="button"
+                    onClick={() => onSelect(dept.id)}
+                    className={[
+                      "glass rounded-2xl border-2 p-4 text-left shadow-card transition-all",
+                      "hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/40",
+                      !isActive ? "opacity-60" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    {/* Department icon + status */}
+                    <div className="mb-3 flex items-start justify-between gap-2">
+                      <div
+                        className={[
+                          "flex h-9 w-9 items-center justify-center rounded-xl",
+                          isSelected ? "bg-primary/20" : "bg-muted/50",
+                        ].join(" ")}
+                      >
+                        <Building2
+                          className={[
+                            "h-5 w-5",
+                            isSelected ? "text-primary" : "text-muted-foreground",
+                          ].join(" ")}
+                        />
+                      </div>
+                      <span
+                        className={
+                          isActive
+                            ? "rounded-md bg-success/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-success"
+                            : "rounded-md bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground"
+                        }
+                      >
+                        {isActive ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
+
+                    {/* Name */}
+                    <p className="mb-1 font-semibold leading-snug">{dept.name}</p>
+
+                    {/* Manager */}
+                    <p className="text-xs text-muted-foreground">
+                      {dept.manager_name ? (
+                        <>
+                          <span className="font-medium text-foreground/70">Gerente:</span>{" "}
+                          {dept.manager_name}
+                        </>
+                      ) : (
+                        <span className="italic">Sem gerente</span>
+                      )}
+                    </p>
+
+                    {/* Member count */}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground/70">Membros:</span>{" "}
+                      {dept.member_count ?? 0}
+                    </p>
+
+                    {/* Description (truncated) */}
+                    {dept.description && (
+                      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                        {dept.description}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/org")({
   head: () => ({ meta: [{ title: "Organização · NimbusDesk" }] }),
   component: OrgPage,
 });
 
-type Tab = "departamentos" | "cargos";
+type Tab = "departamentos" | "cargos" | "organograma";
 
 type DeptForm = {
   name: string;
@@ -67,6 +197,7 @@ function OrgPage() {
   const canManage = hasAnyPermission(currentUser, ["users.manage", "users.managePermissions"]);
 
   const [tab, setTab] = useState<Tab>("departamentos");
+  const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
 
   // Department dialog state
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
@@ -226,7 +357,7 @@ function OrgPage() {
           title="Organização"
           subtitle="Gerencie departamentos e cargos da empresa."
           actions={
-            canManage ? (
+            canManage && tab !== "organograma" ? (
               <Button
                 type="button"
                 className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
@@ -241,7 +372,7 @@ function OrgPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1">
-          {(["departamentos", "cargos"] as Tab[]).map((t) => (
+          {(["departamentos", "cargos", "organograma"] as Tab[]).map((t) => (
             <button
               key={t}
               type="button"
@@ -252,7 +383,7 @@ function OrgPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t === "departamentos" ? "Departamentos" : "Cargos"}
+              {t === "departamentos" ? "Departamentos" : t === "cargos" ? "Cargos" : "Organograma"}
             </button>
           ))}
         </div>
@@ -439,6 +570,39 @@ function OrgPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Organograma tab */}
+        {tab === "organograma" && (
+          <div className="space-y-4">
+            <div className="glass rounded-2xl px-4 py-3 shadow-card">
+              <h2 className="font-semibold">Organograma</h2>
+              <p className="text-xs text-muted-foreground">
+                Visualização estrutural dos departamentos da empresa.
+                {selectedDeptId && (
+                  <button
+                    type="button"
+                    className="ml-2 underline hover:text-foreground"
+                    onClick={() => setSelectedDeptId(null)}
+                  >
+                    Limpar seleção
+                  </button>
+                )}
+              </p>
+            </div>
+
+            {departments.length === 0 ? (
+              <div className="glass rounded-2xl px-4 py-12 text-center text-sm text-muted-foreground shadow-card">
+                Nenhum departamento cadastrado.
+              </div>
+            ) : (
+              <OrgChartTree
+                departments={departments}
+                selectedId={selectedDeptId}
+                onSelect={(id) => setSelectedDeptId(id === selectedDeptId ? null : id)}
+              />
+            )}
           </div>
         )}
       </div>
