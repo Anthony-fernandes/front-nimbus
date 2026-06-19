@@ -924,12 +924,25 @@ function createWidget(
   };
 }
 
+export function autoPackComponents(components: DashboardComponentConfig[], cols = 12): DashboardComponentConfig[] {
+  let curX = 0, curY = 0, rowH = 0;
+  return components.map((comp) => {
+    const w = comp.layout.w ?? comp.layout.colSpan ?? cols;
+    const h = comp.layout.h ?? 2;
+    if (curX + w > cols) { curX = 0; curY += rowH; rowH = 0; }
+    const updated = { ...comp, layout: { ...comp.layout, x: curX, y: curY, w, h } };
+    curX += w;
+    rowH = Math.max(rowH, h);
+    return updated;
+  });
+}
+
 export function createDefaultDashboard(userName = "Sistema"): DashboardDefinition {
   const createdAt = new Date().toISOString();
   const operationalFilters = DASHBOARD_FILTER_DEFINITIONS
     .filter((filter) => OPERATIONAL_FILTER_TYPES.includes(filter.type))
     .map((filter) => ({ ...filter, enabled: true }));
-  const components: DashboardComponentConfig[] = [
+  const rawComponents: DashboardComponentConfig[] = [
     createWidget({ type: "kpi", dataSource: "tickets_open", title: "Chamados abertos", layout: { order: 1, colSpan: 3, minHeight: 188 }, useGlobalFilters: false }, 1),
     createWidget({ type: "kpi", dataSource: "tickets_critical", title: "Criticos", layout: { order: 2, colSpan: 3, minHeight: 188 }, useGlobalFilters: false }, 2),
     createWidget({ type: "kpi", dataSource: "tickets_late", title: "Atrasados", layout: { order: 3, colSpan: 3, minHeight: 188 }, useGlobalFilters: false }, 3),
@@ -960,6 +973,7 @@ export function createDefaultDashboard(userName = "Sistema"): DashboardDefinitio
     createWidget({ type: "table", dataSource: "sprint_capacity_people", title: "Capacidade da sprint por pessoa", layout: { order: 24, colSpan: 8, minHeight: 390 } }, 24),
     createWidget({ type: "list", dataSource: "sprint_attention_items", title: "Itens bloqueados ou atrasados", layout: { order: 25, colSpan: 4, minHeight: 390 } }, 25),
   ];
+  const components = autoPackComponents(rawComponents);
 
   return {
     id: createDashboardId("dashboard"),

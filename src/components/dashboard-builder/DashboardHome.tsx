@@ -112,6 +112,7 @@ import {
   type DashboardFilterState,
   type DashboardTone,
   type DashboardViewType,
+  autoPackComponents,
 } from "@/lib/dashboardBuilder";
 import { getUserDisplayName, getUserRole } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -1609,15 +1610,23 @@ function DashboardBuilderCanvas({
     return () => ro.disconnect();
   }, []);
 
-  const layout = items.map(({ component }) => ({
-    i: component.id,
-    x: component.layout.x ?? 0,
-    y: component.layout.y ?? 0,
-    w: component.layout.w ?? component.layout.colSpan ?? 12,
-    h: component.layout.h ?? 2,
-    minW: isFullWidthBuilderType(component.type) ? BUILDER_GRID_COLUMNS : 2,
-    maxW: isFullWidthBuilderType(component.type) ? BUILDER_GRID_COLUMNS : BUILDER_GRID_COLUMNS,
-  }));
+  // Auto-pack if all items are unpositioned (x=0 for every item — legacy dashboards)
+  const packedComponents = items.every(({ component }) => (component.layout.x ?? 0) === 0)
+    ? autoPackComponents(items.map(({ component }) => component))
+    : items.map(({ component }) => component);
+
+  const layout = items.map(({ component }, idx) => {
+    const packed = packedComponents[idx];
+    return {
+      i: component.id,
+      x: packed.layout.x ?? 0,
+      y: packed.layout.y ?? 0,
+      w: packed.layout.w ?? component.layout.colSpan ?? 12,
+      h: packed.layout.h ?? 2,
+      minW: isFullWidthBuilderType(component.type) ? BUILDER_GRID_COLUMNS : 2,
+      maxW: isFullWidthBuilderType(component.type) ? BUILDER_GRID_COLUMNS : BUILDER_GRID_COLUMNS,
+    };
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const RGL = (ReactGridLayout as any).default ?? ReactGridLayout;
