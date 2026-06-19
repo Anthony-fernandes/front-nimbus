@@ -11,7 +11,7 @@ import { listTickets, updateTicket } from "@/services/ticketService";
 const EMPTY_TICKETS: Ticket[] = [];
 
 export const Route = createFileRoute("/kanban")({
-  head: () => ({ meta: [{ title: "Kanban · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Kanban · NimbusDesk" }] }),
   component: KanbanPage,
 });
 

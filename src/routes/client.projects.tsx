@@ -20,7 +20,7 @@ import { getStoredUser } from "@/services/authService";
 import { listProjects } from "@/services/projectService";
 
 export const Route = createFileRoute("/client/projects")({
-  head: () => ({ meta: [{ title: "Projetos do cliente · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Projetos do cliente · NimbusDesk" }] }),
   component: ClientProjectsPage,
 });
 

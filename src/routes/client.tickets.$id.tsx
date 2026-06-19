@@ -18,7 +18,7 @@ import { getTicket, transitionTicket } from "@/services/ticketService";
 import { formatDate, formatDateTime } from "@/services/utils";
 
 export const Route = createFileRoute("/client/tickets/$id")({
-  head: () => ({ meta: [{ title: "Detalhes do chamado · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Detalhes do chamado · NimbusDesk" }] }),
   component: ClientTicketDetailPage,
 });
 

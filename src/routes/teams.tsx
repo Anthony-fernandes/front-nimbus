@@ -23,7 +23,7 @@ import { getStoredUser } from "@/services/authService";
 import { listUsers } from "@/services/userService";
 
 export const Route = createFileRoute("/teams")({
-  head: () => ({ meta: [{ title: "Usuarios e acessos · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Usuarios e acessos · NimbusDesk" }] }),
   component: TeamsPage,
 });
 

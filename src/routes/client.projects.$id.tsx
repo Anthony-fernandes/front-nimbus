@@ -12,7 +12,7 @@ import { getProject } from "@/services/projectService";
 import { formatCurrency, formatDate } from "@/services/utils";
 
 export const Route = createFileRoute("/client/projects/$id")({
-  head: () => ({ meta: [{ title: "Projeto do cliente · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Projeto do cliente · NimbusDesk" }] }),
   component: ClientProjectDetailPage,
 });
 

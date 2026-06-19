@@ -22,7 +22,7 @@ import {
 import { api } from "@/services/api";
 
 export const Route = createFileRoute("/email-templates")({
-  head: () => ({ meta: [{ title: "Templates de E-mail · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Templates de E-mail · NimbusDesk" }] }),
   component: EmailTemplatesPage,
 });
 

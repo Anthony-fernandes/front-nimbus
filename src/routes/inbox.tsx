@@ -29,7 +29,7 @@ import {
 } from "@/services/notificationService";
 
 export const Route = createFileRoute("/inbox")({
-  head: () => ({ meta: [{ title: "Caixa de entrada · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Caixa de entrada · NimbusDesk" }] }),
   component: InboxPage,
 });
 

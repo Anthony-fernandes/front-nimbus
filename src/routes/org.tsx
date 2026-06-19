@@ -39,7 +39,7 @@ import {
 import { listUsers } from "@/services/userService";
 
 export const Route = createFileRoute("/org")({
-  head: () => ({ meta: [{ title: "Organização · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Organização · NimbusDesk" }] }),
   component: OrgPage,
 });
 

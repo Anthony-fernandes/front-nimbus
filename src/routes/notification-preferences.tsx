@@ -23,7 +23,7 @@ import {
 } from "@/services/notificationService";
 
 export const Route = createFileRoute("/notification-preferences")({
-  head: () => ({ meta: [{ title: "Preferências de notificação · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Preferências de notificação · NimbusDesk" }] }),
   component: NotificationPreferencesPage,
 });
 

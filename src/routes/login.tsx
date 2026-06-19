@@ -12,7 +12,7 @@ import { api } from "@/services/api";
 import { setSession } from "@/services/session";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Entrar · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Entrar · NimbusDesk" }] }),
   validateSearch: (search) => ({ reason: (search.reason as string) || "" }),
   component: LoginPage,
 });
@@ -37,7 +37,7 @@ function LoginPage() {
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="text-lg font-semibold">
-            Stratos<span className="text-gradient">Suite</span>
+            Nimbus<span className="text-gradient">Desk</span>
           </div>
         </div>
         <div className="relative">
@@ -56,7 +56,7 @@ function LoginPage() {
           </div>
         </div>
         <div className="relative text-xs text-muted-foreground">
-          © Stratos Suite 2026 · Todos os direitos reservados
+          © NimbusDesk 2026 · Todos os direitos reservados
         </div>
       </div>
 
@@ -67,7 +67,7 @@ function LoginPage() {
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
             <div className="font-semibold">
-              Stratos<span className="text-gradient">Suite</span>
+              Nimbus<span className="text-gradient">Desk</span>
             </div>
           </div>
           <h2 className="text-xl font-semibold tracking-tight">Entrar na workspace</h2>

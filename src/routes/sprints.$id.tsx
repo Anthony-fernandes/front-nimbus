@@ -44,7 +44,7 @@ import { formatDate, toNumber } from "@/services/utils";
 import { listUsers } from "@/services/userService";
 
 export const Route = createFileRoute("/sprints/$id")({
-  head: () => ({ meta: [{ title: "Detalhes da sprint · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Detalhes da sprint · NimbusDesk" }] }),
   component: SprintDetail,
 });
 

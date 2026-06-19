@@ -16,7 +16,7 @@ import type { Organization } from "@/lib/types";
 import { listOrganizations } from "@/services/clientService";
 
 export const Route = createFileRoute("/clients")({
-  head: () => ({ meta: [{ title: "Organizacoes · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Organizacoes · NimbusDesk" }] }),
   component: OrganizationsPage,
 });
 

@@ -14,7 +14,7 @@ import { listTickets } from "@/services/ticketService";
 import { formatCurrency, formatDate } from "@/services/utils";
 
 export const Route = createFileRoute("/clients/$id")({
-  head: () => ({ meta: [{ title: "Detalhes da organizacao · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Detalhes da organizacao · NimbusDesk" }] }),
   component: OrganizationDetail,
 });
 

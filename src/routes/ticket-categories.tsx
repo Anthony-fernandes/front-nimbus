@@ -22,7 +22,7 @@ import {
 } from "@/services/ticketCategoryService";
 
 export const Route = createFileRoute("/ticket-categories")({
-  head: () => ({ meta: [{ title: "Categorias de chamado · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Categorias de chamado · NimbusDesk" }] }),
   component: TicketCategoriesPage,
 });
 
