@@ -27,7 +27,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 function LoginPage() {
   const { reason } = Route.useSearch();
   return (
-    <div className="dark min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground">
+    <div className="min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground">
       <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-primary opacity-20" />
         <div className="absolute -top-32 -left-20 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />

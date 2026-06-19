@@ -24,6 +24,7 @@ import {
 } from "@/services/authService";
 import { AppSidebar } from "./AppSidebar";
 import { GlobalSearch } from "./GlobalSearch";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 function canCreateFromPath(pathname: string, user: User | null) {
   if (!user) {
@@ -142,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <div className="dark flex min-h-screen w-full bg-background text-foreground">
+      <div className="flex min-h-screen w-full bg-background text-foreground">
         <AppSidebar user={user} />
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="glass-strong sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border px-4">
@@ -170,6 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </a>
               </Button>
             ) : null}
+            <ThemeSwitcher />
             {!clientUser ? <NotificationBell /> : null}
             {!clientUser ? (
               <Link

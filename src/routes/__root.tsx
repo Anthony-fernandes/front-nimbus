@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   Outlet,
@@ -15,6 +15,13 @@ import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/app/ErrorBoundary";
 import { API_BASE_URL } from "@/services/api";
 import { getAccessToken } from "@/services/session";
+import {
+  ThemeContext,
+  applyTheme,
+  loadThemeConfig,
+  saveThemeConfig,
+  type ThemeConfig,
+} from "@/hooks/useTheme";
 
 function NotFoundComponent() {
   return (
@@ -183,14 +190,32 @@ function GlobalNotificationSocket() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [themeConfig, setThemeConfig] = useState<ThemeConfig>(() => {
+    const cfg = loadThemeConfig();
+    // Apply on first render (only runs client-side)
+    if (typeof document !== "undefined") applyTheme(cfg);
+    return cfg;
+  });
+
+  const handleSetConfig = (config: ThemeConfig) => {
+    setThemeConfig(config);
+    applyTheme(config);
+    saveThemeConfig(config);
+  };
+
+  const toasterTheme = themeConfig.mode === "light" || (themeConfig.mode === "custom" && themeConfig.base === "light")
+    ? "light"
+    : "dark";
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GlobalNotificationSocket />
-      <ErrorBoundary>
-        <Outlet />
-      </ErrorBoundary>
-      <Toaster richColors position="top-right" theme="dark" />
-    </QueryClientProvider>
+    <ThemeContext.Provider value={{ config: themeConfig, setConfig: handleSetConfig }}>
+      <QueryClientProvider client={queryClient}>
+        <GlobalNotificationSocket />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
+        <Toaster richColors position="top-right" theme={toasterTheme} />
+      </QueryClientProvider>
+    </ThemeContext.Provider>
   );
 }
