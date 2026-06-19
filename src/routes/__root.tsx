@@ -89,6 +89,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: ({ location }) => {
+    // localStorage is not available during SSR — skip auth check on the server
+    if (typeof document === "undefined") return;
+
     const publicPaths = ["/login", "/forgot-password", "/client/login", "/client", "/onboarding"];
     const isPublic = publicPaths.some((p) => location.pathname.startsWith(p));
     if (!isPublic && !isAuthenticated()) {

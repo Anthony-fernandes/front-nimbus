@@ -85,8 +85,11 @@ api.interceptors.response.use(
 
     const requestUrl = String(originalRequest.url || "");
     if (requestUrl.includes("/auth/login/") || requestUrl.includes("/auth/refresh/")) {
-      clearSession();
-      notifyAuthRequired();
+      // Only clear session if it was the refresh endpoint that failed (not a bad login attempt)
+      if (requestUrl.includes("/auth/refresh/")) {
+        clearSession();
+        notifyAuthRequired();
+      }
       return Promise.reject(error);
     }
 
