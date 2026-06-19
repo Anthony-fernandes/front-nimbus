@@ -96,7 +96,8 @@ export const getSLAAlerts = async (): Promise<SLAAlerts> => {
 
 export const listSLAPolicies = async (): Promise<SLAPolicy[]> => {
   const res = await api.get("/sla-policies/");
-  return res.data as SLAPolicy[];
+  const data = res.data;
+  return Array.isArray(data) ? data : (data?.results ?? []);
 };
 
 export const createSLAPolicy = async (data: Partial<SLAPolicy>): Promise<SLAPolicy> => {

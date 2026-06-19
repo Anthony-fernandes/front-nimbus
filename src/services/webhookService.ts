@@ -27,8 +27,8 @@ export interface WebhookDelivery {
 }
 
 export async function listWebhooks(): Promise<Webhook[]> {
-  const { data } = await api.get<Webhook[]>("/webhooks/");
-  return data;
+  const { data } = await api.get("/webhooks/");
+  return Array.isArray(data) ? data : (data?.results ?? []);
 }
 
 export async function getWebhook(id: string): Promise<Webhook> {

@@ -200,6 +200,11 @@ function TicketDetail() {
     e.target.value = "";
   }
 
+  const technicianUsers = useMemo(
+    () => (usersQuery.data || []).filter((user) => !isClientUser(user)),
+    [usersQuery.data],
+  );
+
   if (pathname !== `/tickets/${id}`) {
     return <Outlet />;
   }
@@ -253,10 +258,6 @@ function TicketDetail() {
     canFinalize,
     canEdit: canEditTickets,
   };
-  const technicianUsers = useMemo(
-    () => users.filter((user) => !isClientUser(user)),
-    [users],
-  );
   const workflowActions = getAvailableTicketActions(ticket, statusConfigs, workflowPermissions);
   const workflowTransitionActions = workflowActions.filter(
     (action) => !["open_details", "edit"].includes(action.id),
