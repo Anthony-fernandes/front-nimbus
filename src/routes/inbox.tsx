@@ -9,6 +9,7 @@ import {
   Inbox as InboxIcon,
   Mail,
   MailOpen,
+  Search,
   Star,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -71,6 +72,7 @@ function InboxPage() {
   const queryClient = useQueryClient();
   const [category, setCategory] = useState<CategoryFilter>("Todos");
   const [readFilter, setReadFilter] = useState<ReadFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const params = useMemo(() => {
     const next: Record<string, unknown> = { ordering: "-created_at" };
@@ -117,7 +119,16 @@ function InboxPage() {
     },
   });
 
-  const notifications = notificationsQuery.data ?? [];
+  const allNotifications = notificationsQuery.data ?? [];
+  const notifications = searchQuery.trim()
+    ? allNotifications.filter((n) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          (n.title ?? "").toLowerCase().includes(q) ||
+          (n.message ?? "").toLowerCase().includes(q)
+        );
+      })
+    : allNotifications;
 
   function openNotification(notification: AppNotification) {
     if (!notification.is_read) {
@@ -151,6 +162,17 @@ function InboxPage() {
             </Button>
           }
         />
+
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar notificações..."
+            className="h-9 w-full rounded-lg border border-border bg-muted/30 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:outline-none"
+          />
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">

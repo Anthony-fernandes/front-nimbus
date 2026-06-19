@@ -63,3 +63,7 @@ export async function getWebhookDeliveries(id: string): Promise<WebhookDelivery[
 export async function testWebhook(id: string): Promise<void> {
   await api.post(`/webhooks/${id}/test/`);
 }
+
+export async function retryWebhookDelivery(webhookId: string, deliveryId: string): Promise<void> {
+  await api.post(`/webhooks/${webhookId}/retry-delivery/${deliveryId}/`);
+}

@@ -33,6 +33,7 @@ import {
   getAvailableEvents,
   getWebhookDeliveries,
   listWebhooks,
+  retryWebhookDelivery,
   testWebhook,
   updateWebhook,
   type Webhook as WebhookType,
@@ -363,10 +364,19 @@ function DeliveriesDialog({
   webhook: WebhookType | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const queryClient = useQueryClient();
   const deliveriesQuery = useQuery({
     queryKey: ["webhook-deliveries", webhook?.id],
     queryFn: () => getWebhookDeliveries(webhook!.id),
     enabled: !!webhook,
+  });
+  const retryMutation = useMutation({
+    mutationFn: (deliveryId: string) => retryWebhookDelivery(webhook!.id, deliveryId),
+    onSuccess: () => {
+      toast.success("Reenvio iniciado.");
+      void queryClient.invalidateQueries({ queryKey: ["webhook-deliveries", webhook?.id] });
+    },
+    onError: () => toast.error("Não foi possível reenviar."),
   });
 
   return (
@@ -406,9 +416,22 @@ function DeliveriesDialog({
                     <p className="text-[11px] text-destructive mt-0.5 truncate">{delivery.error}</p>
                   )}
                 </div>
-                <span className="text-[11px] text-muted-foreground shrink-0">
-                  {new Date(delivery.created_at).toLocaleString("pt-BR")}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(delivery.created_at).toLocaleString("pt-BR")}
+                  </span>
+                  {!delivery.success && (
+                    <button
+                      type="button"
+                      title="Reenviar"
+                      onClick={() => retryMutation.mutate(delivery.id)}
+                      disabled={retryMutation.isPending}
+                      className="rounded px-1.5 py-0.5 text-[10px] border border-border text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Reenviar
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}
