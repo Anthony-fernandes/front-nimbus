@@ -1651,15 +1651,11 @@ function DashboardBuilderCanvas({
           isResizable
           resizeHandles={["se", "sw", "ne", "nw"]}
           draggableHandle=".drag-handle"
-          onLayoutChange={(newLayout: Array<{ i: string; x: number; y: number; w: number; h: number }>) => {
-            newLayout.forEach((item) => {
-              const prev = items.find((m) => m.component.id === item.i);
-              if (!prev) return;
-              const pl = prev.component.layout;
-              if (item.x !== pl.x || item.y !== pl.y || item.w !== pl.w || item.h !== pl.h) {
-                onUpdateComponentLayout(item.i, { x: item.x, y: item.y, w: item.w, h: item.h });
-              }
-            });
+          onDragStop={(_layout: unknown, _old: unknown, item: { i: string; x: number; y: number; w: number; h: number }) => {
+            onUpdateComponentLayout(item.i, { x: item.x, y: item.y, w: item.w, h: item.h });
+          }}
+          onResizeStop={(_layout: unknown, _old: unknown, item: { i: string; x: number; y: number; w: number; h: number }) => {
+            onUpdateComponentLayout(item.i, { x: item.x, y: item.y, w: item.w, h: item.h });
           }}
         >
           {items.map(({ component, data }) => (

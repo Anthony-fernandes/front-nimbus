@@ -205,7 +205,7 @@ function NotificationBell() {
   const { data: unread = 0 } = useQuery({
     queryKey: ["notifications-unread"],
     queryFn: () => getUnreadCount(),
-    refetchInterval: 60000,
+    refetchInterval: 15_000,
     refetchOnWindowFocus: true,
   });
 

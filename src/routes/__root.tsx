@@ -1,4 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -7,10 +8,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/app/ErrorBoundary";
+import { API_BASE_URL } from "@/services/api";
+import { getAccessToken } from "@/services/session";
 
 function NotFoundComponent() {
   return (
@@ -116,11 +120,73 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function GlobalNotificationSocket() {
+  const queryClient = useQueryClient();
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    const base = API_BASE_URL.replace(/\/api$/, "");
+    const wsBase = base.replace(/^https:\/\//, "wss://").replace(/^http:\/\//, "ws://");
+    const url = `${wsBase}/ws/notifications/?token=${token}`;
+
+    let ws: WebSocket;
+    let retryTimeout: ReturnType<typeof setTimeout>;
+
+    function connect() {
+      try {
+        ws = new WebSocket(url);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data as string) as {
+              event?: string;
+              author_name?: string;
+              content?: string;
+              conversation?: string;
+            };
+            if (data.event === "chat.new_message") {
+              // Invalidate unread count + conversation list
+              void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+              void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
+              const preview = (data.content ?? "").slice(0, 60);
+              toast(`💬 ${data.author_name ?? "Mensagem"}: ${preview}`);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        };
+
+        ws.onclose = () => {
+          // Reconnect after 5s if closed unexpectedly
+          retryTimeout = setTimeout(connect, 5000);
+        };
+      } catch {
+        retryTimeout = setTimeout(connect, 5000);
+      }
+    }
+
+    connect();
+
+    return () => {
+      clearTimeout(retryTimeout);
+      ws?.close();
+      wsRef.current = null;
+    };
+  }, [queryClient]);
+
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <GlobalNotificationSocket />
       <ErrorBoundary>
         <Outlet />
       </ErrorBoundary>

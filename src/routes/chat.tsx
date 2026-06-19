@@ -82,8 +82,8 @@ function ChatPage() {
     queryKey: ["chat-messages", selectedConversationId],
     queryFn: () => (selectedConversationId ? listChatMessages(selectedConversationId) : Promise.resolve([])),
     enabled: !!selectedConversationId,
-    // Poll every 5s when WebSocket is not connected
-    refetchInterval: wsConnected.current ? false : 5_000,
+    // Always poll as fallback — WS deduplicates via appendMessage
+    refetchInterval: 4_000,
   });
 
   // Sync REST messages into state
