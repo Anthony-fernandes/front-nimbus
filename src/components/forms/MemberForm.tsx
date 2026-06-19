@@ -1,7 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, ShieldCheck, UserCog } from "lucide-react";
+import { Ban, CheckCircle2, ChevronDown, ChevronRight, Minus, Save, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field, FormSection } from "@/components/app/Field";
@@ -107,6 +107,204 @@ const ROLES_WITH_REQUIRED_ORGANIZATION = new Set<AppUserRole>(["CLIENT"]);
 
 function toggleKey(list: string[], key: string) {
   return list.includes(key) ? list.filter((item) => item !== key) : [...list, key];
+}
+
+// ─── Unified Permissions Editor ──────────────────────────────────────────────
+
+type PermState = "inherit" | "grant" | "deny";
+
+const ROLE_CARDS: Array<{ value: AppUserRole; label: string; description: string; color: string }> = [
+  { value: "ADMIN", label: "Administrador", description: "Acesso total ao portal interno", color: "border-purple-400/60 bg-purple-50/50 dark:bg-purple-950/20" },
+  { value: "TECHNICIAN", label: "Técnico", description: "Operacional — permissões controladas", color: "border-blue-400/60 bg-blue-50/50 dark:bg-blue-950/20" },
+  { value: "CLIENT", label: "Cliente", description: "Apenas portal do cliente", color: "border-emerald-400/60 bg-emerald-50/50 dark:bg-emerald-950/20" },
+];
+
+import type { PermissionBlock } from "@/lib/types";
+
+function PermissionsEditor({
+  role,
+  permissionBlocks,
+  permissionBlockIds,
+  grantedPermissionKeys,
+  deniedPermissionKeys,
+  onRoleChange,
+  onBlockToggle,
+  onGrantToggle,
+  onDenyToggle,
+}: {
+  role: AppUserRole;
+  permissionBlocks: PermissionBlock[];
+  permissionBlockIds: string[];
+  grantedPermissionKeys: string[];
+  deniedPermissionKeys: string[];
+  onRoleChange: (r: AppUserRole) => void;
+  onBlockToggle: (id: string) => void;
+  onGrantToggle: (key: string) => void;
+  onDenyToggle: (key: string) => void;
+}) {
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(["tickets"]));
+
+  function toggleGroup(key: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function getState(permKey: string): PermState {
+    if (deniedPermissionKeys.includes(permKey)) return "deny";
+    if (grantedPermissionKeys.includes(permKey)) return "grant";
+    return "inherit";
+  }
+
+  function cycleState(permKey: string) {
+    const current = getState(permKey);
+    if (current === "inherit") {
+      // inherit → grant
+      onGrantToggle(permKey);
+    } else if (current === "grant") {
+      // grant → deny: remove from granted, add to denied
+      onGrantToggle(permKey); // remove from granted
+      onDenyToggle(permKey);  // add to denied
+    } else {
+      // deny → inherit: remove from denied
+      onDenyToggle(permKey);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Role selector */}
+      <FormSection
+        title="Perfil de acesso"
+        description="Define as permissões base do usuário. Você pode ajustar individualmente abaixo."
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {ROLE_CARDS.map((card) => (
+            <button
+              key={card.value}
+              type="button"
+              onClick={() => onRoleChange(card.value)}
+              className={`flex flex-col items-start gap-1 rounded-xl border-2 p-4 text-left transition-all ${
+                role === card.value
+                  ? `${card.color} border-opacity-100 shadow-sm`
+                  : "border-border bg-background/50 hover:border-primary/30"
+              }`}
+            >
+              <div className="flex w-full items-center justify-between">
+                <span className="text-sm font-semibold">{card.label}</span>
+                {role === card.value && <ShieldCheck className="h-4 w-4 text-primary" />}
+              </div>
+              <span className="text-xs text-muted-foreground">{card.description}</span>
+            </button>
+          ))}
+        </div>
+      </FormSection>
+
+      {/* Permission blocks */}
+      {permissionBlocks.length > 0 && (
+        <FormSection
+          title="Blocos de permissões"
+          description="Conjuntos pré-definidos que complementam o perfil base."
+        >
+          <div className="flex flex-wrap gap-2">
+            {permissionBlocks.map((block) => {
+              const active = permissionBlockIds.includes(block.id);
+              return (
+                <button
+                  key={block.id}
+                  type="button"
+                  onClick={() => onBlockToggle(block.id)}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                    active
+                      ? "border-primary/60 bg-primary/10 text-primary"
+                      : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+                  <ShieldCheck className="h-3 w-3" />
+                  {block.name}
+                </button>
+              );
+            })}
+          </div>
+        </FormSection>
+      )}
+
+      {/* Fine-grained permissions grid */}
+      <FormSection
+        title="Ajustes individuais"
+        description="Clique em uma permissão para alternar entre Herdar (cinza), Conceder (verde) e Bloquear (vermelho)."
+      >
+        <div className="overflow-hidden rounded-xl border border-border">
+          {PERMISSION_GROUPS.map((group, gi) => {
+            const isOpen = openGroups.has(group.key);
+            const grantCount = group.permissions.filter((p) => grantedPermissionKeys.includes(p.value)).length;
+            const denyCount = group.permissions.filter((p) => deniedPermissionKeys.includes(p.value)).length;
+
+            return (
+              <div key={group.key} className={gi > 0 ? "border-t border-border" : ""}>
+                {/* Group header */}
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.key)}
+                  className="flex w-full items-center gap-3 bg-muted/30 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                >
+                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                  <span className="text-sm font-semibold flex-1">{group.label}</span>
+                  <span className="flex items-center gap-2 text-xs">
+                    {grantCount > 0 && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">+{grantCount}</span>}
+                    {denyCount > 0 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700 dark:bg-red-900/40 dark:text-red-400">−{denyCount}</span>}
+                    <span className="text-muted-foreground">{group.permissions.length} permissões</span>
+                  </span>
+                </button>
+
+                {/* Permission rows */}
+                {isOpen && (
+                  <div className="divide-y divide-border/50">
+                    {group.permissions.map((perm) => {
+                      const state = getState(perm.value);
+                      return (
+                        <button
+                          key={perm.value}
+                          type="button"
+                          onClick={() => cycleState(perm.value)}
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/20 transition-colors"
+                        >
+                          {/* State indicator */}
+                          <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all ${
+                            state === "grant"
+                              ? "border-emerald-500 bg-emerald-500 text-white"
+                              : state === "deny"
+                                ? "border-red-500 bg-red-500 text-white"
+                                : "border-border bg-background"
+                          }`}>
+                            {state === "grant" && <CheckCircle2 className="h-3.5 w-3.5" />}
+                            {state === "deny" && <Ban className="h-3.5 w-3.5" />}
+                            {state === "inherit" && <Minus className="h-3 w-3 text-muted-foreground" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium leading-tight">{perm.label}</span>
+                            <span className="block text-xs text-muted-foreground leading-tight mt-0.5">{perm.description}</span>
+                          </div>
+                          <span className={`shrink-0 text-[10px] font-medium uppercase tracking-wide ${
+                            state === "grant" ? "text-emerald-600" : state === "deny" ? "text-red-500" : "text-muted-foreground/50"
+                          }`}>
+                            {state === "grant" ? "Concedido" : state === "deny" ? "Bloqueado" : "Herda"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </FormSection>
+    </div>
+  );
 }
 
 export function MemberForm({
@@ -583,150 +781,25 @@ export function MemberForm({
         </FormSection>
 
         {canManagePermissionSettings ? (
-          <>
-            <FormSection
-              title="Blocos de permissoes"
-              description="Aplique conjuntos reutilizaveis de acessos sem alterar o estilo do cadastro."
-            >
-              <div className="mb-2 flex flex-wrap gap-2">
-                {PERMISSION_PRESETS.map((preset) => (
-                  <Button
-                    key={preset.key}
-                    type="button"
-                    variant="outline"
-                    className="justify-start"
-                    onClick={() => set("role", preset.role)}
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    {preset.label}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {permissionBlocks.map((block) => (
-                  <label
-                    key={block.id}
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/70 px-3 py-3 transition-colors hover:border-primary/40"
-                  >
-                    <Checkbox
-                      checked={data.permissionBlockIds.includes(block.id)}
-                      onCheckedChange={() =>
-                        set("permissionBlockIds", toggleKey(data.permissionBlockIds, block.id))
-                      }
-                      className="mt-0.5"
-                    />
-                    <span className="space-y-1">
-                      <span className="block text-sm font-medium">{block.name}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {block.description || "Sem descricao cadastrada."}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </FormSection>
-
-            <FormSection
-              title="Permissoes extras"
-              description="Conceda acessos individuais alem do padrao do tipo e dos blocos aplicados."
-            >
-              <div className="space-y-4">
-                {PERMISSION_GROUPS.map((group) => (
-                  <div
-                    key={group.key}
-                    className="space-y-3 rounded-xl border border-border bg-muted/20 p-4"
-                  >
-                    <div className="flex items-center gap-2">
-                      <UserCog className="h-4 w-4 text-primary" />
-                      <h4 className="text-sm font-semibold">{group.label}</h4>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {group.permissions.map((permission) => (
-                        <label
-                          key={permission.value}
-                          className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/70 px-3 py-3 transition-colors hover:border-primary/40"
-                        >
-                          <Checkbox
-                            checked={data.grantedPermissionKeys.includes(permission.value)}
-                            onCheckedChange={() =>
-                              set(
-                                "grantedPermissionKeys",
-                                toggleKey(data.grantedPermissionKeys, permission.value),
-                              )
-                            }
-                            className="mt-0.5"
-                          />
-                          <span className="space-y-1">
-                            <span className="block text-sm font-medium">{permission.label}</span>
-                            <span className="block text-xs text-muted-foreground">
-                              {permission.description}
-                            </span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </FormSection>
-
-            <FormSection
-              title="Permissoes removidas"
-              description="As remocoes diretas sempre vencem o tipo, os blocos e as permissoes extras."
-            >
-              <div className="space-y-4">
-                {PERMISSION_GROUPS.map((group) => (
-                  <div
-                    key={`${group.key}-denied`}
-                    className="space-y-3 rounded-xl border border-border bg-muted/20 p-4"
-                  >
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-destructive" />
-                      <h4 className="text-sm font-semibold">{group.label}</h4>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {group.permissions.map((permission) => (
-                        <label
-                          key={`${permission.value}-denied`}
-                          className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background/70 px-3 py-3 transition-colors hover:border-destructive/40"
-                        >
-                          <Checkbox
-                            checked={data.deniedPermissionKeys.includes(permission.value)}
-                            onCheckedChange={() =>
-                              set(
-                                "deniedPermissionKeys",
-                                toggleKey(data.deniedPermissionKeys, permission.value),
-                              )
-                            }
-                            className="mt-0.5"
-                          />
-                          <span className="space-y-1">
-                            <span className="block text-sm font-medium">{permission.label}</span>
-                            <span className="block text-xs text-muted-foreground">
-                              {permission.description}
-                            </span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </FormSection>
-          </>
+          <PermissionsEditor
+            role={data.role}
+            permissionBlocks={permissionBlocks}
+            permissionBlockIds={data.permissionBlockIds}
+            grantedPermissionKeys={data.grantedPermissionKeys}
+            deniedPermissionKeys={data.deniedPermissionKeys}
+            onRoleChange={(r) => set("role", r)}
+            onBlockToggle={(id) => set("permissionBlockIds", toggleKey(data.permissionBlockIds, id))}
+            onGrantToggle={(key) => set("grantedPermissionKeys", toggleKey(data.grantedPermissionKeys, key))}
+            onDenyToggle={(key) => set("deniedPermissionKeys", toggleKey(data.deniedPermissionKeys, key))}
+          />
         ) : null}
       </div>
 
       <div className="space-y-5">
         <div className="glass sticky top-20 space-y-4 rounded-2xl p-4 shadow-card">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <InfoStat label="Tipo" value={ROLE_OPTIONS.find((item) => item.value === data.role)?.label || "Tecnico"} />
-            <InfoStat label="Blocos" value={String(selectedBlocks.length)} />
-            <InfoStat label="Permissoes extras" value={String(data.grantedPermissionKeys.length)} />
-            <InfoStat label="Permissoes removidas" value={String(data.deniedPermissionKeys.length)} />
+            <InfoStat label="Perfil" value={ROLE_OPTIONS.find((item) => item.value === data.role)?.label || "Tecnico"} />
+            <InfoStat label="Blocos ativos" value={String(selectedBlocks.length)} />
             <InfoStat label="Permissoes finais" value={String(finalPermissionCount)} />
           </div>
 
