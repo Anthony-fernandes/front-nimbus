@@ -172,28 +172,41 @@ function KnowledgePage() {
           </Select>
         </div>
 
-        {/* Article list */}
+        {/* Article grid */}
         {articlesQuery.isLoading ? (
           <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
             Carregando artigos...
           </div>
         ) : articles.length === 0 ? (
-          <div className="glass flex flex-col items-center gap-2 rounded-2xl p-10 text-center">
-            <BookOpen className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Nenhum artigo encontrado.</p>
+          <div className="glass flex flex-col items-center gap-3 rounded-2xl p-12 text-center">
+            <BookOpen className="h-10 w-10 text-muted-foreground/50" />
+            <div>
+              <p className="font-medium text-sm">Nenhum artigo encontrado</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {search
+                  ? `Nenhum resultado para "${search}". Tente outros termos.`
+                  : "Crie o primeiro artigo clicando em "Novo artigo"."}
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {articles.map((article) => {
               const total = article.helpful_count + article.not_helpful_count;
               const helpfulPct = total > 0 ? Math.round((article.helpful_count / total) * 100) : null;
+              const excerpt = article.summary
+                ? article.summary.slice(0, 150)
+                : article.content
+                  ? article.content.slice(0, 150)
+                  : null;
               return (
                 <div
                   key={article.id}
-                  className="glass cursor-pointer space-y-2 rounded-2xl p-4 shadow-card transition-colors hover:border-primary/40"
+                  className="glass group flex cursor-pointer flex-col gap-3 rounded-2xl p-5 shadow-card transition-colors hover:border-primary/40"
                   onClick={() => navigate({ to: "/knowledge/$id", params: { id: article.id } })}
                 >
-                  <div className="flex flex-wrap items-center gap-2">
+                  {/* Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span
                       className={cn(
                         "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
@@ -203,19 +216,31 @@ function KnowledgePage() {
                       {STATUS_LABELS[article.status] ?? article.status}
                     </span>
                     {article.category_name ? (
-                      <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-muted/60 text-muted-foreground">
+                      <span className="rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                         {article.category_name}
                       </span>
                     ) : null}
-                    <span className="text-sm font-semibold">{article.title}</span>
                   </div>
-                  {article.summary ? (
-                    <p className="line-clamp-2 text-xs text-muted-foreground">{article.summary}</p>
-                  ) : null}
-                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                    {article.author_name ? <span>{article.author_name}</span> : null}
+
+                  {/* Title */}
+                  <p className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                    {article.title}
+                  </p>
+
+                  {/* Excerpt */}
+                  {excerpt ? (
+                    <p className="line-clamp-3 flex-1 text-xs leading-relaxed text-muted-foreground">
+                      {excerpt}{excerpt.length >= 150 ? "…" : ""}
+                    </p>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+
+                  {/* Meta */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground border-t border-border/50 pt-2.5">
+                    {article.author_name ? <span className="font-medium">{article.author_name}</span> : null}
                     <span>{formatDate(article.created_at)}</span>
-                    <span>{article.views_count} visualizações</span>
+                    <span className="ml-auto">{article.views_count} vis.</span>
                     {helpfulPct !== null ? <span>{helpfulPct}% útil</span> : null}
                   </div>
                 </div>

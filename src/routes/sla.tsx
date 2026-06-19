@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Clock, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -27,8 +27,10 @@ import {
   createSLAPolicy,
   deleteSLAPolicy,
   getSLAAlerts,
+  getSLAReport,
   listSLAPolicies,
   updateSLAPolicy,
+  type SLAAlert,
   type SLAPolicy,
 } from "@/services/reportService";
 
@@ -52,16 +54,61 @@ const PRIORITY_COLOR: Record<string, string> = {
   Baixa: "bg-info/15 text-info",
 };
 
+/** Format milliseconds remaining as "2h 15min restantes" or "Violado" */
+function formatCountdown(dueAtIso: string): { label: string; urgent: boolean } {
+  const diff = new Date(dueAtIso).getTime() - Date.now();
+  if (diff <= 0) return { label: "Violado", urgent: true };
+  const totalMin = Math.floor(diff / 60000);
+  const hours = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  const label = hours > 0 ? `${hours}h ${mins}min restantes` : `${mins}min restantes`;
+  return { label, urgent: diff < 3600000 };
+}
+
+function CountdownBadge({ dueAt }: { dueAt: string }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { label, urgent } = formatCountdown(dueAt);
+  void tick; // force re-render
+  return (
+    <span
+      className={cn(
+        "rounded px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+        urgent ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning",
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+type AlertFilter = "all" | "breached" | "warning";
+
 function SLAPage() {
   const queryClient = useQueryClient();
   const [policyOpen, setPolicyOpen] = useState(false);
   const [editing, setEditing] = useState<SLAPolicy | null>(null);
+  const [alertFilter, setAlertFilter] = useState<AlertFilter>("all");
 
   const alertsQuery = useQuery({ queryKey: ["sla-alerts"], queryFn: getSLAAlerts, refetchInterval: 120000 });
   const policiesQuery = useQuery({ queryKey: ["sla-policies"], queryFn: listSLAPolicies });
+  const reportQuery = useQuery({ queryKey: ["sla-report"], queryFn: () => getSLAReport() });
 
   const breached = alertsQuery.data?.breached ?? [];
   const warning = alertsQuery.data?.warning ?? [];
+
+  const visibleBreached: SLAAlert[] = alertFilter === "warning" ? [] : breached;
+  const visibleWarning: SLAAlert[] = alertFilter === "breached" ? [] : warning;
+  const hasAlerts = visibleBreached.length > 0 || visibleWarning.length > 0;
+
+  const report = reportQuery.data;
+  const totalSLA = report?.total ?? 0;
+  const onTimeRate = report?.on_time_rate != null ? Math.round(report.on_time_rate) : null;
+  const breachedCount = report?.breached_open ?? breached.length;
 
   function openNew() {
     setEditing(null);
@@ -94,43 +141,96 @@ function SLAPage() {
           }
         />
 
-        {/* Alerts */}
-        {(breached.length > 0 || warning.length > 0) && (
-          <div className="space-y-3">
-            {breached.length > 0 && (
-              <div className="glass rounded-2xl border border-destructive/30 p-4 space-y-2">
-                <div className="flex items-center gap-2 text-destructive text-sm font-semibold">
-                  <AlertTriangle className="h-4 w-4" /> {breached.length} chamado(s) com SLA violado
-                </div>
-                <div className="space-y-1">
-                  {breached.map((t) => (
-                    <div key={t.id} className="flex items-center justify-between rounded-lg bg-destructive/5 px-3 py-1.5 text-xs">
-                      <span className="font-mono text-muted-foreground">{t.code}</span>
-                      <span className="flex-1 px-2 truncate">{t.title}</span>
-                      <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium", PRIORITY_COLOR[t.priority] || "bg-muted")}>{t.priority}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {warning.length > 0 && (
-              <div className="glass rounded-2xl border border-warning/30 p-4 space-y-2">
-                <div className="flex items-center gap-2 text-warning text-sm font-semibold">
-                  <Clock className="h-4 w-4" /> {warning.length} chamado(s) prestes a violar SLA
-                </div>
-                <div className="space-y-1">
-                  {warning.map((t) => (
-                    <div key={t.id} className="flex items-center justify-between rounded-lg bg-warning/5 px-3 py-1.5 text-xs">
-                      <span className="font-mono text-muted-foreground">{t.code}</span>
-                      <span className="flex-1 px-2 truncate">{t.title}</span>
-                      <span className="text-muted-foreground">{new Date(t.sla_due_at).toLocaleString("pt-BR")}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Summary bar */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="glass flex flex-col gap-1 rounded-2xl p-4 shadow-card">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Total c/ SLA</span>
+            <span className="text-2xl font-bold">{totalSLA || "—"}</span>
           </div>
-        )}
+          <div className="glass flex flex-col gap-1 rounded-2xl p-4 shadow-card">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">No prazo</span>
+            <span className={cn("text-2xl font-bold", onTimeRate != null && onTimeRate >= 80 ? "text-success" : "text-warning")}>
+              {onTimeRate != null ? `${onTimeRate}%` : "—"}
+            </span>
+          </div>
+          <div className="glass flex flex-col gap-1 rounded-2xl p-4 shadow-card">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Violados (abertos)</span>
+            <span className={cn("text-2xl font-bold", breachedCount > 0 ? "text-destructive" : "text-success")}>
+              {breachedCount}
+            </span>
+          </div>
+        </div>
+
+        {/* Filter + Alerts */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Filtrar alertas:</span>
+            {(["all", "breached", "warning"] as AlertFilter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setAlertFilter(f)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  alertFilter === f
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {f === "all" ? "Todos" : f === "breached" ? "Violados" : "Em risco"}
+              </button>
+            ))}
+          </div>
+
+          {alertsQuery.isLoading ? (
+            <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">Carregando alertas...</div>
+          ) : !hasAlerts ? (
+            <div className="glass flex items-center gap-3 rounded-2xl p-4">
+              <CheckCircle2 className="h-5 w-5 text-success" />
+              <p className="text-sm text-muted-foreground">
+                {alertFilter === "all"
+                  ? "Nenhum chamado com SLA em risco no momento."
+                  : "Nenhum resultado para o filtro selecionado."}
+              </p>
+            </div>
+          ) : (
+            <>
+              {visibleBreached.length > 0 && (
+                <div className="glass rounded-2xl border border-destructive/30 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-destructive text-sm font-semibold">
+                    <AlertTriangle className="h-4 w-4" /> {visibleBreached.length} chamado(s) com SLA violado
+                  </div>
+                  <div className="space-y-1">
+                    {visibleBreached.map((t) => (
+                      <div key={t.id} className="flex items-center justify-between rounded-lg bg-destructive/5 px-3 py-1.5 text-xs">
+                        <span className="font-mono text-muted-foreground">{t.code}</span>
+                        <span className="flex-1 px-2 truncate">{t.title}</span>
+                        <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium", PRIORITY_COLOR[t.priority] || "bg-muted")}>{t.priority}</span>
+                        <span className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-medium bg-destructive/15 text-destructive">Violado</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {visibleWarning.length > 0 && (
+                <div className="glass rounded-2xl border border-warning/30 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-warning text-sm font-semibold">
+                    <Clock className="h-4 w-4" /> {visibleWarning.length} chamado(s) prestes a violar SLA
+                  </div>
+                  <div className="space-y-1">
+                    {visibleWarning.map((t) => (
+                      <div key={t.id} className="flex items-center justify-between rounded-lg bg-warning/5 px-3 py-1.5 text-xs">
+                        <span className="font-mono text-muted-foreground">{t.code}</span>
+                        <span className="flex-1 px-2 truncate">{t.title}</span>
+                        <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium", PRIORITY_COLOR[t.priority] || "bg-muted")}>{t.priority}</span>
+                        <CountdownBadge dueAt={t.sla_due_at} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Policies list */}
         <div className="glass rounded-2xl p-5 shadow-card space-y-4">
