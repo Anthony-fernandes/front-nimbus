@@ -32,6 +32,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ClientRouteImport } from './routes/client'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BacklogRouteImport } from './routes/backlog'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as WebhooksRouteImport } from './routes/webhooks'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AprovacoesRouteImport } from './routes/aprovacoes'
@@ -193,6 +194,11 @@ const ChatRoute = ChatRouteImport.update({
 const BacklogRoute = BacklogRouteImport.update({
   id: '/backlog',
   path: '/backlog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WebhooksRoute = WebhooksRouteImport.update({
@@ -450,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
   '/notification-preferences': typeof NotificationPreferencesRoute
+  '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
@@ -522,6 +529,7 @@ export interface FileRoutesByTo {
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
   '/notification-preferences': typeof NotificationPreferencesRoute
+  '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
@@ -595,6 +603,7 @@ export interface FileRoutesById {
   '/knowledge': typeof KnowledgeRouteWithChildren
   '/login': typeof LoginRoute
   '/notification-preferences': typeof NotificationPreferencesRoute
+  '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
@@ -669,6 +678,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/login'
     | '/notification-preferences'
+    | '/onboarding'
     | '/org'
     | '/permission-blocks'
     | '/projects'
@@ -741,6 +751,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/login'
     | '/notification-preferences'
+    | '/onboarding'
     | '/org'
     | '/permission-blocks'
     | '/projects'
@@ -813,6 +824,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/login'
     | '/notification-preferences'
+    | '/onboarding'
     | '/org'
     | '/permission-blocks'
     | '/projects'
@@ -886,6 +898,7 @@ export interface RootRouteChildren {
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
   LoginRoute: typeof LoginRoute
   NotificationPreferencesRoute: typeof NotificationPreferencesRoute
+  OnboardingRoute: typeof OnboardingRoute
   OrgRoute: typeof OrgRoute
   PermissionBlocksRoute: typeof PermissionBlocksRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
@@ -985,6 +998,13 @@ declare module '@tanstack/react-router' {
       path: '/notification-preferences'
       fullPath: '/notification-preferences'
       preLoaderRoute: typeof NotificationPreferencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1695,6 +1715,7 @@ const rootRouteChildren: RootRouteChildren = {
   KnowledgeRoute: KnowledgeRouteWithChildren,
   LoginRoute: LoginRoute,
   NotificationPreferencesRoute: NotificationPreferencesRoute,
+  OnboardingRoute: OnboardingRoute,
   OrgRoute: OrgRoute,
   PermissionBlocksRoute: PermissionBlocksRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
