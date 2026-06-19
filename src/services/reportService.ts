@@ -8,6 +8,7 @@ export interface TicketsReport {
   by_priority: { priority: string; count: number }[];
   by_category: { category: string; count: number }[];
   by_technician: { responsible_technician__name: string; count: number }[];
+  by_date?: { semana: string; Abertos: number; Finalizados: number }[];
 }
 
 export interface SLAReport {

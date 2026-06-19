@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  Building2,
   Flag,
   Pencil,
   Plus,
@@ -35,6 +36,8 @@ import {
   type TicketStatusConfigFormData,
 } from "@/components/forms/TicketStatusConfigForm";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { canManageTicketCategories, hasAnyPermission } from "@/lib/permissions";
 import type { ActivityTag, TicketWorkflowStatusConfig, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -45,6 +48,7 @@ import {
 } from "@/services/activityTagService";
 import { getStoredUser } from "@/services/authService";
 import { api } from "@/services/api";
+import { getMyCompany, updateCompany, type Company } from "@/services/companyService";
 import {
   deleteTicketWorkflowStatus,
   listTicketWorkflowStatuses,
@@ -68,10 +72,29 @@ function SettingsPage() {
   const canManageWorkflow =
     hasAnyPermission(currentUser, ["settings.edit", "categories.manage", "categories.edit"])
     || canManageTicketCategories(currentUser);
+  const [activeTab, setActiveTab] = useState<"workflow" | "empresa">("workflow");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingTag, setSavingTag] = useState(false);
+
+  const companyQuery = useQuery({
+    queryKey: ["my-company"],
+    queryFn: getMyCompany,
+    enabled: activeTab === "empresa",
+  });
+  const [companyForm, setCompanyForm] = useState<Partial<Company>>({});
+  const companyData = companyQuery.data;
+  const companyMutation = useMutation({
+    mutationFn: (data: Partial<Omit<Company, "id" | "is_active">>) =>
+      updateCompany(companyData!.id, data),
+    onSuccess: () => {
+      toast.success("Configurações da empresa atualizadas.");
+      void queryClient.invalidateQueries({ queryKey: ["my-company"] });
+      setCompanyForm({});
+    },
+    onError: () => toast.error("Não foi possível salvar."),
+  });
 
   const { data: statusConfigs = [] } = useQuery({
     queryKey: ["ticket-workflow-status-configs"],
@@ -213,9 +236,9 @@ function SettingsPage() {
         <PageHeader
           crumbs={[{ label: "Workspace", to: "/" }, { label: "Configuracoes" }]}
           title="Configuracoes do sistema"
-          subtitle="Controle o workflow dos chamados e mantenha as tags de atividades centralizadas."
+          subtitle="Controle o workflow dos chamados, tags de atividades e dados da empresa."
           actions={
-            canManageWorkflow ? (
+            activeTab === "workflow" && canManageWorkflow ? (
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -239,6 +262,84 @@ function SettingsPage() {
           }
         />
 
+        {/* Tab navigation */}
+        <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
+          {(["workflow", "empresa"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                activeTab === tab
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {tab === "workflow" ? <Workflow className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
+              {tab === "workflow" ? "Workflow" : "Empresa"}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "empresa" ? (
+          <div className="glass rounded-2xl shadow-card p-6 max-w-xl space-y-5">
+            <div>
+              <h2 className="font-semibold">Perfil da empresa</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Informações básicas visíveis em contratos e relatórios.</p>
+            </div>
+            {companyQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando...</p>
+            ) : companyData ? (
+              <div className="space-y-4">
+                {(
+                  [
+                    { key: "name", label: "Nome da empresa", type: "text" },
+                    { key: "document", label: "CNPJ / Documento", type: "text" },
+                    { key: "email", label: "E-mail de contato", type: "email" },
+                    { key: "phone", label: "Telefone", type: "tel" },
+                  ] as const
+                ).map(({ key, label, type }) => (
+                  <div key={key} className="space-y-1">
+                    <Label>{label}</Label>
+                    <Input
+                      type={type}
+                      value={companyForm[key] ?? companyData[key] ?? ""}
+                      onChange={(e) => setCompanyForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                  <input
+                    id="auto_assign"
+                    type="checkbox"
+                    checked={companyForm.auto_assign ?? companyData.auto_assign}
+                    onChange={(e) => setCompanyForm((prev) => ({ ...prev, auto_assign: e.target.checked }))}
+                    className="h-4 w-4 rounded border border-border"
+                  />
+                  <label htmlFor="auto_assign" className="text-sm cursor-pointer">
+                    <span className="font-medium">Atribuição automática</span>
+                    <span className="block text-xs text-muted-foreground">Novos chamados são distribuídos automaticamente entre técnicos.</span>
+                  </label>
+                </div>
+                <Button
+                  onClick={() => {
+                    if (Object.keys(companyForm).length === 0) return;
+                    companyMutation.mutate(companyForm);
+                  }}
+                  disabled={companyMutation.isPending || Object.keys(companyForm).length === 0}
+                  className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                >
+                  {companyMutation.isPending ? "Salvando..." : "Salvar alterações"}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Sem dados disponíveis.</p>
+            )}
+          </div>
+        ) : null}
+
+        {activeTab === "workflow" ? <>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
             icon={Workflow}
@@ -536,6 +637,7 @@ function SettingsPage() {
         </div>
 
         <MfaSection />
+        </> : null}
       </div>
     </AppShell>
   );

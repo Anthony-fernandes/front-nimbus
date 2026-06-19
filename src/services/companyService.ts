@@ -6,11 +6,27 @@ export interface CompanyStats {
   open_tickets: number;
 }
 
+export interface Company {
+  id: string;
+  name: string;
+  document: string;
+  email: string;
+  phone: string;
+  is_active: boolean;
+  auto_assign: boolean;
+}
+
 export async function getCompanyStats(): Promise<CompanyStats> {
   const res = await api.get<CompanyStats>("/companies/stats/");
   return res.data;
 }
 
-export async function updateCompany(id: string, data: { name?: string; sector?: string }): Promise<void> {
-  await api.patch(`/companies/${id}/`, data);
+export async function getMyCompany(): Promise<Company> {
+  const res = await api.get<{ results: Company[] }>("/companies/");
+  return res.data.results[0];
+}
+
+export async function updateCompany(id: string, data: Partial<Omit<Company, "id" | "is_active">>): Promise<Company> {
+  const res = await api.patch<Company>(`/companies/${id}/`, data);
+  return res.data;
 }

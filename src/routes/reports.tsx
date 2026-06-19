@@ -123,21 +123,11 @@ function ReportsPage() {
   const sprintSeries = buildSprintCapacitySeries(sprints);
   const statusData = buildStatusDistribution(tickets);
 
-  // NOTE: Weekly breakdown is mocked from by_status totals until backend supports it
-  const ticketWeeklyData = (() => {
-    const byStatus = ticketsReportQuery.data?.by_status ?? [];
-    const openTotal = byStatus.find((s) => s.status === "open" || s.status === "aberto")?.count ?? (ticketsReportQuery.data?.open ?? 0);
-    const closedTotal = byStatus.find((s) => s.status === "finished" || s.status === "finalizado")?.count ?? (ticketsReportQuery.data?.finished ?? 0);
-    const weeks = 8;
-    return Array.from({ length: weeks }, (_, i) => {
-      const seed = (i + 1) * 7;
-      return {
-        semana: `Sem ${i + 1}`,
-        Abertos: Math.max(1, Math.round((openTotal / weeks) * (0.6 + ((seed * 13) % 80) / 100))),
-        Finalizados: Math.max(1, Math.round((closedTotal / weeks) * (0.7 + ((seed * 17) % 60) / 100))),
-      };
-    });
-  })();
+  const ticketWeeklyData = (ticketsReportQuery.data?.by_date ?? []) as {
+    semana: string;
+    Abertos: number;
+    Finalizados: number;
+  }[];
 
   const slaWeeklyTrendData = slaWeekRanges.map((range, i) => ({
     semana: range.label,
