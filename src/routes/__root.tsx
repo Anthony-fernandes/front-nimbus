@@ -89,7 +89,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: ({ location }) => {
-    const publicPaths = ["/login", "/client", "/onboarding"];
+    const publicPaths = ["/login", "/forgot-password", "/client/login", "/client", "/onboarding"];
     const isPublic = publicPaths.some((p) => location.pathname.startsWith(p));
     if (!isPublic && !isAuthenticated()) {
       throw redirect({ to: "/login" });

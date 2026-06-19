@@ -9,22 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WebhooksRouteImport } from './routes/webhooks'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as TicketCategoriesRouteImport } from './routes/ticket-categories'
 import { Route as TeamsRouteImport } from './routes/teams'
+import { Route as SuperadminRouteImport } from './routes/superadmin'
 import { Route as SprintsRouteImport } from './routes/sprints'
-import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SlaRouteImport } from './routes/sla'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as PermissionBlocksRouteImport } from './routes/permission-blocks'
 import { Route as OrgRouteImport } from './routes/org'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NotificationPreferencesRouteImport } from './routes/notification-preferences'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as ForumRouteImport } from './routes/forum'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
 import { Route as DoubtsRouteImport } from './routes/doubts'
 import { Route as DashboardBuilderRouteImport } from './routes/dashboard-builder'
@@ -32,8 +36,6 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as ClientRouteImport } from './routes/client'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as BacklogRouteImport } from './routes/backlog'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as WebhooksRouteImport } from './routes/webhooks'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AprovacoesRouteImport } from './routes/aprovacoes'
 import { Route as ActivitiesRouteImport } from './routes/activities'
@@ -53,6 +55,7 @@ import { Route as ProjetosNovoRouteImport } from './routes/projetos.novo'
 import { Route as ProjetosIdRouteImport } from './routes/projetos.$id'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
+import { Route as KnowledgeNewRouteImport } from './routes/knowledge.new'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as ForumIdRouteImport } from './routes/forum.$id'
 import { Route as DoubtsIdRouteImport } from './routes/doubts.$id'
@@ -60,6 +63,7 @@ import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as ClientsIdRouteImport } from './routes/clients.$id'
 import { Route as ClientTicketsRouteImport } from './routes/client.tickets'
 import { Route as ClientProjectsRouteImport } from './routes/client.projects'
+import { Route as ClientLoginRouteImport } from './routes/client.login'
 import { Route as ChamadosNovoRouteImport } from './routes/chamados.novo'
 import { Route as ChamadosIdRouteImport } from './routes/chamados.$id'
 import { Route as BacklogNewRouteImport } from './routes/backlog.new'
@@ -73,6 +77,7 @@ import { Route as SprintsIdEditarRouteImport } from './routes/sprints.$id.editar
 import { Route as SprintsIdEditRouteImport } from './routes/sprints.$id.edit'
 import { Route as ProjetosIdEditarRouteImport } from './routes/projetos.$id.editar'
 import { Route as ProjectsIdEditRouteImport } from './routes/projects.$id.edit'
+import { Route as KnowledgeIdEditRouteImport } from './routes/knowledge.$id.edit'
 import { Route as ClientsIdEditRouteImport } from './routes/clients.$id.edit'
 import { Route as ClientTicketsNewRouteImport } from './routes/client.tickets.new'
 import { Route as ClientTicketsIdRouteImport } from './routes/client.tickets.$id'
@@ -81,6 +86,11 @@ import { Route as ChamadosIdEditarRouteImport } from './routes/chamados.$id.edit
 import { Route as AtividadesIdEditarRouteImport } from './routes/atividades.$id.editar'
 import { Route as ActivitiesIdEditRouteImport } from './routes/activities.$id.edit'
 
+const WebhooksRoute = WebhooksRouteImport.update({
+  id: '/webhooks',
+  path: '/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TicketsRoute = TicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
@@ -96,19 +106,24 @@ const TeamsRoute = TeamsRouteImport.update({
   path: '/teams',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuperadminRoute = SuperadminRouteImport.update({
+  id: '/superadmin',
+  path: '/superadmin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SprintsRoute = SprintsRouteImport.update({
   id: '/sprints',
   path: '/sprints',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SlaRoute = SlaRouteImport.update({
   id: '/sla',
   path: '/sla',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -129,6 +144,11 @@ const PermissionBlocksRoute = PermissionBlocksRouteImport.update({
 const OrgRoute = OrgRouteImport.update({
   id: '/org',
   path: '/org',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationPreferencesRoute = NotificationPreferencesRouteImport.update({
@@ -159,6 +179,11 @@ const InboxRoute = InboxRouteImport.update({
 const ForumRoute = ForumRouteImport.update({
   id: '/forum',
   path: '/forum',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmailTemplatesRoute = EmailTemplatesRouteImport.update({
@@ -194,16 +219,6 @@ const ChatRoute = ChatRouteImport.update({
 const BacklogRoute = BacklogRouteImport.update({
   id: '/backlog',
   path: '/backlog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WebhooksRoute = WebhooksRouteImport.update({
-  id: '/webhooks',
-  path: '/webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditRoute = AuditRouteImport.update({
@@ -301,6 +316,11 @@ const ProjectsIdRoute = ProjectsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ProjectsRoute,
 } as any)
+const KnowledgeNewRoute = KnowledgeNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => KnowledgeRoute,
+} as any)
 const KnowledgeIdRoute = KnowledgeIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -334,6 +354,11 @@ const ClientTicketsRoute = ClientTicketsRouteImport.update({
 const ClientProjectsRoute = ClientProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientLoginRoute = ClientLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => ClientRoute,
 } as any)
 const ChamadosNovoRoute = ChamadosNovoRouteImport.update({
@@ -401,6 +426,11 @@ const ProjectsIdEditRoute = ProjectsIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => ProjectsIdRoute,
 } as any)
+const KnowledgeIdEditRoute = KnowledgeIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => KnowledgeIdRoute,
+} as any)
 const ClientsIdEditRoute = ClientsIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -450,6 +480,7 @@ export interface FileRoutesByFullPath {
   '/dashboard-builder': typeof DashboardBuilderRoute
   '/doubts': typeof DoubtsRouteWithChildren
   '/email-templates': typeof EmailTemplatesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -461,9 +492,10 @@ export interface FileRoutesByFullPath {
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
-  '/sla': typeof SlaRoute
   '/settings': typeof SettingsRoute
+  '/sla': typeof SlaRoute
   '/sprints': typeof SprintsRouteWithChildren
+  '/superadmin': typeof SuperadminRoute
   '/teams': typeof TeamsRouteWithChildren
   '/ticket-categories': typeof TicketCategoriesRoute
   '/tickets': typeof TicketsRouteWithChildren
@@ -475,13 +507,15 @@ export interface FileRoutesByFullPath {
   '/backlog/new': typeof BacklogNewRoute
   '/chamados/$id': typeof ChamadosIdRouteWithChildren
   '/chamados/novo': typeof ChamadosNovoRoute
+  '/client/login': typeof ClientLoginRoute
   '/client/projects': typeof ClientProjectsRouteWithChildren
   '/client/tickets': typeof ClientTicketsRouteWithChildren
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
-  '/knowledge/$id': typeof KnowledgeIdRoute
+  '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
+  '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/projects/new': typeof ProjectsNewRoute
   '/projetos/$id': typeof ProjetosIdRouteWithChildren
@@ -503,6 +537,7 @@ export interface FileRoutesByFullPath {
   '/client/tickets/$id': typeof ClientTicketsIdRoute
   '/client/tickets/new': typeof ClientTicketsNewRoute
   '/clients/$id/edit': typeof ClientsIdEditRoute
+  '/knowledge/$id/edit': typeof KnowledgeIdEditRoute
   '/projects/$id/edit': typeof ProjectsIdEditRoute
   '/projetos/$id/editar': typeof ProjetosIdEditarRoute
   '/sprints/$id/edit': typeof SprintsIdEditRoute
@@ -523,6 +558,7 @@ export interface FileRoutesByTo {
   '/dashboard-builder': typeof DashboardBuilderRoute
   '/doubts': typeof DoubtsRouteWithChildren
   '/email-templates': typeof EmailTemplatesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -534,9 +570,10 @@ export interface FileRoutesByTo {
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
-  '/sla': typeof SlaRoute
   '/settings': typeof SettingsRoute
+  '/sla': typeof SlaRoute
   '/sprints': typeof SprintsRouteWithChildren
+  '/superadmin': typeof SuperadminRoute
   '/teams': typeof TeamsRouteWithChildren
   '/ticket-categories': typeof TicketCategoriesRoute
   '/tickets': typeof TicketsRouteWithChildren
@@ -548,13 +585,15 @@ export interface FileRoutesByTo {
   '/backlog/new': typeof BacklogNewRoute
   '/chamados/$id': typeof ChamadosIdRouteWithChildren
   '/chamados/novo': typeof ChamadosNovoRoute
+  '/client/login': typeof ClientLoginRoute
   '/client/projects': typeof ClientProjectsRouteWithChildren
   '/client/tickets': typeof ClientTicketsRouteWithChildren
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
-  '/knowledge/$id': typeof KnowledgeIdRoute
+  '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
+  '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/projects/new': typeof ProjectsNewRoute
   '/projetos/$id': typeof ProjetosIdRouteWithChildren
@@ -576,6 +615,7 @@ export interface FileRoutesByTo {
   '/client/tickets/$id': typeof ClientTicketsIdRoute
   '/client/tickets/new': typeof ClientTicketsNewRoute
   '/clients/$id/edit': typeof ClientsIdEditRoute
+  '/knowledge/$id/edit': typeof KnowledgeIdEditRoute
   '/projects/$id/edit': typeof ProjectsIdEditRoute
   '/projetos/$id/editar': typeof ProjetosIdEditarRoute
   '/sprints/$id/edit': typeof SprintsIdEditRoute
@@ -597,6 +637,7 @@ export interface FileRoutesById {
   '/dashboard-builder': typeof DashboardBuilderRoute
   '/doubts': typeof DoubtsRouteWithChildren
   '/email-templates': typeof EmailTemplatesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -608,9 +649,10 @@ export interface FileRoutesById {
   '/permission-blocks': typeof PermissionBlocksRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
-  '/sla': typeof SlaRoute
   '/settings': typeof SettingsRoute
+  '/sla': typeof SlaRoute
   '/sprints': typeof SprintsRouteWithChildren
+  '/superadmin': typeof SuperadminRoute
   '/teams': typeof TeamsRouteWithChildren
   '/ticket-categories': typeof TicketCategoriesRoute
   '/tickets': typeof TicketsRouteWithChildren
@@ -622,13 +664,15 @@ export interface FileRoutesById {
   '/backlog/new': typeof BacklogNewRoute
   '/chamados/$id': typeof ChamadosIdRouteWithChildren
   '/chamados/novo': typeof ChamadosNovoRoute
+  '/client/login': typeof ClientLoginRoute
   '/client/projects': typeof ClientProjectsRouteWithChildren
   '/client/tickets': typeof ClientTicketsRouteWithChildren
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
-  '/knowledge/$id': typeof KnowledgeIdRoute
+  '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
+  '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
   '/projects/new': typeof ProjectsNewRoute
   '/projetos/$id': typeof ProjetosIdRouteWithChildren
@@ -650,6 +694,7 @@ export interface FileRoutesById {
   '/client/tickets/$id': typeof ClientTicketsIdRoute
   '/client/tickets/new': typeof ClientTicketsNewRoute
   '/clients/$id/edit': typeof ClientsIdEditRoute
+  '/knowledge/$id/edit': typeof KnowledgeIdEditRoute
   '/projects/$id/edit': typeof ProjectsIdEditRoute
   '/projetos/$id/editar': typeof ProjetosIdEditarRoute
   '/sprints/$id/edit': typeof SprintsIdEditRoute
@@ -672,6 +717,7 @@ export interface FileRouteTypes {
     | '/dashboard-builder'
     | '/doubts'
     | '/email-templates'
+    | '/forgot-password'
     | '/forum'
     | '/inbox'
     | '/kanban'
@@ -683,9 +729,10 @@ export interface FileRouteTypes {
     | '/permission-blocks'
     | '/projects'
     | '/reports'
-    | '/sla'
     | '/settings'
+    | '/sla'
     | '/sprints'
+    | '/superadmin'
     | '/teams'
     | '/ticket-categories'
     | '/tickets'
@@ -697,6 +744,7 @@ export interface FileRouteTypes {
     | '/backlog/new'
     | '/chamados/$id'
     | '/chamados/novo'
+    | '/client/login'
     | '/client/projects'
     | '/client/tickets'
     | '/clients/$id'
@@ -704,6 +752,7 @@ export interface FileRouteTypes {
     | '/doubts/$id'
     | '/forum/$id'
     | '/knowledge/$id'
+    | '/knowledge/new'
     | '/projects/$id'
     | '/projects/new'
     | '/projetos/$id'
@@ -725,6 +774,7 @@ export interface FileRouteTypes {
     | '/client/tickets/$id'
     | '/client/tickets/new'
     | '/clients/$id/edit'
+    | '/knowledge/$id/edit'
     | '/projects/$id/edit'
     | '/projetos/$id/editar'
     | '/sprints/$id/edit'
@@ -745,6 +795,7 @@ export interface FileRouteTypes {
     | '/dashboard-builder'
     | '/doubts'
     | '/email-templates'
+    | '/forgot-password'
     | '/forum'
     | '/inbox'
     | '/kanban'
@@ -756,9 +807,10 @@ export interface FileRouteTypes {
     | '/permission-blocks'
     | '/projects'
     | '/reports'
-    | '/sla'
     | '/settings'
+    | '/sla'
     | '/sprints'
+    | '/superadmin'
     | '/teams'
     | '/ticket-categories'
     | '/tickets'
@@ -770,6 +822,7 @@ export interface FileRouteTypes {
     | '/backlog/new'
     | '/chamados/$id'
     | '/chamados/novo'
+    | '/client/login'
     | '/client/projects'
     | '/client/tickets'
     | '/clients/$id'
@@ -777,6 +830,7 @@ export interface FileRouteTypes {
     | '/doubts/$id'
     | '/forum/$id'
     | '/knowledge/$id'
+    | '/knowledge/new'
     | '/projects/$id'
     | '/projects/new'
     | '/projetos/$id'
@@ -798,6 +852,7 @@ export interface FileRouteTypes {
     | '/client/tickets/$id'
     | '/client/tickets/new'
     | '/clients/$id/edit'
+    | '/knowledge/$id/edit'
     | '/projects/$id/edit'
     | '/projetos/$id/editar'
     | '/sprints/$id/edit'
@@ -818,6 +873,7 @@ export interface FileRouteTypes {
     | '/dashboard-builder'
     | '/doubts'
     | '/email-templates'
+    | '/forgot-password'
     | '/forum'
     | '/inbox'
     | '/kanban'
@@ -829,9 +885,10 @@ export interface FileRouteTypes {
     | '/permission-blocks'
     | '/projects'
     | '/reports'
-    | '/sla'
     | '/settings'
+    | '/sla'
     | '/sprints'
+    | '/superadmin'
     | '/teams'
     | '/ticket-categories'
     | '/tickets'
@@ -843,6 +900,7 @@ export interface FileRouteTypes {
     | '/backlog/new'
     | '/chamados/$id'
     | '/chamados/novo'
+    | '/client/login'
     | '/client/projects'
     | '/client/tickets'
     | '/clients/$id'
@@ -850,6 +908,7 @@ export interface FileRouteTypes {
     | '/doubts/$id'
     | '/forum/$id'
     | '/knowledge/$id'
+    | '/knowledge/new'
     | '/projects/$id'
     | '/projects/new'
     | '/projetos/$id'
@@ -871,6 +930,7 @@ export interface FileRouteTypes {
     | '/client/tickets/$id'
     | '/client/tickets/new'
     | '/clients/$id/edit'
+    | '/knowledge/$id/edit'
     | '/projects/$id/edit'
     | '/projetos/$id/editar'
     | '/sprints/$id/edit'
@@ -892,6 +952,7 @@ export interface RootRouteChildren {
   DashboardBuilderRoute: typeof DashboardBuilderRoute
   DoubtsRoute: typeof DoubtsRouteWithChildren
   EmailTemplatesRoute: typeof EmailTemplatesRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   ForumRoute: typeof ForumRouteWithChildren
   InboxRoute: typeof InboxRoute
   KanbanRoute: typeof KanbanRoute
@@ -903,9 +964,10 @@ export interface RootRouteChildren {
   PermissionBlocksRoute: typeof PermissionBlocksRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
   ReportsRoute: typeof ReportsRoute
-  SlaRoute: typeof SlaRoute
   SettingsRoute: typeof SettingsRoute
+  SlaRoute: typeof SlaRoute
   SprintsRoute: typeof SprintsRouteWithChildren
+  SuperadminRoute: typeof SuperadminRoute
   TeamsRoute: typeof TeamsRouteWithChildren
   TicketCategoriesRoute: typeof TicketCategoriesRoute
   TicketsRoute: typeof TicketsRouteWithChildren
@@ -923,6 +985,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/webhooks': {
+      id: '/webhooks'
+      path: '/webhooks'
+      fullPath: '/webhooks'
+      preLoaderRoute: typeof WebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tickets': {
       id: '/tickets'
       path: '/tickets'
@@ -944,6 +1013,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/superadmin': {
+      id: '/superadmin'
+      path: '/superadmin'
+      fullPath: '/superadmin'
+      preLoaderRoute: typeof SuperadminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sprints': {
       id: '/sprints'
       path: '/sprints'
@@ -951,18 +1027,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SprintsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sla': {
       id: '/sla'
       path: '/sla'
       fullPath: '/sla'
       preLoaderRoute: typeof SlaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -993,18 +1069,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrgRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/notification-preferences': {
-      id: '/notification-preferences'
-      path: '/notification-preferences'
-      fullPath: '/notification-preferences'
-      preLoaderRoute: typeof NotificationPreferencesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notification-preferences': {
+      id: '/notification-preferences'
+      path: '/notification-preferences'
+      fullPath: '/notification-preferences'
+      preLoaderRoute: typeof NotificationPreferencesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1040,6 +1116,13 @@ declare module '@tanstack/react-router' {
       path: '/forum'
       fullPath: '/forum'
       preLoaderRoute: typeof ForumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/email-templates': {
@@ -1091,13 +1174,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BacklogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/aprovacoes': {
-      id: '/aprovacoes'
-      path: '/aprovacoes'
-      fullPath: '/aprovacoes'
-      preLoaderRoute: typeof AprovacoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/audit': {
       id: '/audit'
       path: '/audit'
@@ -1105,11 +1181,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/webhooks': {
-      id: '/webhooks'
-      path: '/webhooks'
-      fullPath: '/webhooks'
-      preLoaderRoute: typeof WebhooksRouteImport
+    '/aprovacoes': {
+      id: '/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/aprovacoes'
+      preLoaderRoute: typeof AprovacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activities': {
@@ -1231,6 +1307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIdRouteImport
       parentRoute: typeof ProjectsRoute
     }
+    '/knowledge/new': {
+      id: '/knowledge/new'
+      path: '/new'
+      fullPath: '/knowledge/new'
+      preLoaderRoute: typeof KnowledgeNewRouteImport
+      parentRoute: typeof KnowledgeRoute
+    }
     '/knowledge/$id': {
       id: '/knowledge/$id'
       path: '/$id'
@@ -1278,6 +1361,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/client/projects'
       preLoaderRoute: typeof ClientProjectsRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/login': {
+      id: '/client/login'
+      path: '/login'
+      fullPath: '/client/login'
+      preLoaderRoute: typeof ClientLoginRouteImport
       parentRoute: typeof ClientRoute
     }
     '/chamados/novo': {
@@ -1370,6 +1460,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/projects/$id/edit'
       preLoaderRoute: typeof ProjectsIdEditRouteImport
       parentRoute: typeof ProjectsIdRoute
+    }
+    '/knowledge/$id/edit': {
+      id: '/knowledge/$id/edit'
+      path: '/edit'
+      fullPath: '/knowledge/$id/edit'
+      preLoaderRoute: typeof KnowledgeIdEditRouteImport
+      parentRoute: typeof KnowledgeIdRoute
     }
     '/clients/$id/edit': {
       id: '/clients/$id/edit'
@@ -1487,11 +1584,13 @@ const ClientTicketsRouteWithChildren = ClientTicketsRoute._addFileChildren(
 )
 
 interface ClientRouteChildren {
+  ClientLoginRoute: typeof ClientLoginRoute
   ClientProjectsRoute: typeof ClientProjectsRouteWithChildren
   ClientTicketsRoute: typeof ClientTicketsRouteWithChildren
 }
 
 const ClientRouteChildren: ClientRouteChildren = {
+  ClientLoginRoute: ClientLoginRoute,
   ClientProjectsRoute: ClientProjectsRouteWithChildren,
   ClientTicketsRoute: ClientTicketsRouteWithChildren,
 }
@@ -1545,12 +1644,26 @@ const ForumRouteChildren: ForumRouteChildren = {
 
 const ForumRouteWithChildren = ForumRoute._addFileChildren(ForumRouteChildren)
 
+interface KnowledgeIdRouteChildren {
+  KnowledgeIdEditRoute: typeof KnowledgeIdEditRoute
+}
+
+const KnowledgeIdRouteChildren: KnowledgeIdRouteChildren = {
+  KnowledgeIdEditRoute: KnowledgeIdEditRoute,
+}
+
+const KnowledgeIdRouteWithChildren = KnowledgeIdRoute._addFileChildren(
+  KnowledgeIdRouteChildren,
+)
+
 interface KnowledgeRouteChildren {
-  KnowledgeIdRoute: typeof KnowledgeIdRoute
+  KnowledgeIdRoute: typeof KnowledgeIdRouteWithChildren
+  KnowledgeNewRoute: typeof KnowledgeNewRoute
 }
 
 const KnowledgeRouteChildren: KnowledgeRouteChildren = {
-  KnowledgeIdRoute: KnowledgeIdRoute,
+  KnowledgeIdRoute: KnowledgeIdRouteWithChildren,
+  KnowledgeNewRoute: KnowledgeNewRoute,
 }
 
 const KnowledgeRouteWithChildren = KnowledgeRoute._addFileChildren(
@@ -1709,6 +1822,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardBuilderRoute: DashboardBuilderRoute,
   DoubtsRoute: DoubtsRouteWithChildren,
   EmailTemplatesRoute: EmailTemplatesRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   ForumRoute: ForumRouteWithChildren,
   InboxRoute: InboxRoute,
   KanbanRoute: KanbanRoute,
@@ -1720,9 +1834,10 @@ const rootRouteChildren: RootRouteChildren = {
   PermissionBlocksRoute: PermissionBlocksRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
   ReportsRoute: ReportsRoute,
-  SlaRoute: SlaRoute,
   SettingsRoute: SettingsRoute,
+  SlaRoute: SlaRoute,
   SprintsRoute: SprintsRouteWithChildren,
+  SuperadminRoute: SuperadminRoute,
   TeamsRoute: TeamsRouteWithChildren,
   TicketCategoriesRoute: TicketCategoriesRoute,
   TicketsRoute: TicketsRouteWithChildren,
