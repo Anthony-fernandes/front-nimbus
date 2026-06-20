@@ -29,6 +29,7 @@ import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as KnowledgeCategoriesRouteImport } from './routes/knowledge-categories'
 import { Route as ForumCategoriesRouteImport } from './routes/forum-categories'
+import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as ForumRouteImport } from './routes/forum'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
@@ -186,6 +187,11 @@ const KnowledgeCategoriesRoute = KnowledgeCategoriesRouteImport.update({
 const ForumCategoriesRoute = ForumCategoriesRouteImport.update({
   id: '/forum-categories',
   path: '/forum-categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesRoute = CategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForumRoute = ForumRouteImport.update({
@@ -494,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/email-templates': typeof EmailTemplatesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
+  '/categories': typeof CategoriesRoute
   '/forum-categories': typeof ForumCategoriesRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -574,6 +581,7 @@ export interface FileRoutesByTo {
   '/email-templates': typeof EmailTemplatesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
+  '/categories': typeof CategoriesRoute
   '/forum-categories': typeof ForumCategoriesRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -655,6 +663,7 @@ export interface FileRoutesById {
   '/email-templates': typeof EmailTemplatesRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
+  '/categories': typeof CategoriesRoute
   '/forum-categories': typeof ForumCategoriesRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -975,6 +984,7 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRouteWithChildren
   DashboardBuilderRoute: typeof DashboardBuilderRoute
   DoubtsRoute: typeof DoubtsRouteWithChildren
+  CategoriesRoute: typeof CategoriesRoute
   EmailTemplatesRoute: typeof EmailTemplatesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ForumRoute: typeof ForumRouteWithChildren
@@ -1149,6 +1159,13 @@ declare module '@tanstack/react-router' {
       path: '/forum'
       fullPath: '/forum'
       preLoaderRoute: typeof ForumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories': {
+      id: '/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forum-categories': {
@@ -1862,6 +1879,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardBuilderRoute: DashboardBuilderRoute,
   DoubtsRoute: DoubtsRouteWithChildren,
   EmailTemplatesRoute: EmailTemplatesRoute,
+  CategoriesRoute: CategoriesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ForumRoute: ForumRouteWithChildren,
   ForumCategoriesRoute: ForumCategoriesRoute,

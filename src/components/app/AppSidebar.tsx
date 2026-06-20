@@ -111,20 +111,14 @@ function getInternalMenu(user: User | null | undefined) {
       visible: hasAnyPermission(user, ["activities.view", "projects.view"]),
     },
     { title: "Conhecimento", url: "/knowledge", icon: BookOpen, visible: true },
-    {
-      title: "Categorias KB",
-      url: "/knowledge-categories",
-      icon: FolderOpen,
-      visible: getUserRole(user) !== "CLIENT",
-    },
     { title: "Forum", url: "/forum", icon: MessagesSquare, visible: true },
+    { title: "Duvidas", url: "/doubts", icon: HelpCircle, visible: true },
     {
-      title: "Categorias do Forum",
-      url: "/forum-categories",
+      title: "Categorias",
+      url: "/categories",
       icon: Tag,
       visible: getUserRole(user) !== "CLIENT",
     },
-    { title: "Duvidas", url: "/doubts", icon: HelpCircle, visible: true },
     { title: "Chat", url: "/chat", icon: MessageCircle, visible: true },
   ].filter((item) => item.visible);
 
