@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { HelpCircle, Plus } from "lucide-react";
+import { CheckCircle2, HelpCircle, MessageSquare, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -49,10 +49,9 @@ function formatDate(value?: string | null) {
 
 function DoubtsPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (pathname !== "/doubts") return <Outlet />;
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ title: "", content: "" });
 
@@ -73,7 +72,16 @@ function DoubtsPage() {
     onError: () => toast.error("Não foi possível enviar a pergunta."),
   });
 
-  const questions = questionsQuery.data ?? [];
+  if (pathname !== "/doubts") return <Outlet />;
+
+  const rawQuestions = questionsQuery.data ?? [];
+  const questions = search.trim()
+    ? rawQuestions.filter(
+        (q) =>
+          q.title.toLowerCase().includes(search.toLowerCase()) ||
+          q.content?.toLowerCase().includes(search.toLowerCase()),
+      )
+    : rawQuestions;
 
   const TABS: { label: string; value: StatusFilter }[] = [
     { label: "Todas", value: "all" },
@@ -100,65 +108,120 @@ function DoubtsPage() {
           }
         />
 
-        {/* Status tabs */}
-        <div className="flex flex-wrap gap-2">
-          {TABS.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setStatusFilter(tab.value)}
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs transition-colors",
-                statusFilter === tab.value
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Search + status tabs */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-8 h-8 text-sm"
+              placeholder="Buscar dúvidas..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            {TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setStatusFilter(tab.value)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  statusFilter === tab.value
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Questions */}
+        {/* Question list */}
         {questionsQuery.isLoading ? (
           <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
             Carregando dúvidas...
           </div>
         ) : questions.length === 0 ? (
-          <div className="glass flex flex-col items-center gap-2 rounded-2xl p-10 text-center">
-            <HelpCircle className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Nenhuma dúvida encontrada.</p>
+          <div className="glass flex flex-col items-center gap-3 rounded-2xl p-12 text-center">
+            <HelpCircle className="h-10 w-10 text-muted-foreground/50" />
+            <div>
+              <p className="text-sm font-medium">Nenhuma dúvida encontrada</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {search ? `Nenhum resultado para "${search}".` : 'Clique em "Nova pergunta" para começar.'}
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {questions.map((q) => (
-              <Link
+              <div
                 key={q.id}
-                to="/doubts/$id"
-                params={{ id: q.id }}
-                className="glass block cursor-pointer space-y-1.5 rounded-2xl p-4 shadow-card transition-colors hover:border-primary/40"
+                className="glass flex gap-0 rounded-2xl shadow-card transition-colors hover:border-primary/40 overflow-hidden"
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                      STATUS_CLASS[q.status],
-                    )}
-                  >
-                    {STATUS_LABELS[q.status]}
-                  </span>
-                  <span className="text-sm font-semibold">{q.title}</span>
+                {/* Stats column */}
+                <div className="flex w-20 shrink-0 flex-col items-center justify-center gap-3 border-r border-border/50 py-4 px-2">
+                  {q.status === "ANSWERED" ? (
+                    <CheckCircle2 className="h-5 w-5 text-success" />
+                  ) : null}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className={cn(
+                      "text-base font-bold leading-none",
+                      q.answers_count > 0 ? "text-foreground" : "text-muted-foreground",
+                    )}>
+                      {q.answers_count}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">respostas</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-base font-bold text-muted-foreground leading-none">
+                      {q.views_count}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">visitas</span>
+                  </div>
                 </div>
-                {q.content ? (
-                  <p className="line-clamp-2 text-xs text-muted-foreground">{q.content}</p>
-                ) : null}
-                <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                  {q.author_name ? <span>{q.author_name}</span> : null}
-                  <span>{formatDate(q.created_at)}</span>
-                  <span>{q.answers_count} respostas</span>
-                  <span>{q.views_count} visualizações</span>
-                </div>
-              </Link>
+
+                {/* Content column */}
+                <Link
+                  to="/doubts/$id"
+                  params={{ id: q.id }}
+                  className="flex flex-1 flex-col gap-1.5 px-4 py-3 min-w-0"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shrink-0",
+                        STATUS_CLASS[q.status],
+                      )}
+                    >
+                      {STATUS_LABELS[q.status]}
+                    </span>
+                    <span className="font-semibold text-sm leading-snug line-clamp-1 hover:text-primary transition-colors">
+                      {q.title}
+                    </span>
+                  </div>
+
+                  {q.content ? (
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                      {q.content}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                    <MessageSquare className="h-3 w-3" />
+                    <span>{q.answers_count} respostas</span>
+                    <span className="ml-auto flex items-center gap-1.5">
+                      {q.author_name ? (
+                        <span className="rounded-full bg-muted/60 px-2 py-0.5 font-medium">
+                          {q.author_name}
+                        </span>
+                      ) : null}
+                      <span>{formatDate(q.created_at)}</span>
+                    </span>
+                  </div>
+                </Link>
+              </div>
             ))}
           </div>
         )}
@@ -185,7 +248,7 @@ function DoubtsPage() {
                 value={form.content}
                 onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
                 placeholder="Descreva sua dúvida com mais detalhes..."
-                className="min-h-[100px]"
+                className="min-h-[120px]"
               />
             </div>
           </div>
