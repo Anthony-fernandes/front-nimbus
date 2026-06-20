@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, Lock, MessagesSquare, Pin, Plus, Search, Tag } from "lucide-react";
 import { toast } from "sonner";
@@ -47,8 +47,6 @@ type SortKey = "recentes" | "respostas" | "visualizacoes";
 
 function ForumPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (pathname !== "/forum") return <Outlet />;
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -112,8 +110,7 @@ function ForumPage() {
     { key: "visualizacoes", label: "Mais visualizações" },
   ];
 
-  // suppress unused navigate warning — navigate is used implicitly by Link
-  void navigate;
+  if (pathname !== "/forum") return <Outlet />;
 
   return (
     <AppShell>
