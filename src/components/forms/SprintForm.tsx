@@ -58,7 +58,7 @@ function toUserOption(user: {
     user.name
     || [user.first_name, user.last_name].filter(Boolean).join(" ")
     || user.username
-    || "Usuario";
+    || "Usuário";
 
   return { value: user.id, label };
 }
@@ -145,7 +145,7 @@ export function SprintForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Projeto"
-              hint="A sprint herda o contexto da organizacao a partir do projeto."
+              hint="A sprint herda o contexto da organização a partir do projeto."
               required
             >
               <Selectable
@@ -155,12 +155,12 @@ export function SprintForm({
                 placeholder="Selecionar projeto"
               />
             </Field>
-            <Field label="Responsavel">
+            <Field label="Responsável">
               <Selectable
                 value={data.lead}
                 onChange={(value) => set("lead", value)}
                 options={userOptions}
-                placeholder="Sem responsavel"
+                placeholder="Sem responsável"
                 allowEmpty
               />
             </Field>
@@ -188,7 +188,7 @@ export function SprintForm({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Inicio">
+            <Field label="Início">
               <Input
                 type="date"
                 value={data.startAt}
@@ -225,7 +225,7 @@ export function SprintForm({
             className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Save className="h-4 w-4" />
-            {mode === "create" ? "Criar sprint" : "Salvar alteracoes"}
+            {mode === "create" ? "Criar sprint" : "Salvar alterações"}
           </Button>
           <Button
             type="button"

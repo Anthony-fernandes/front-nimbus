@@ -7,7 +7,7 @@ import { ClientForm } from "@/components/forms/ClientForm";
 import { getClient, toClientFormData } from "@/services/clientService";
 
 export const Route = createFileRoute("/clients/$id/edit")({
-  head: () => ({ meta: [{ title: "Editar organizacao · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Editar organização · NimbusDesk" }] }),
   component: EditOrganization,
 });
 
@@ -23,20 +23,20 @@ function EditOrganization() {
       <div className="max-w-7xl space-y-5">
         <PageHeader
           crumbs={[
-            { label: "Organizacoes", to: "/clients" },
+            { label: "Organizações", to: "/clients" },
             { label: id, to: `/clients/${id}` },
             { label: "Editar" },
           ]}
-          title="Editar organizacao"
+          title="Editar organização"
         />
         {isLoading ? (
           <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">
-            Carregando organizacao...
+            Carregando organização...
           </div>
         ) : null}
         {isError ? (
           <div className="glass rounded-2xl p-6 text-sm text-destructive">
-            Nao foi possivel carregar a organizacao.
+            Não foi possível carregar a organização.
           </div>
         ) : null}
         {client ? (

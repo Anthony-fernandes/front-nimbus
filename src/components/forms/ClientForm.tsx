@@ -89,16 +89,16 @@ export function ClientForm({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!data.name.trim() || !data.email.trim()) {
-      toast.error("Nome e email sao obrigatorios");
+      toast.error("Nome e email são obrigatórios");
       return;
     }
 
     try {
       await saveClient(data, mode, entityId);
-      toast.success(mode === "create" ? "Organizacao cadastrada" : "Organizacao atualizada");
+      toast.success(mode === "create" ? "Organização cadastrada" : "Organização atualizada");
       navigate({ to: onCancelHref });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar organizacao");
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar organização");
     }
   };
 
@@ -106,18 +106,18 @@ export function ClientForm({
     <form onSubmit={submit} className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
         <FormSection
-          title="Organizacao atendida"
-          description="Cadastre clientes, areas internas, setores, departamentos ou filiais atendidas."
+          title="Organização atendida"
+          description="Cadastre clientes, áreas internas, setores, departamentos ou filiais atendidas."
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nome da organizacao" required>
+            <Field label="Nome da organização" required>
               <Input
                 value={data.name}
                 onChange={(event) => set("name", event.target.value)}
                 required
               />
             </Field>
-            <Field label="Tipo de organizacao">
+            <Field label="Tipo de organização">
               <Selectable
                 value={data.organizationType}
                 onChange={(value) => set("organizationType", value)}
@@ -157,12 +157,12 @@ export function ClientForm({
               <Input
                 value={data.owner}
                 onChange={(event) => set("owner", event.target.value)}
-                placeholder="Pessoa de referencia"
+                placeholder="Pessoa de referência"
               />
             </Field>
             <Field
-              label="Organizacao pai"
-              hint="Opcional. Use para montar hierarquia entre empresa, filial, area e departamento."
+              label="Organização pai"
+              hint="Opcional. Use para montar hierarquia entre empresa, filial, área e departamento."
             >
               <Selectable
                 value={data.parentOrganization}
@@ -173,7 +173,7 @@ export function ClientForm({
                     value: organization.id,
                     label: organization.name,
                   }))}
-                placeholder="Selecionar organizacao pai"
+                placeholder="Selecionar organização pai"
                 allowEmpty
               />
             </Field>
@@ -190,15 +190,15 @@ export function ClientForm({
           </div>
         </FormSection>
 
-        <FormSection title="Endereco e observacoes">
-          <Field label="Endereco">
+        <FormSection title="Endereço e observações">
+          <Field label="Endereço">
             <Input
               value={data.address}
               onChange={(event) => set("address", event.target.value)}
-              placeholder="Rua, numero, cidade, UF"
+              placeholder="Rua, número, cidade, UF"
             />
           </Field>
-          <Field label="Observacoes">
+          <Field label="Observações">
             <Textarea
               value={data.notes}
               onChange={(event) => set("notes", event.target.value)}
@@ -215,7 +215,7 @@ export function ClientForm({
             className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Save className="h-4 w-4" />
-            {mode === "create" ? "Cadastrar organizacao" : "Salvar alteracoes"}
+            {mode === "create" ? "Cadastrar organização" : "Salvar alterações"}
           </Button>
           <Button
             type="button"

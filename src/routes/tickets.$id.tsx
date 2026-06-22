@@ -230,7 +230,7 @@ function TicketDetail() {
     return (
       <AppShell>
         <div className="glass rounded-2xl p-6 text-sm text-destructive">
-          Chamado nao encontrado.
+          Chamado não encontrado.
         </div>
       </AppShell>
     );
@@ -293,12 +293,12 @@ function TicketDetail() {
   ) => {
     const actionDefinition = workflowTransitionActions.find((action) => action.id === actionId);
     if (!actionDefinition?.targetStatus) {
-      toast.error("Essa acao nao esta disponivel para o status atual.");
+      toast.error("Essa ação não está disponível para o status atual.");
       return;
     }
 
     if (!canTransitionTicket(ticket, actionDefinition.targetStatus, statusConfigs)) {
-      toast.error("Essa transicao nao e permitida para o status atual do chamado.");
+      toast.error("Essa transição não é permitida para o status atual do chamado.");
       return;
     }
 
@@ -325,7 +325,7 @@ function TicketDetail() {
       toast.success(preparedAction.successMessage);
       setDialogState(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar o chamado.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o chamado.");
     } finally {
       setWorkflowSaving(false);
     }
@@ -334,7 +334,7 @@ function TicketDetail() {
   const requestWorkflowAction = (actionId: TicketWorkflowActionId) => {
     const actionDefinition = workflowTransitionActions.find((action) => action.id === actionId);
     if (!actionDefinition) {
-      toast.error("Essa acao nao esta disponivel para o status atual.");
+      toast.error("Essa ação não está disponível para o status atual.");
       return;
     }
 
@@ -356,12 +356,12 @@ function TicketDetail() {
     try {
       await createTicketTimelineComment({ ticket: id, message, visibility });
       await queryClient.invalidateQueries({ queryKey: ["ticket-timeline", id] });
-      toast.success("Interacao registrada.");
+      toast.success("Interação registrada.");
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "A API atual ainda nao suporta comentarios independentes.",
+          : "A API atual ainda não suporta comentários independentes.",
       );
     }
   };
@@ -413,7 +413,7 @@ function TicketDetail() {
               <span>{ticket.title}</span>
             </span>
           }
-          subtitle={`${ticket.organization_name || ticket.client_name || "Sem organizacao"} · ${ticket.requester_user_name || ticket.requester || "Sem solicitante"} · aberto em ${formatDate(ticket.opened_at)}`}
+          subtitle={`${ticket.organization_name || ticket.client_name || "Sem organização"} · ${ticket.requester_user_name || ticket.requester || "Sem solicitante"} · aberto em ${formatDate(ticket.opened_at)}`}
           badges={
             <span className="flex flex-wrap items-center gap-2">
               <span
@@ -442,7 +442,7 @@ function TicketDetail() {
                   navigator.clipboard.writeText(window.location.href).then(() => {
                     toast.success("Link copiado!");
                   }).catch(() => {
-                    toast.error("Nao foi possivel copiar o link.");
+                    toast.error("Não foi possível copiar o link.");
                   });
                 }}
               >
@@ -478,7 +478,7 @@ function TicketDetail() {
               <ConfirmDelete
                 onConfirm={async () => {
                   await deleteTicket(id);
-                  toast.success("Chamado excluido.");
+                  toast.success("Chamado excluído.");
                   navigate({ to: "/tickets" });
                 }}
               />
@@ -542,17 +542,17 @@ function TicketDetail() {
             </div>
 
             <SectionCard
-              title="Dados da solicitacao"
-              description="Descricao original, urgencia informada e anexos do chamado."
+              title="Dados da solicitação"
+              description="Descrição original, urgência informada e anexos do chamado."
             >
               <dl className="grid gap-3 sm:grid-cols-2">
-                <DataRow label="Tipo" value={ticket.type || "Solicitacao"} />
-                <DataRow label="Urgencia" value={ticket.urgency || "Media"} />
-                <DataRow label="Origem" value={ticket.origin || "Portal da organizacao"} />
+                <DataRow label="Tipo" value={ticket.type || "Solicitação"} />
+                <DataRow label="Urgência" value={ticket.urgency || "Média"} />
+                <DataRow label="Origem" value={ticket.origin || "Portal da organização"} />
                 <DataRow label="Criado em" value={formatDateTime(ticket.opened_at || ticket.created_at)} />
               </dl>
               <div className="rounded-xl border border-border bg-muted/15 p-4 text-sm leading-relaxed">
-                {ticket.description || "Sem descricao cadastrada."}
+                {ticket.description || "Sem descrição cadastrada."}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -608,7 +608,7 @@ function TicketDetail() {
                   label="Avaliação do cliente"
                   value={ticket.requires_client_validation ? "Sim" : "Não"}
                 />
-                <DataRow label="Equipe responsavel" value={ticket.team || "-"} />
+                <DataRow label="Equipe responsável" value={ticket.team || "-"} />
               </div>
 
               {ticket.triage_notes ? (
@@ -624,11 +624,11 @@ function TicketDetail() {
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <DataRow
-                  label="Responsavel tecnico"
+                  label="Responsável técnico"
                   value={ticket.responsible_technician_name || ticket.technician_names?.[0] || "-"}
                 />
                 <DataRow
-                  label="Tecnicos envolvidos"
+                  label="Técnicos envolvidos"
                   value={ticket.technician_names?.join(", ") || "-"}
                 />
                 <DataRow label="Horas estimadas" value={`${ticket.est_hours || 0}h`} />
@@ -706,11 +706,11 @@ function TicketDetail() {
 
             <SectionCard
               title="Sprint / Planejamento"
-              description="Historico de alocacao do chamado em sprints, sem depender de projeto."
+              description="Histórico de alocação do chamado em sprints, sem depender de projeto."
             >
               {sprintEntries.length === 0 ? (
                 <div className="rounded-xl border border-border bg-muted/10 px-4 py-4 text-sm text-muted-foreground">
-                  Este chamado ainda nao entrou no backlog de nenhuma sprint.
+                  Este chamado ainda não entrou no backlog de nenhuma sprint.
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -741,12 +741,12 @@ function TicketDetail() {
             <SectionCard title="Cabeçalho do chamado">
               <div className="space-y-2 text-sm">
                 <DataRow
-                  label="Organizacao atendida"
+                  label="Organização atendida"
                   value={ticket.organization_name || ticket.client_name || "-"}
                 />
                 <DataRow label="Solicitante" value={ticket.requester_user_name || ticket.requester || "-"} />
                 <DataRow
-                  label="Contato responsavel"
+                  label="Contato responsável"
                   value={formatContactResponsible(ticket)}
                 />
                 <DataRow label="Status" value={formatTicketStatusLabel(ticket.status || "Aberto")} />
@@ -805,7 +805,7 @@ function TicketDetail() {
             <SectionCard title="Histórico técnico">
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div>Criado em {formatDateTime(ticket.created_at)}</div>
-                <div>Ultima atualizacao em {formatDateTime(ticket.updated_at)}</div>
+                <div>Última atualização em {formatDateTime(ticket.updated_at)}</div>
                 {ticket.resolution_description ? (
                   <div className="rounded-xl border border-border bg-muted/10 px-4 py-3 text-foreground">
                     {ticket.resolution_description}
@@ -830,7 +830,7 @@ function TicketDetail() {
           <AlertDialogHeader>
             <AlertDialogTitle>Gerar nova atividade</AlertDialogTitle>
             <AlertDialogDescription>
-              Este chamado ja possui atividade vinculada. Deseja criar uma nova mesmo assim?
+              Este chamado já possui atividade vinculada. Deseja criar uma nova mesmo assim?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

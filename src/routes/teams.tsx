@@ -23,7 +23,7 @@ import { getStoredUser } from "@/services/authService";
 import { listUsers } from "@/services/userService";
 
 export const Route = createFileRoute("/teams")({
-  head: () => ({ meta: [{ title: "Usuarios e acessos · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Usuários e acessos · NimbusDesk" }] }),
   component: TeamsPage,
 });
 
@@ -54,9 +54,9 @@ function TeamsPage() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Usuarios e acessos</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Usuários e acessos</h1>
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "Carregando usuarios..." : `${team.length} usuarios cadastrados`}
+              {isLoading ? "Carregando usuários..." : `${team.length} usuários cadastrados`}
             </p>
           </div>
           {canManageUserAccess ? (
@@ -65,7 +65,7 @@ function TeamsPage() {
               className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
             >
               <a href="/teams/new">
-                <Plus className="h-4 w-4" /> Novo usuario
+                <Plus className="h-4 w-4" /> Novo usuário
               </a>
             </Button>
           ) : null}
@@ -75,15 +75,15 @@ function TeamsPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground hover:bg-transparent">
-                <TableHead className="px-4 py-2.5">Usuario</TableHead>
+                <TableHead className="px-4 py-2.5">Usuário</TableHead>
                 <TableHead className="px-2 py-2.5">Tipo</TableHead>
                 <TableHead className="px-2 py-2.5">Contato</TableHead>
-                <TableHead className="px-2 py-2.5">Area</TableHead>
-                <TableHead className="px-2 py-2.5">Disponivel</TableHead>
+                <TableHead className="px-2 py-2.5">Área</TableHead>
+                <TableHead className="px-2 py-2.5">Disponível</TableHead>
                 <TableHead className="px-2 py-2.5">Usadas</TableHead>
                 <TableHead className="px-2 py-2.5">Blocos</TableHead>
-                <TableHead className="px-2 py-2.5">Permissoes</TableHead>
-                <TableHead className="px-2 py-2.5">Acoes</TableHead>
+                <TableHead className="px-2 py-2.5">Permissões</TableHead>
+                <TableHead className="px-2 py-2.5">Ações</TableHead>
                 <TableHead className="px-4 py-2.5 text-right">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -93,7 +93,7 @@ function TeamsPage() {
                   member.name ||
                   `${member.first_name || ""} ${member.last_name || ""}`.trim() ||
                   member.email ||
-                  "Usuario";
+                  "Usuário";
                 const available = member.total_hours ?? 40;
                 const used = member.used_hours ?? 0;
                 const finalPermissions = resolveUserPermissions(member);
@@ -121,7 +121,7 @@ function TeamsPage() {
                       ) : null}
                     </TableCell>
                     <TableCell className="px-2 py-3 text-muted-foreground">
-                      <div>{member.email || "Nao informado"}</div>
+                      <div>{member.email || "Não informado"}</div>
                       <div className="text-[11px]">{member.phone || "-"}</div>
                     </TableCell>
                     <TableCell className="px-2 py-3 text-muted-foreground">

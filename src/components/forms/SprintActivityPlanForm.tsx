@@ -53,12 +53,12 @@ function toUserOption(user: User): UserPickerOption {
     || [user.first_name, user.last_name].filter(Boolean).join(" ")
     || user.username
     || user.email
-    || "Usuario";
+    || "Usuário";
 
   return {
     value: user.id,
     label,
-    subtitle: user.job_title || user.specialty || user.email || "Responsavel disponivel",
+    subtitle: user.job_title || user.specialty || user.email || "Responsável disponível",
     keywords: [user.username || "", user.email || "", user.job_title || "", user.specialty || ""],
   };
 }
@@ -165,8 +165,8 @@ export function SprintActivityPlanForm({
           options={userOptions}
           selected={data.responsibleIds}
           onChange={(selected) => set("responsibleIds", selected)}
-          placeholder="Adicionar responsavel..."
-          emptySelectedText="Nenhum responsavel planejado ainda."
+          placeholder="Adicionar responsável..."
+          emptySelectedText="Nenhum responsável planejado ainda."
           selectedLabel="Responsaveis planejados"
         />
       </Field>
@@ -196,7 +196,7 @@ export function SprintActivityPlanForm({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Previsao de inicio">
+        <Field label="Previsao de início">
           <Input
             type="date"
             value={data.plannedStartDate}
@@ -224,12 +224,12 @@ export function SprintActivityPlanForm({
           />
         </Field>
 
-        <Field label="Observacao do planejamento">
+        <Field label="Observação do planejamento">
           <Textarea
             value={data.notes}
             onChange={(event) => set("notes", event.target.value)}
             rows={3}
-            placeholder="Ex.: executar no inicio da sprint para destravar homologacao."
+            placeholder="Ex.: executar no início da sprint para destravar homologacao."
           />
         </Field>
       </div>

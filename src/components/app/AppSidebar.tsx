@@ -65,7 +65,7 @@ function getInternalMenu(user: User | null | undefined) {
     { title: "Dashboard", url: "/", icon: LayoutDashboard, visible: true },
     { title: "Caixa de entrada", url: "/inbox", icon: Inbox, visible: true },
     {
-      title: "Aprovacoes",
+      title: "Aprovações",
       url: "/aprovacoes",
       icon: ClipboardCheck,
       visible: hasAnyPermission(user, [
@@ -111,8 +111,8 @@ function getInternalMenu(user: User | null | undefined) {
       visible: hasAnyPermission(user, ["activities.view", "projects.view"]),
     },
     { title: "Conhecimento", url: "/knowledge", icon: BookOpen, visible: true },
-    { title: "Forum", url: "/forum", icon: MessagesSquare, visible: true },
-    { title: "Duvidas", url: "/doubts", icon: HelpCircle, visible: true },
+    { title: "Fórum", url: "/forum", icon: MessagesSquare, visible: true },
+    { title: "Dúvidas", url: "/doubts", icon: HelpCircle, visible: true },
     {
       title: "Categorias",
       url: "/categories",
@@ -124,19 +124,19 @@ function getInternalMenu(user: User | null | undefined) {
 
   const management: MenuItem[] = [
     {
-      title: "Organizacoes",
+      title: "Organizações",
       url: "/clients",
       icon: Users,
       visible: hasPermission(user, "clients.view"),
     },
     {
-      title: "Usuarios",
+      title: "Usuários",
       url: "/teams",
       icon: UsersRound,
       visible: hasAnyPermission(user, ["users.view", "users.manage", "users.managePermissions"]),
     },
     {
-      title: "Organizacao",
+      title: "Organização",
       url: "/org",
       icon: Building2,
       visible: hasAnyPermission(user, ["users.manage", "users.managePermissions"]),
@@ -148,7 +148,7 @@ function getInternalMenu(user: User | null | undefined) {
       visible: hasAnyPermission(user, ["categories.view", "categories.manage"]),
     },
     {
-      title: "Relatorios",
+      title: "Relatórios",
       url: "/reports",
       icon: BarChart3,
       visible: hasPermission(user, "reports.view"),
@@ -160,7 +160,7 @@ function getInternalMenu(user: User | null | undefined) {
       visible: hasPermission(user, "reports.view"),
     },
     {
-      title: "Configuracoes",
+      title: "Configurações",
       url: "/settings",
       icon: Settings,
       visible: hasAnyPermission(user, ["settings.view", "settings.edit", "categories.view"]),
@@ -172,7 +172,7 @@ function getInternalMenu(user: User | null | undefined) {
       visible: getUserRole(user) === "ADMIN" || hasPermission(user, "settings.edit"),
     },
     {
-      title: "Blocos de permissoes",
+      title: "Blocos de permissões",
       url: "/permission-blocks",
       icon: Blocks,
       visible: hasAnyPermission(user, [
@@ -258,7 +258,7 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
       <SidebarContent>
         <SidebarGroup>
           {!collapsed ? (
-            <SidebarGroupLabel>{clientUser ? "Minha area" : "Workspace"}</SidebarGroupLabel>
+            <SidebarGroupLabel>{clientUser ? "Minha área" : "Workspace"}</SidebarGroupLabel>
           ) : null}
           <SidebarGroupContent>
             <SidebarMenu>
@@ -278,7 +278,7 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
 
         {!clientUser && internalMenu.management.length ? (
           <SidebarGroup>
-            {!collapsed ? <SidebarGroupLabel>Gestao</SidebarGroupLabel> : null}
+            {!collapsed ? <SidebarGroupLabel>Gestão</SidebarGroupLabel> : null}
             <SidebarGroupContent>
               <SidebarMenu>
                 {internalMenu.management.map((item) => (
@@ -325,7 +325,7 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{displayName}</div>
                 <div className="truncate text-[11px] text-muted-foreground">
-                  {clientUser ? clientName || "Conta da organizacao" : "Workspace interno"}
+                  {clientUser ? clientName || "Conta da organização" : "Workspace interno"}
                 </div>
               </div>
               <span className="h-2 w-2 animate-pulse-glow rounded-full bg-success" />

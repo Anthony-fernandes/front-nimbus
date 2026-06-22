@@ -112,7 +112,7 @@ const QUICK_FILTER_CARDS: Array<{
   color: string;
 }> = [
   { value: "open", label: "Abertos", color: "bg-info" },
-  { value: "approval", label: "Aprovacao", color: "bg-warning" },
+  { value: "approval", label: "Aprovação", color: "bg-warning" },
   { value: "in_progress", label: "Em atendimento", color: "bg-primary" },
   { value: "waiting", label: "Aguardando", color: "bg-warning" },
   { value: "late", label: "Atrasados", color: "bg-destructive" },
@@ -341,7 +341,7 @@ function TicketsPage() {
       toast.success(`${selectedIds.size} chamado(s) atualizado(s).`);
       clearSelection();
     } catch {
-      toast.error("Nao foi possivel aplicar a acao em massa.");
+      toast.error("Não foi possível aplicar a ação em massa.");
     } finally {
       setBulkSaving(false);
     }
@@ -372,7 +372,7 @@ function TicketsPage() {
     }
 
     if (!canTransitionTicket(ticket, targetStatus, statusConfigs)) {
-      toast.error("Essa transicao nao e permitida para o status atual do chamado.");
+      toast.error("Essa transição não é permitida para o status atual do chamado.");
       return;
     }
 
@@ -399,7 +399,7 @@ function TicketsPage() {
       toast.success(preparedAction.successMessage);
       setDialogState(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar o chamado.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o chamado.");
     } finally {
       setWorkflowSaving(false);
     }
@@ -413,7 +413,7 @@ function TicketsPage() {
     ).find((action) => action.id === actionId);
 
     if (!actionDefinition) {
-      toast.error("Essa acao nao esta disponivel para o status atual.");
+      toast.error("Essa ação não está disponível para o status atual.");
       return;
     }
 
@@ -485,7 +485,7 @@ function TicketsPage() {
 
         {isError ? (
           <div className="glass rounded-2xl p-4 text-sm text-destructive">
-            Nao foi possivel carregar os chamados.
+            Não foi possível carregar os chamados.
           </div>
         ) : null}
 
@@ -497,7 +497,7 @@ function TicketsPage() {
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Buscar por ID, titulo, organizacao, categoria, tecnico ou status..."
+                  placeholder="Buscar por ID, título, organização, categoria, técnico ou status..."
                   className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
                 />
                 {searchTerm ? (
@@ -536,9 +536,9 @@ function TicketsPage() {
                   >
                     <div className="space-y-4 p-4">
                       <div className="space-y-1">
-                        <div className="text-sm font-semibold">Filtros avancados</div>
+                        <div className="text-sm font-semibold">Filtros avançados</div>
                         <div className="text-xs text-muted-foreground">
-                          Ajuste os filtros e a tabela sera atualizada em tempo real.
+                          Ajuste os filtros e a tabela será atualizada em tempo real.
                         </div>
                       </div>
 
@@ -558,13 +558,13 @@ function TicketsPage() {
                           renderOption={(value) => formatPriorityLabel(value)}
                         />
                         <FilterSelectField
-                          label="Organizacao atendida"
+                          label="Organização atendida"
                           value={filters.client}
                           onChange={(value) => updateFilter("client", value)}
                           options={clientOptions}
                         />
                         <FilterSelectField
-                          label="Tecnico"
+                          label="Técnico"
                           value={filters.technician}
                           onChange={(value) => updateFilter("technician", value)}
                           options={technicianOptions}
@@ -589,7 +589,7 @@ function TicketsPage() {
 
                         <div className="space-y-1.5 sm:col-span-2">
                           <div className="text-xs font-medium text-muted-foreground">
-                            Periodo de abertura
+                            Período de abertura
                           </div>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <Input
@@ -612,8 +612,8 @@ function TicketsPage() {
                     <div className="flex items-center justify-between gap-2 border-t border-border/70 px-4 py-3">
                       <div className="text-xs text-muted-foreground">
                         {activeAdvancedFilterCount > 0
-                          ? `${activeAdvancedFilterCount} filtro(s) avancado(s) ativo(s)`
-                          : "Nenhum filtro avancado ativo"}
+                          ? `${activeAdvancedFilterCount} filtro(s) avançado(s) ativo(s)`
+                          : "Nenhum filtro avançado ativo"}
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -782,7 +782,7 @@ function TicketsPage() {
             <div className="p-4">
               <EmptyState
                 title="Nenhum chamado cadastrado ainda."
-                description="Assim que novos chamados forem criados, eles aparecerao aqui."
+                description="Assim que novos chamados forem criados, eles aparecerão aqui."
               />
             </div>
           ) : filteredTickets.length === 0 ? (
@@ -841,12 +841,12 @@ function TicketsPage() {
                       />
                     </th>
                     <th className="px-2 py-2.5 text-left font-medium">ID</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Titulo</th>
-                    <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Organizacao atendida</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Título</th>
+                    <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Organização atendida</th>
                     <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Categoria</th>
                     <th className="px-2 py-2.5 text-left font-medium">Prioridade</th>
                     <th className="px-2 py-2.5 text-left font-medium">Status</th>
-                    <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Tecnico</th>
+                    <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Técnico</th>
                     <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">SLA</th>
                     <th className="px-4 py-2.5" />
                   </tr>
@@ -981,7 +981,7 @@ function TicketsPage() {
               className="gap-1.5 text-xs"
               onClick={() => setBulkAction("technician")}
             >
-              <UserRoundCheck className="h-3.5 w-3.5" /> Atribuir tecnico
+              <UserRoundCheck className="h-3.5 w-3.5" /> Atribuir técnico
             </Button>
             <Button
               size="sm"
@@ -989,7 +989,7 @@ function TicketsPage() {
               className="gap-1.5 text-xs text-muted-foreground"
               onClick={clearSelection}
             >
-              <X className="h-3.5 w-3.5" /> Cancelar selecao
+              <X className="h-3.5 w-3.5" /> Cancelar seleção
             </Button>
           </div>
         ) : null}
@@ -1009,7 +1009,7 @@ function TicketsPage() {
               <DialogTitle>Fechar chamados selecionados</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              Tem certeza que deseja fechar {selectedIds.size} chamado(s)? O status sera alterado para "Finalizado".
+              Tem certeza que deseja fechar {selectedIds.size} chamado(s)? O status será alterado para "Finalizado".
             </p>
             <DialogFooter>
               <Button
@@ -1040,14 +1040,14 @@ function TicketsPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Atribuir tecnico</DialogTitle>
+              <DialogTitle>Atribuir técnico</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground mb-2">
-              Selecione o tecnico para atribuir aos {selectedIds.size} chamado(s) selecionado(s).
+              Selecione o técnico para atribuir aos {selectedIds.size} chamado(s) selecionado(s).
             </p>
             <Select onValueChange={(val) => setBulkValue(val)}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecionar tecnico..." />
+                <SelectValue placeholder="Selecionar técnico..." />
               </SelectTrigger>
               <SelectContent>
                 {technicianUsers.map((user) => (
@@ -1137,7 +1137,7 @@ function TicketRowActions({
             event.stopPropagation();
           }}
           className="rounded-lg p-1 text-muted-foreground transition hover:bg-muted/40 hover:text-foreground"
-          aria-label={`Acoes do chamado ${ticket.code || ticket.id}`}
+          aria-label={`Ações do chamado ${ticket.code || ticket.id}`}
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>

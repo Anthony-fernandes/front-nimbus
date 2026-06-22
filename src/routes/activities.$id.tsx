@@ -271,7 +271,7 @@ function ActivityDetail() {
               <span>{activity.title}</span>
             </span>
           }
-          subtitle={`${activity.project_name || "Sem projeto"} · Responsavel sugerido: ${activity.assignee_name || "Nao definido"}`}
+          subtitle={`${activity.project_name || "Sem projeto"} · Responsável sugerido: ${activity.assignee_name || "Nao definido"}`}
           badges={
             <span className="flex items-center gap-2">
               <span className="rounded-md border border-warning/30 bg-warning/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warning">
@@ -343,14 +343,14 @@ function ActivityDetail() {
                 <TabsTrigger value="overview">Visao geral</TabsTrigger>
                 <TabsTrigger value="time-entries">Apontamentos</TabsTrigger>
                 <TabsTrigger value="planning">Planejamento</TabsTrigger>
-                <TabsTrigger value="history">Historico</TabsTrigger>
+                <TabsTrigger value="history">Histórico</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
                 <div className="glass rounded-2xl p-5 shadow-card">
-                  <h3 className="mb-2 text-sm font-semibold">Descricao</h3>
+                  <h3 className="mb-2 text-sm font-semibold">Descrição</h3>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    {activity.description || "Sem descricao cadastrada."}
+                    {activity.description || "Sem descrição cadastrada."}
                   </p>
                 </div>
 
@@ -442,7 +442,7 @@ function ActivityDetail() {
                               </span>
                             </div>
                             <p className="text-sm leading-relaxed text-muted-foreground">
-                              {entry.workDescription || "Sem descricao registrada para este apontamento."}
+                              {entry.workDescription || "Sem descrição registrada para este apontamento."}
                             </p>
                           </div>
 
@@ -520,7 +520,7 @@ function ActivityDetail() {
                               <span>Ordem: {plan.order ?? "-"}</span>
                             </div>
                             <p className="mt-3 text-sm text-muted-foreground">
-                              {plan.notes || "Sem observacao de planejamento."}
+                              {plan.notes || "Sem observação de planejamento."}
                             </p>
                           </div>
                           <span className={getPlanStatusClass(planSummary.status as "over" | "under" | "balanced")}>
@@ -536,7 +536,7 @@ function ActivityDetail() {
               <TabsContent value="history">
                 <div className="glass rounded-2xl p-5 shadow-card">
                   <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                    <History className="h-4 w-4" /> Historico do registro
+                    <History className="h-4 w-4" /> Histórico do registro
                   </h3>
                   <ol className="space-y-2 text-sm text-muted-foreground">
                     <li>Criado em {formatDateTime(activity.created_at)}</li>
@@ -558,7 +558,7 @@ function ActivityDetail() {
                   ["Prioridade", formatPriorityLabel(activity.priority || "Media")],
                   ["Projeto", activity.project_name || "-"],
                   ["Chamado de origem", activity.ticket_code || "-"],
-                  ["Responsavel sugerido", activity.assignee_name || "-"],
+                  ["Responsável sugerido", activity.assignee_name || "-"],
                   ["Custo por hora", calculateHourlyCost ? "Ativo" : "Desativado"],
                   ["Estimativa total", formatHoursLabel(executionSummary.estimatedHours)],
                   ["Realizado", formatHoursLabel(executionSummary.realizedHours)],

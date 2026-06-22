@@ -26,7 +26,7 @@ import { deleteUser, getUser } from "@/services/userService";
 import { formatCurrency } from "@/services/utils";
 
 export const Route = createFileRoute("/teams/$id")({
-  head: () => ({ meta: [{ title: "Detalhes do usuario · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Detalhes do usuário · NimbusDesk" }] }),
   component: MemberDetail,
 });
 
@@ -70,7 +70,7 @@ function MemberDetail() {
     return (
       <AppShell>
         <div className="rounded-2xl p-6 text-sm text-muted-foreground glass">
-          Carregando usuario...
+          Carregando usuário...
         </div>
       </AppShell>
     );
@@ -80,7 +80,7 @@ function MemberDetail() {
     return (
       <AppShell>
         <div className="rounded-2xl p-6 text-sm text-destructive glass">
-          Usuario nao encontrado.
+          Usuário não encontrado.
         </div>
       </AppShell>
     );
@@ -90,7 +90,7 @@ function MemberDetail() {
     user.name ||
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.username ||
-    "Usuario";
+    "Usuário";
   const available = user.total_hours ?? 0;
   const used = user.used_hours ?? 0;
   const canEditUsers = hasAnyPermission(currentUser, ["users.managePermissions", "users.manage"]);
@@ -108,7 +108,7 @@ function MemberDetail() {
     <AppShell>
       <div className="max-w-7xl space-y-5">
         <PageHeader
-          crumbs={[{ label: "Usuarios", to: "/teams" }, { label: name }]}
+          crumbs={[{ label: "Usuários", to: "/teams" }, { label: name }]}
           title={
             <span className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary text-sm font-semibold text-primary-foreground">
@@ -140,7 +140,7 @@ function MemberDetail() {
                 <ConfirmDelete
                   onConfirm={async () => {
                     await deleteUser(id);
-                    toast.success("Usuario excluido");
+                    toast.success("Usuário excluído");
                     navigate({ to: "/teams" });
                   }}
                 />
@@ -167,7 +167,7 @@ function MemberDetail() {
               </TabsList>
 
               <TabsContent value="tickets" className="space-y-2">
-                {tickets.length === 0 && <EmptyPanel text="Nenhum chamado atribuido." />}
+                {tickets.length === 0 && <EmptyPanel text="Nenhum chamado atribuído." />}
                 {tickets.map((ticket) => (
                   <Link
                     key={ticket.id}
@@ -204,7 +204,7 @@ function MemberDetail() {
               </TabsContent>
 
               <TabsContent value="sprints" className="space-y-2">
-                {sprints.length === 0 && <EmptyPanel text="Nenhuma sprint como responsavel." />}
+                {sprints.length === 0 && <EmptyPanel text="Nenhuma sprint como responsável." />}
                 {sprints.map((sprint) => (
                   <Link
                     key={sprint.id}
@@ -221,7 +221,7 @@ function MemberDetail() {
               </TabsContent>
 
               <TabsContent value="activities" className="space-y-2">
-                {activities.length === 0 && <EmptyPanel text="Nenhuma atividade atribuida." />}
+                {activities.length === 0 && <EmptyPanel text="Nenhuma atividade atribuída." />}
                 {activities.map((activity) => (
                   <Link
                     key={activity.id}
@@ -245,11 +245,11 @@ function MemberDetail() {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  {user.email || "Nao informado"}
+                  {user.email || "Não informado"}
                 </li>
                 <li className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  {user.phone || "Nao informado"}
+                  {user.phone || "Não informado"}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-muted-foreground">Custo/hora:</span>
@@ -260,7 +260,7 @@ function MemberDetail() {
 
             <div className="rounded-2xl p-5 shadow-card glass">
               <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                <Shield className="h-4 w-4" /> Permissoes
+                <Shield className="h-4 w-4" /> Permissões
               </h3>
 
               <div className="space-y-4 text-sm">
@@ -271,21 +271,21 @@ function MemberDetail() {
                   tone="primary"
                 />
                 <PermissionSection
-                  title="Permissoes extras"
-                  emptyText="Nenhuma permissao extra cadastrada."
+                  title="Permissões extras"
+                  emptyText="Nenhuma permissão extra cadastrada."
                   items={grantedPermissionKeys.map(getPermissionLabel)}
                   tone="success"
                 />
                 <PermissionSection
-                  title="Permissoes removidas"
-                  emptyText="Nenhuma permissao removida."
+                  title="Permissões removidas"
+                  emptyText="Nenhuma permissão removida."
                   items={deniedPermissionKeys.map(getPermissionLabel)}
                   tone="destructive"
                 />
 
                 <div>
                   <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">
-                    Permissoes finais
+                    Permissões finais
                   </div>
                   <div className="space-y-2">
                     {permissionSummary.length ? (
@@ -309,7 +309,7 @@ function MemberDetail() {
                         </div>
                       ))
                     ) : (
-                      <div className="text-muted-foreground">Nenhuma permissao final ativa.</div>
+                      <div className="text-muted-foreground">Nenhuma permissão final ativa.</div>
                     )}
                   </div>
                 </div>

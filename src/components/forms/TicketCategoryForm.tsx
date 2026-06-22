@@ -112,7 +112,7 @@ export function TicketCategoryForm({
               required
             />
           </Field>
-          <Field label="SLA padrao">
+          <Field label="SLA padrão">
             <Input
               value={data.sla}
               onChange={(event) => set("sla", event.target.value)}
@@ -146,7 +146,7 @@ export function TicketCategoryForm({
               placeholder="Ex.: Suporte N2"
             />
           </Field>
-          <Field label="Tipo padrao">
+          <Field label="Tipo padrão">
             <Select value={data.defaultType} onValueChange={(value) => set("defaultType", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecionar tipo" />
@@ -160,7 +160,7 @@ export function TicketCategoryForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Prioridade padrao">
+          <Field label="Prioridade padrão">
             <Select
               value={data.defaultPriority}
               onValueChange={(value) => set("defaultPriority", value)}
@@ -177,7 +177,7 @@ export function TicketCategoryForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Impacto padrao">
+          <Field label="Impacto padrão">
             <Select value={data.defaultImpact} onValueChange={(value) => set("defaultImpact", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecionar impacto" />

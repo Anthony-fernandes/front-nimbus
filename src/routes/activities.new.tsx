@@ -52,8 +52,8 @@ function buildTicketActivityDescription(ticket: Ticket) {
     `Categoria: ${ticket.category_name || ticket.category || "Nao informada"}`,
     `Origem: chamado`,
     "",
-    "Descricao do chamado:",
-    ticket.description || "Sem descricao informada.",
+    "Descrição do chamado:",
+    ticket.description || "Sem descrição informada.",
   ];
 
   return details.join("\n");

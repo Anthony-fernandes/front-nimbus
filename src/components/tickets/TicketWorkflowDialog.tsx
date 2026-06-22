@@ -59,7 +59,7 @@ function getUserDisplayName(user: User) {
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.username ||
     user.email ||
-    "Usuario"
+    "Usuário"
   );
 }
 
@@ -164,7 +164,7 @@ export function TicketWorkflowDialog({
     }
 
     if (actionId === "finish" && !data.resolutionDescription.trim()) {
-      nextErrors.resolutionDescription = "Descreva a solucao aplicada para finalizar.";
+      nextErrors.resolutionDescription = "Descreva a solução aplicada para finalizar.";
     }
 
     if (actionId === "cancel" && !data.cancelReason.trim()) {
@@ -194,11 +194,11 @@ export function TicketWorkflowDialog({
             {actionId === "categorize"
               ? "Defina a triagem tecnica do chamado sem sair da listagem."
               : actionId === "pause"
-                ? "A pausa exige justificativa para manter o historico do atendimento."
+                ? "A pausa exige justificativa para manter o histórico do atendimento."
                 : actionId === "wait_customer"
                   ? "Registre a mensagem que explica por que o chamado depende do cliente."
                   : actionId === "finish"
-                    ? "Descreva a solucao entregue antes de encerrar o chamado."
+                    ? "Descreva a solução entregue antes de encerrar o chamado."
                     : "Confirme e registre o motivo do cancelamento."}
           </DialogDescription>
         </DialogHeader>
@@ -252,7 +252,7 @@ export function TicketWorkflowDialog({
               </Select>
             </Field>
 
-            <Field label="Tecnico responsavel">
+            <Field label="Tecnico responsável">
               <Select
                 value={data.responsibleTechnician || "__none__"}
                 onValueChange={(value) =>
@@ -274,11 +274,11 @@ export function TicketWorkflowDialog({
             </Field>
 
             <Field
-              label="Observacao de triagem"
+              label="Observação de triagem"
               className="sm:col-span-2"
               hint={
                 selectedCategory
-                  ? `SLA padrao da categoria: ${getCategoryDefaults(selectedCategory).sla}.`
+                  ? `SLA padrão da categoria: ${getCategoryDefaults(selectedCategory).sla}.`
                   : "Opcional, mas recomendado para registrar contexto tecnico."
               }
             >
@@ -320,7 +320,7 @@ export function TicketWorkflowDialog({
         {actionId === "finish" ? (
           <div className="grid gap-4">
             <Field
-              label="Solucao aplicada"
+              label="Solução aplicada"
               required
               error={errors.resolutionDescription}
             >
@@ -328,11 +328,11 @@ export function TicketWorkflowDialog({
                 value={data.resolutionDescription}
                 onChange={(event) => setField("resolutionDescription", event.target.value)}
                 rows={4}
-                placeholder="Descreva a solucao entregue ao cliente."
+                placeholder="Descreva a solução entregue ao cliente."
                 className="border-border bg-muted/20"
               />
             </Field>
-            <Field label="Observacao final">
+            <Field label="Observação final">
               <Textarea
                 value={data.finalObservation}
                 onChange={(event) => setField("finalObservation", event.target.value)}

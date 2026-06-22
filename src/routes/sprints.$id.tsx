@@ -134,7 +134,7 @@ function SprintDetail() {
           || [user.first_name, user.last_name].filter(Boolean).join(" ")
           || user.username
           || user.email
-          || "Usuario",
+          || "Usuário",
         ]),
       ),
     [users],
@@ -195,7 +195,7 @@ function SprintDetail() {
     const selectedActivity = activities.find((activity) => activity.id === data.activityId) || null;
 
     if (!selectedActivity) {
-      toast.error("Selecione a atividade que sera planejada.");
+      toast.error("Selecione a atividade que será planejada.");
       return;
     }
 
@@ -229,7 +229,7 @@ function SprintDetail() {
       setPlanDialogOpen(false);
       setEditingPlan(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o planejamento.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o planejamento.");
     } finally {
       setSavingPlan(false);
     }
@@ -245,7 +245,7 @@ function SprintDetail() {
       ]);
       toast.success("Planejamento removido.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover o planejamento.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível remover o planejamento.");
     }
   };
 
@@ -264,7 +264,7 @@ function SprintDetail() {
   if (!sprint) {
     return (
       <AppShell>
-        <div className="glass rounded-2xl p-6 text-sm text-destructive">Sprint nao encontrada.</div>
+        <div className="glass rounded-2xl p-6 text-sm text-destructive">Sprint não encontrada.</div>
       </AppShell>
     );
   }
@@ -275,7 +275,7 @@ function SprintDetail() {
         <PageHeader
           crumbs={[{ label: "Sprints", to: "/sprints" }, { label: sprint.name }]}
           title={sprint.name}
-          subtitle={`${formatDate(sprint.start_at)} a ${formatDate(sprint.end_at)} · ${sprint.lead_name || "Sem responsavel"}`}
+          subtitle={`${formatDate(sprint.start_at)} a ${formatDate(sprint.end_at)} · ${sprint.lead_name || "Sem responsável"}`}
           badges={
             <span className="rounded bg-success/15 px-2 py-1 text-[11px] text-success">
               {formatSprintStatusLabel(sprint.status || "Planejada")}
@@ -300,7 +300,7 @@ function SprintDetail() {
                 onConfirm={async () => {
                   await Promise.all(sprintPlans.map((plan) => deleteSprintActivityPlan(plan.id)));
                   await deleteSprint(id);
-                  toast.success("Sprint excluida.");
+                  toast.success("Sprint excluída.");
                   navigate({ to: "/sprints" });
                 }}
               />
@@ -319,7 +319,7 @@ function SprintDetail() {
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="border border-border bg-muted/40">
-                <TabsTrigger value="overview">Visao geral</TabsTrigger>
+                <TabsTrigger value="overview">Visão geral</TabsTrigger>
                 <TabsTrigger value="planning">Planejamento</TabsTrigger>
                 <TabsTrigger value="burndown">Burndown</TabsTrigger>
               </TabsList>
@@ -349,7 +349,7 @@ function SprintDetail() {
                       <SummaryLine label="Atividades estouradas" value={String(overrunPlans)} />
                       <SummaryLine label="Apontamentos nesta sprint" value={String(sprintTimeEntries.length)} />
                       <SummaryLine
-                        label="Tags ativas no catalogo"
+                        label="Tags ativas no catálogo"
                         value={String(tagNameSet.size)}
                       />
                     </div>
@@ -368,7 +368,7 @@ function SprintDetail() {
                     const relatedEntries = allTimeEntries.filter((entry) => entry.activityId === plan.activityId);
                     const planSummary = getSprintPlanExecutionSummary(plan, relatedEntries);
                     const responsibleNames = (plan.responsibleIds || [])
-                      .map((responsibleId) => userMap.get(responsibleId) || "Usuario")
+                      .map((responsibleId) => userMap.get(responsibleId) || "Usuário")
                       .join(", ");
 
                     return (
@@ -391,16 +391,16 @@ function SprintDetail() {
                               <span>Estimativa total: {formatHoursLabel(toNumber(activity?.est_hours, 0))}</span>
                               <span>Planejado na sprint: {formatHoursLabel(planSummary.plannedHours)}</span>
                               <span>Realizado na sprint: {formatHoursLabel(planSummary.realizedHours)}</span>
-                              <span>Diferenca: {planSummary.differenceHours > 0 ? `+${formatHoursLabel(planSummary.differenceHours)}` : planSummary.differenceHours < 0 ? `-${formatHoursLabel(Math.abs(planSummary.differenceHours))}` : "0h"}</span>
+                              <span>Diferença: {planSummary.differenceHours > 0 ? `+${formatHoursLabel(planSummary.differenceHours)}` : planSummary.differenceHours < 0 ? `-${formatHoursLabel(Math.abs(planSummary.differenceHours))}` : "0h"}</span>
                             </div>
                             <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                              <span>Responsaveis: {responsibleNames || "Nao definidos"}</span>
+                              <span>Responsáveis: {responsibleNames || "Não definidos"}</span>
                               <span>Story points: {plan.storyPoints || 0}</span>
-                              <span>Inicio previsto: {formatDate(plan.plannedStartDate)}</span>
+                              <span>Início previsto: {formatDate(plan.plannedStartDate)}</span>
                               <span>Fim previsto: {formatDate(plan.plannedEndDate)}</span>
                             </div>
                             <p className="mt-3 text-sm text-muted-foreground">
-                              {plan.notes || "Sem observacao de planejamento."}
+                              {plan.notes || "Sem observação de planejamento."}
                             </p>
                           </div>
 
@@ -432,7 +432,7 @@ function SprintDetail() {
                                   </Button>
                                 }
                                 title="Remover planejamento?"
-                                description="Esta atividade saira do planejamento desta sprint, mas a atividade em si continuara existindo."
+                                description="Esta atividade sairá do planejamento desta sprint, mas a atividade em si continuará existindo."
                                 onConfirm={() => handleDeletePlan(plan)}
                               />
                             </div>
@@ -466,9 +466,9 @@ function SprintDetail() {
               <h3 className="mb-3 text-sm font-semibold">Detalhes</h3>
               <dl className="space-y-2 text-sm">
                 {[
-                  ["Responsavel", sprint.lead_name || "-"],
+                  ["Responsável", sprint.lead_name || "-"],
                   ["Status", formatSprintStatusLabel(sprint.status || "Planejada")],
-                  ["Inicio", formatDate(sprint.start_at)],
+                  ["Início", formatDate(sprint.start_at)],
                   ["Fim", formatDate(sprint.end_at)],
                   ["Capacidade", formatHoursLabel(toNumber(sprint.capacity, 0))],
                   ["Horas planejadas", formatHoursLabel(totalPlannedHours)],
@@ -512,7 +512,7 @@ function SprintDetail() {
               {editingPlan ? "Editar planejamento da sprint" : "Planejar atividade na sprint"}
             </DialogTitle>
             <DialogDescription>
-              Defina quem vai executar, quantas horas serao planejadas neste ciclo e as previsoes da sprint.
+              Defina quem vai executar, quantas horas serão planejadas neste ciclo e as previsões da sprint.
             </DialogDescription>
           </DialogHeader>
 
@@ -536,7 +536,7 @@ function SprintDetail() {
             activities={planningOptions}
             users={users}
             saving={savingPlan}
-            submitLabel={editingPlan ? "Salvar planejamento" : "Adicionar a sprint"}
+            submitLabel={editingPlan ? "Salvar planejamento" : "Adicionar à sprint"}
             onSubmit={handleSavePlan}
           />
         </DialogContent>

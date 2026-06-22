@@ -440,7 +440,7 @@ export function ProjectCostDialog({
                 ? "Salvando..."
                 : mode === "create"
                   ? "Adicionar custo"
-                  : "Salvar alteracoes"}
+                  : "Salvar alterações"}
             </Button>
           </DialogFooter>
         </form>

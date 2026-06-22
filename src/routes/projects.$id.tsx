@@ -1059,7 +1059,7 @@ function ProjectDetailPanel({
   status: string;
 }) {
   const details = [
-    { label: "Organizacao atendida", value: clientName },
+    { label: "Organização atendida", value: clientName },
     { label: "Início", value: formatDateSafe(startAt) },
     { label: "Término", value: formatDateSafe(dueAt) },
   ];

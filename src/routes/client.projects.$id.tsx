@@ -109,8 +109,8 @@ function ClientProjectDetailPage() {
               <h3 className="mb-3 text-sm font-semibold">Detalhes</h3>
               <dl className="space-y-2 text-sm">
                 {[
-                  ["Responsavel", project.owner_name || "-"],
-                  ["Inicio", formatDate(project.start_at)],
+                  ["Responsável", project.owner_name || "-"],
+                  ["Início", formatDate(project.start_at)],
                   ["Entrega", formatDate(project.due_at)],
                   ["Custo realizado", formatCurrency(project.real_cost)],
                 ].map(([label, value]) => (

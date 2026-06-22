@@ -14,7 +14,7 @@ import { listTickets } from "@/services/ticketService";
 import { formatCurrency, formatDate } from "@/services/utils";
 
 export const Route = createFileRoute("/clients/$id")({
-  head: () => ({ meta: [{ title: "Detalhes da organizacao · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Detalhes da organização · NimbusDesk" }] }),
   component: OrganizationDetail,
 });
 
@@ -44,7 +44,7 @@ function OrganizationDetail() {
     return (
       <AppShell>
         <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">
-          Carregando organizacao...
+          Carregando organização...
         </div>
       </AppShell>
     );
@@ -54,7 +54,7 @@ function OrganizationDetail() {
     return (
       <AppShell>
         <div className="glass rounded-2xl p-6 text-sm text-destructive">
-          Organizacao nao encontrada.
+          Organização não encontrada.
         </div>
       </AppShell>
     );
@@ -64,7 +64,7 @@ function OrganizationDetail() {
     <AppShell>
       <div className="max-w-7xl space-y-5">
         <PageHeader
-          crumbs={[{ label: "Organizacoes", to: "/clients" }, { label: organization.name }]}
+          crumbs={[{ label: "Organizações", to: "/clients" }, { label: organization.name }]}
           title={
             <span className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary text-sm font-semibold text-primary-foreground">
@@ -77,7 +77,7 @@ function OrganizationDetail() {
               {organization.name}
             </span>
           }
-          subtitle={`${organization.sector || "Sem setor"} · ${organization.organization_type || organization.type || "Organizacao"}`}
+          subtitle={`${organization.sector || "Sem setor"} · ${organization.organization_type || organization.type || "Organização"}`}
           badges={
             <span className="rounded bg-success/15 px-2 py-1 text-[11px] text-success">
               {organization.status || "Ativo"}
@@ -93,7 +93,7 @@ function OrganizationDetail() {
               <ConfirmDelete
                 onConfirm={async () => {
                   await deleteClient(id);
-                  toast.success("Organizacao excluida");
+                  toast.success("Organização excluída");
                   navigate({ to: "/clients" });
                 }}
               />
@@ -118,7 +118,7 @@ function OrganizationDetail() {
               </TabsList>
               <TabsContent value="tickets" className="space-y-2">
                 {tickets.length === 0 ? (
-                  <EmptyPanel text="Nenhum chamado vinculado a esta organizacao." />
+                  <EmptyPanel text="Nenhum chamado vinculado a esta organização." />
                 ) : (
                   tickets.map((ticket) => (
                     <Link
@@ -140,7 +140,7 @@ function OrganizationDetail() {
               </TabsContent>
               <TabsContent value="projects" className="space-y-2">
                 {projects.length === 0 ? (
-                  <EmptyPanel text="Nenhum projeto vinculado a esta organizacao." />
+                  <EmptyPanel text="Nenhum projeto vinculado a esta organização." />
                 ) : (
                   projects.filter(Boolean).map((project) => (
                     <Link
@@ -160,21 +160,21 @@ function OrganizationDetail() {
               <TabsContent value="summary">
                 <div className="glass space-y-3 rounded-2xl p-5 shadow-card">
                   <div>
-                    <h3 className="mb-2 text-sm font-semibold">Observacoes</h3>
+                    <h3 className="mb-2 text-sm font-semibold">Observações</h3>
                     <p className="text-sm text-muted-foreground">
-                      {organization.notes || "Nenhuma observacao cadastrada."}
+                      {organization.notes || "Nenhuma observação cadastrada."}
                     </p>
                   </div>
                   <div>
                     <h3 className="mb-2 text-sm font-semibold">Contato principal</h3>
                     <p className="text-sm text-muted-foreground">
-                      {organization.contact_name || "Nao informado."}
+                      {organization.contact_name || "Não informado."}
                     </p>
                   </div>
                   <div>
                     <h3 className="mb-2 text-sm font-semibold">Documento</h3>
                     <p className="text-sm text-muted-foreground">
-                      {organization.document || "Nao informado."}
+                      {organization.document || "Não informado."}
                     </p>
                   </div>
                 </div>
@@ -187,10 +187,10 @@ function OrganizationDetail() {
               <h3 className="mb-3 text-sm font-semibold">Contato</h3>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" /> {organization.email || "Nao informado"}
+                  <Mail className="h-4 w-4 text-muted-foreground" /> {organization.email || "Não informado"}
                 </li>
                 <li className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" /> {organization.phone || "Nao informado"}
+                  <Phone className="h-4 w-4 text-muted-foreground" /> {organization.phone || "Não informado"}
                 </li>
                 <li className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />{" "}

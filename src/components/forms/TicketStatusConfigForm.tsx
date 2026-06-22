@@ -113,7 +113,7 @@ export function TicketStatusConfigForm({
     <form onSubmit={handleSubmit} className="space-y-5">
       <FormSection
         title="Status de chamados"
-        description="Controle a ordem, o comportamento do SLA e as transicoes permitidas do workflow."
+        description="Controle a ordem, o comportamento do SLA e as transições permitidas do workflow."
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nome" required>
@@ -125,7 +125,7 @@ export function TicketStatusConfigForm({
               required
             />
           </Field>
-          <Field label="Codigo interno / slug" required>
+          <Field label="Código interno / slug" required>
             <Input
               value={data.slug}
               onChange={(event) => setField("slug", slugifyTicketWorkflowStatus(event.target.value))}
@@ -134,7 +134,7 @@ export function TicketStatusConfigForm({
               required
             />
           </Field>
-          <Field label="Descricao" className="sm:col-span-2">
+          <Field label="Descrição" className="sm:col-span-2">
             <Textarea
               value={data.description}
               onChange={(event) => setField("description", event.target.value)}
@@ -157,7 +157,7 @@ export function TicketStatusConfigForm({
               />
             </div>
           </Field>
-          <Field label="Ordem de exibicao">
+          <Field label="Ordem de exibição">
             <Input
               type="number"
               min={1}
@@ -183,7 +183,7 @@ export function TicketStatusConfigForm({
             onCheckedChange={(value) => setField("pausesSla", value)}
           />
           <ToggleField
-            label="Eh status final"
+            label="É status final"
             checked={data.isFinal}
             disabled={data.system}
             onCheckedChange={(value) => setField("isFinal", value)}
@@ -207,7 +207,7 @@ export function TicketStatusConfigForm({
             onToggle={(slug) => toggleRelation("originStatuses", slug)}
           />
           <RelationField
-            label="Proximos status permitidos"
+            label="Próximos status permitidos"
             options={relationOptions}
             selected={data.nextStatuses}
             disabled={data.system}
@@ -248,7 +248,7 @@ function RelationField({
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
       <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-border bg-muted/10 p-3">
         {options.length === 0 ? (
-          <div className="text-sm text-muted-foreground">Nenhum outro status disponivel.</div>
+          <div className="text-sm text-muted-foreground">Nenhum outro status disponível.</div>
         ) : (
           options.map((option) => (
             <label

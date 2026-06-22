@@ -145,7 +145,7 @@ function SuperAdminContent() {
                     <th className="px-2 py-2.5 text-left font-medium">E-mail</th>
                     <th className="px-2 py-2.5 text-left font-medium">Telefone</th>
                     <th className="px-2 py-2.5 text-left font-medium">Status</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Acoes</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -253,7 +253,7 @@ function SuperAdminContent() {
                 className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
                 onClick={() => {
                   if (!companyForm.name.trim()) {
-                    toast.error("O nome da empresa e obrigatorio.");
+                    toast.error("O nome da empresa e obrigatório.");
                     return;
                   }
                   createCompanyMutation.mutate(companyForm);
@@ -275,7 +275,7 @@ function SuperAdminContent() {
             <DialogHeader>
               <DialogTitle>Configurar admin</DialogTitle>
               <DialogDescription>
-                Crie o primeiro usuario administrador para{" "}
+                Crie o primeiro usuário administrador para{" "}
                 <strong>{adminDialogCompany?.name}</strong>.
               </DialogDescription>
             </DialogHeader>
@@ -326,7 +326,7 @@ function SuperAdminContent() {
                 onClick={() => {
                   if (!adminDialogCompany) return;
                   if (!adminForm.username || !adminForm.email || !adminForm.password) {
-                    toast.error("Username, e-mail e senha sao obrigatorios.");
+                    toast.error("Username, e-mail e senha sao obrigatórios.");
                     return;
                   }
                   setupAdminMutation.mutate({ companyId: adminDialogCompany.id, data: adminForm });

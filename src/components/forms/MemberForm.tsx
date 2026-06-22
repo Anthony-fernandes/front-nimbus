@@ -375,11 +375,11 @@ export function MemberForm({
   const roleHint = useMemo(() => {
     switch (data.role) {
       case "ADMIN":
-        return "Acessa o portal interno com permissao padrao completa.";
+        return "Acessa o portal interno com permissão padrão completa.";
       case "CLIENT":
         return "Acessa apenas o portal do cliente e nunca o portal interno.";
       default:
-        return "Acessa o portal interno operacional com permissoes controladas.";
+        return "Acessa o portal interno operacional com permissões controladas.";
     }
   }, [data.role]);
 
@@ -406,7 +406,7 @@ export function MemberForm({
     event.preventDefault();
 
     if (!data.name.trim() || !data.email.trim()) {
-      toast.error("Nome e email sao obrigatorios");
+      toast.error("Nome e email sao obrigatórios");
       return;
     }
 
@@ -415,7 +415,7 @@ export function MemberForm({
       && !data.primaryOrganization
       && data.organizationAccessIds.length === 0
     ) {
-      toast.error("Selecione a organizacao principal desse usuario");
+      toast.error("Selecione a organização principal desse usuário");
       return;
     }
 
@@ -444,14 +444,14 @@ export function MemberForm({
           : Promise.resolve(),
       ]);
 
-      toast.success(mode === "create" ? "Usuario cadastrado" : "Usuario atualizado");
+      toast.success(mode === "create" ? "Usuário cadastrado" : "Usuário atualizado");
       if (targetId) {
         navigate({ to: "/teams/$id", params: { id: targetId } });
       } else {
         navigate({ to: onCancelHref });
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar usuario");
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar usuário");
     }
   };
 
@@ -459,7 +459,7 @@ export function MemberForm({
     <form onSubmit={submit} className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
         <FormSection
-          title="Acesso do usuario"
+          title="Acesso do usuário"
           description="Dados principais de autenticacao e identificacao."
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -471,13 +471,13 @@ export function MemberForm({
               />
             </Field>
             <Field
-              label="Usuario"
+              label="Usuário"
               hint="Se ficar vazio, sera derivado automaticamente do e-mail."
             >
               <Input
                 value={data.username}
                 onChange={(event) => set("username", event.target.value)}
-                placeholder="usuario.login"
+                placeholder="usuário.login"
               />
             </Field>
             <Field label="Email" required>
@@ -522,10 +522,10 @@ export function MemberForm({
 
         <FormSection
           title="Tipo e contexto"
-          description="O tipo define o portal principal e as permissoes padrao."
+          description="O tipo define o portal principal e as permissões padrão."
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tipo de usuario" required hint={roleHint}>
+            <Field label="Tipo de usuário" required hint={roleHint}>
               <Select
                 value={data.role}
                 onValueChange={(value) => set("role", value as AppUserRole)}
@@ -557,12 +557,12 @@ export function MemberForm({
               </Select>
             </Field>
             <Field
-              label="Organizacao principal"
+              label="Organização principal"
               required={data.role === "CLIENT"}
               hint={
                 data.role === "CLIENT"
                   ? "Obrigatoria para definir o portal do cliente."
-                  : "Use quando o usuario atender ou representar uma organizacao especifica."
+                  : "Use quando o usuário atender ou representar uma organização especifica."
               }
             >
               <Select
@@ -572,7 +572,7 @@ export function MemberForm({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar organizacao" />
+                  <SelectValue placeholder="Selecionar organização" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Nenhuma</SelectItem>
@@ -650,8 +650,8 @@ export function MemberForm({
         </FormSection>
 
         <FormSection
-          title="Vinculos com organizacoes"
-          description="Defina em quais organizacoes o usuario pode atuar, solicitar ou acompanhar demandas."
+          title="Vinculos com organizações"
+          description="Defina em quais organizações o usuário pode atuar, solicitar ou acompanhar demandas."
         >
           <div className="grid gap-3 sm:grid-cols-2">
             {organizations.map((organization) => (
@@ -670,7 +670,7 @@ export function MemberForm({
                 <span className="space-y-1">
                   <span className="block text-sm font-medium">{organization.name}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {organization.organization_type || organization.type || "Organizacao"}
+                    {organization.organization_type || organization.type || "Organização"}
                   </span>
                 </span>
               </label>
@@ -680,7 +680,7 @@ export function MemberForm({
 
         <FormSection
           title="Estrutura organizacional"
-          description="Vincule o usuario a departamentos, cargos e responsaveis de aprovacao."
+          description="Vincule o usuário a departamentos, cargos e responsaveis de aprovacao."
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Departamento">
@@ -751,7 +751,7 @@ export function MemberForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Modo de aprovacao" hint="Define quem aprova chamados originados por este usuario.">
+            <Field label="Modo de aprovacao" hint="Define quem aprova chamados originados por este usuário.">
               <Select
                 value={data.approvalMode || "INHERITED"}
                 onValueChange={(v) => set("approvalMode", v)}
@@ -760,7 +760,7 @@ export function MemberForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INHERITED">Herdado (padrao do sistema)</SelectItem>
+                  <SelectItem value="INHERITED">Herdado (padrão do sistema)</SelectItem>
                   <SelectItem value="SUPERVISOR">Supervisor direto</SelectItem>
                   <SelectItem value="MANAGER">Gerente</SelectItem>
                   <SelectItem value="AUTO">Auto (por cargo)</SelectItem>
@@ -774,7 +774,7 @@ export function MemberForm({
                   checked={data.isServiceDeskApprover}
                   onCheckedChange={(v) => set("isServiceDeskApprover", Boolean(v))}
                 />
-                <span className="text-sm">Este usuario aprova chamados como Service Desk</span>
+                <span className="text-sm">Este usuário aprova chamados como Service Desk</span>
               </label>
             </Field>
           </div>
@@ -800,11 +800,11 @@ export function MemberForm({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <InfoStat label="Perfil" value={ROLE_OPTIONS.find((item) => item.value === data.role)?.label || "Tecnico"} />
             <InfoStat label="Blocos ativos" value={String(selectedBlocks.length)} />
-            <InfoStat label="Permissoes finais" value={String(finalPermissionCount)} />
+            <InfoStat label="Permissões finais" value={String(finalPermissionCount)} />
           </div>
 
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold">Resumo das permissoes finais</h4>
+            <h4 className="text-sm font-semibold">Resumo das permissões finais</h4>
             <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
               {permissionSummary.length ? (
                 permissionSummary.map((item) => (
@@ -848,7 +848,7 @@ export function MemberForm({
                 ))
               ) : (
                 <div className="rounded-xl border border-dashed border-border bg-muted/10 px-3 py-4 text-sm text-muted-foreground">
-                  Nenhuma permissao final ativa para esse usuario.
+                  Nenhuma permissão final ativa para esse usuário.
                 </div>
               )}
             </div>
@@ -860,7 +860,7 @@ export function MemberForm({
               className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
             >
               <Save className="h-4 w-4" />
-              {mode === "create" ? "Cadastrar usuario" : "Salvar alteracoes"}
+              {mode === "create" ? "Cadastrar usuário" : "Salvar alterações"}
             </Button>
             <Button
               type="button"

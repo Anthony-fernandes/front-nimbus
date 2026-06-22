@@ -73,7 +73,7 @@ function ClientProjectsPage() {
               <TableRow className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground hover:bg-transparent">
                 <TableHead className="px-4 py-2.5">Projeto</TableHead>
                 <TableHead className="px-2 py-2.5">Status</TableHead>
-                <TableHead className="px-2 py-2.5">Responsavel</TableHead>
+                <TableHead className="px-2 py-2.5">Responsável</TableHead>
                 <TableHead className="px-2 py-2.5">Equipe</TableHead>
                 <TableHead className="px-2 py-2.5">Progresso</TableHead>
                 <TableHead className="px-2 py-2.5">Entrega</TableHead>

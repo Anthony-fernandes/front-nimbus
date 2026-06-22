@@ -52,12 +52,12 @@ export function ClientTicketRequestForm() {
     event.preventDefault();
 
     if (!clientId) {
-      toast.error("Seu usuario ainda nao esta vinculado a uma organizacao.");
+      toast.error("Seu usuário ainda nao esta vinculado a uma organização.");
       return;
     }
 
     if (!data.title.trim() || !data.description.trim()) {
-      toast.error("Preencha titulo e descricao.");
+      toast.error("Preencha título e descrição.");
       return;
     }
 
@@ -96,7 +96,7 @@ export function ClientTicketRequestForm() {
           description="Informe apenas os dados da solicitacao. Os campos internos serao definidos pela equipe tecnica."
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Titulo" required className="sm:col-span-2">
+            <Field label="Título" required className="sm:col-span-2">
               <Input
                 value={data.title}
                 onChange={(event) => setField("title", event.target.value)}
@@ -107,14 +107,14 @@ export function ClientTicketRequestForm() {
             <Field label="Solicitante">
               <Input value={requesterName} disabled />
             </Field>
-            <Field label="Organizacao atendida">
-              <Input value={user?.organization_name || user?.client_name || "Minha organizacao"} disabled />
+            <Field label="Organização atendida">
+              <Input value={user?.organization_name || user?.client_name || "Minha organização"} disabled />
             </Field>
-            <Field label="Contato responsavel">
+            <Field label="Contato responsável">
               <Input
                 value={data.contactName}
                 onChange={(event) => setField("contactName", event.target.value)}
-                placeholder="Nome do contato responsavel"
+                placeholder="Nome do contato responsável"
               />
             </Field>
             <Field label="Telefone do contato">
@@ -124,11 +124,11 @@ export function ClientTicketRequestForm() {
                 placeholder="(00) 00000-0000"
               />
             </Field>
-            <Field label="Descricao" required className="sm:col-span-2">
+            <Field label="Descrição" required className="sm:col-span-2">
               <Textarea
                 value={data.description}
                 onChange={(event) => setField("description", event.target.value)}
-                placeholder="Conte o problema, o impacto e o que voce espera como solucao."
+                placeholder="Conte o problema, o impacto e o que voce espera como solução."
                 className="min-h-36"
                 required
               />
@@ -167,8 +167,8 @@ export function ClientTicketRequestForm() {
       <div className="space-y-5">
         <FormSection title="Fluxo do portal do cliente">
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>O sistema usa seu usuario logado como solicitante do chamado.</p>
-            <p>Organizacao atendida, origem e status inicial sao definidos automaticamente.</p>
+            <p>O sistema usa seu usuário logado como solicitante do chamado.</p>
+            <p>Organização atendida, origem e status inicial sao definidos automaticamente.</p>
             <p>A categorizacao interna e os demais campos tecnicos ficam restritos ao portal interno.</p>
           </div>
         </FormSection>

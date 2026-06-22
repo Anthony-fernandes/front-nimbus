@@ -187,7 +187,7 @@ const TONE_LABELS: Record<DashboardTone, string> = {
   primary: "Primario",
   accent: "Destaque",
   success: "Sucesso",
-  warning: "Atencao",
+  warning: "Atenção",
   destructive: "Critico",
   neutral: "Neutro",
 };
@@ -817,14 +817,14 @@ export function DashboardHome({ screen = "viewer" }: { screen?: DashboardHomeScr
 
     setDraftDashboard(cloneDashboard(selectedDashboard));
     setSelectedComponentId(null);
-    toast.success("Alteracoes descartadas.");
+    toast.success("Alterações descartadas.");
   }
 
   const isEditorScreen = screen === "builder";
   const pageTitle = isEditorScreen ? "Editor de dashboards" : "Dashboard operacional";
   const pageSubtitle = isEditorScreen
-    ? "Gerencie dashboards, publique versoes e ajuste o layout em uma tela dedicada de edicao."
-    : "Acompanhe o dashboard ativo da operacao sem misturar visualizacao com configuracao.";
+    ? "Gerencie dashboards, publique versoes e ajuste o layout em uma tela dedicada de edição."
+    : "Acompanhe o dashboard ativo da operacao sem misturar visualizacao com configuração.";
   const filteredTemplateGroups = useMemo(
     () =>
       LIBRARY_GROUPS.map((group) => ({
@@ -890,7 +890,7 @@ export function DashboardHome({ screen = "viewer" }: { screen?: DashboardHomeScr
       onLibrarySearchChange={setLibrarySearch}
       onSelectDashboard={(value) => {
         if (editing && isDashboardDirty) {
-          toast.info("Salve ou cancele as alteracoes antes de trocar de dashboard.");
+          toast.info("Salve ou cancele as alterações antes de trocar de dashboard.");
           return;
         }
 
@@ -1083,7 +1083,7 @@ function DashboardWorkspace({
 
               <div className="flex flex-wrap items-center gap-1.5 border-t border-border/70 pt-2">
                 <Button variant="ghost" className="h-8 gap-1.5 px-2.5 text-[12.5px] text-muted-foreground hover:bg-surface hover:text-foreground" onClick={() => onBuilderSidebarTabChange("history")}>
-                  <History className="h-3.5 w-3.5" /> Historico
+                  <History className="h-3.5 w-3.5" /> Histórico
                 </Button>
                 <Button variant="ghost" className="h-8 gap-1.5 px-2.5 text-[12.5px] text-muted-foreground hover:bg-surface hover:text-foreground" onClick={onConfigureDashboard}>
                   <Settings2 className="h-3.5 w-3.5" /> Dashboard
@@ -1145,7 +1145,7 @@ function DashboardWorkspace({
                       </Button>
                     }
                     title="Excluir dashboard?"
-                    description="A configuracao atual sera removida. Se este dashboard estiver ativo, outro dashboard sera promovido."
+                    description="A configuração atual sera removida. Se este dashboard estiver ativo, outro dashboard sera promovido."
                     onConfirm={() => void onDeleteDashboard()}
                   />
                 ) : null}
@@ -1270,7 +1270,7 @@ function DashboardWorkspace({
                   {([
                     { id: "inspector", label: "Componente" },
                     { id: "dashboard", label: "Dashboard" },
-                    { id: "history", label: "Historico" },
+                    { id: "history", label: "Histórico" },
                   ] as Array<{ id: BuilderSidebarTab; label: string }>).map((tab) => (
                     <button
                       key={tab.id}
@@ -1331,7 +1331,7 @@ function DashboardWorkspace({
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-[12px] text-muted-foreground">
-                  <span>Operacoes</span>
+                  <span>Operações</span>
                   <span className="opacity-40">/</span>
                   <span className="text-foreground">{currentDashboard?.name || pageTitle}</span>
                   {currentDashboard?.isActive ? (
@@ -1920,7 +1920,7 @@ function DashboardSettingsPanel({
   return (
     <div className="space-y-4 p-3">
       <div>
-        <div className="text-[13.5px] font-semibold tracking-tight">Configuracao do dashboard</div>
+        <div className="text-[13.5px] font-semibold tracking-tight">Configuração do dashboard</div>
         <p className="mt-1 text-[11.5px] text-muted-foreground">
           Ajuste identidade, tipo de visao e filtros globais disponiveis.
         </p>
@@ -1953,7 +1953,7 @@ function DashboardSettingsPanel({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Descricao">
+              <Field label="Descrição">
                 <Textarea
                   rows={4}
                   value={dashboard.description || ""}
@@ -1966,7 +1966,7 @@ function DashboardSettingsPanel({
           <div className="rounded-lg border border-border bg-surface/40 p-4">
             <div className="text-sm font-medium text-foreground">Filtros globais</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Cada dashboard decide quais filtros ficam disponiveis e quais valores padrao sao aplicados.
+              Cada dashboard decide quais filtros ficam disponiveis e quais valores padrão sao aplicados.
             </p>
             <div className="mt-4 space-y-3">
               {sortFilters(dashboard.filters).map((filter) => (
@@ -1987,7 +1987,7 @@ function DashboardSettingsPanel({
                   <FilterSelect
                     value={filter.defaultValue || ""}
                     options={filterOptions[filter.type] || []}
-                    placeholder="Sem padrao"
+                    placeholder="Sem padrão"
                     disabled={!filter.enabled}
                     onChange={(value) => onFilterChange(filter.id, { defaultValue: value || "" })}
                   />
@@ -2031,7 +2031,7 @@ function ComponentInspectorPanel({
       <div className="p-6 text-center text-[12.5px] text-muted-foreground">
         <div className="text-[13.5px] font-semibold tracking-tight text-foreground">Selecione um componente</div>
         <p className="mt-2 leading-relaxed">
-          Clique em um widget no canvas para editar titulo, dados, layout, filtros e comportamento sem sair da tela.
+          Clique em um widget no canvas para editar título, dados, layout, filtros e comportamento sem sair da tela.
         </p>
       </div>
     );
@@ -2054,7 +2054,7 @@ function ComponentInspectorPanel({
           <div>
             <div className="text-[13.5px] font-semibold tracking-tight">Configurar componente</div>
             <p className="mt-1 text-[11.5px] text-muted-foreground">
-              Ajuste titulo, dados, layout e comportamento deste bloco.
+              Ajuste título, dados, layout e comportamento deste bloco.
             </p>
           </div>
           <Badge className={cn("border", TONE_CLASSES[component.tone || "primary"])}>
@@ -2082,7 +2082,7 @@ function ComponentInspectorPanel({
 
       <div className="space-y-4 rounded-lg border border-border bg-surface/40 p-4">
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Titulo">
+          <Field label="Título">
             <Input value={component.title} onChange={(event) => onChange({ title: event.target.value })} />
           </Field>
           <Field label="Tipo">
@@ -2104,7 +2104,7 @@ function ComponentInspectorPanel({
           </Field>
         </div>
 
-        <Field label="Subtitulo">
+        <Field label="Subtítulo">
           <Input
             value={component.subtitle || ""}
             onChange={(event) => onChange({ subtitle: event.target.value })}
@@ -2173,7 +2173,7 @@ function ComponentInspectorPanel({
               <Field label="Agrupamento">
                 <Input
                   value={component.groupBy || ""}
-                  placeholder="Ex: responsavel"
+                  placeholder="Ex: responsável"
                   onChange={(event) => onChange({ groupBy: event.target.value })}
                 />
               </Field>
@@ -2289,7 +2289,7 @@ function ComponentInspectorPanel({
         </div>
 
         {component.type === "text" ? (
-          <Field label="Conteudo do texto">
+          <Field label="Conteúdo do texto">
             <Textarea
               rows={8}
               value={String(component.configJson?.body || component.subtitle || "")}
@@ -2306,7 +2306,7 @@ function ComponentInspectorPanel({
         ) : null}
 
         {component.type === "section" ? (
-          <Field label="Descricao da secao">
+          <Field label="Descrição da secao">
             <Textarea
               rows={5}
               value={String(component.configJson?.description || component.subtitle || "")}
@@ -2405,7 +2405,7 @@ function ComponentInspectorPanel({
 
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface/40 p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          As alteracoes deste bloco entram no rascunho. Salve para persistir a configuracao.
+          As alterações deste bloco entram no rascunho. Salve para persistir a configuração.
         </p>
         <Button className="gap-2" onClick={() => void onSave()} disabled={!dirty || saving}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -2420,9 +2420,9 @@ function DashboardVersionHistoryPanel({ dashboard }: { dashboard: DashboardDefin
   return (
     <div className="space-y-4 p-3">
       <div>
-        <div className="text-[13.5px] font-semibold tracking-tight">Historico de versoes</div>
+        <div className="text-[13.5px] font-semibold tracking-tight">Histórico de versoes</div>
         <p className="mt-1 text-[11.5px] text-muted-foreground">
-          Rastreie publicacoes, snapshots e o volume de iteracoes deste dashboard.
+          Rastreie publicações, snapshots e o volume de iterações deste dashboard.
         </p>
       </div>
 
@@ -2453,7 +2453,7 @@ function DashboardVersionHistoryPanel({ dashboard }: { dashboard: DashboardDefin
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-border bg-surface/40 p-5 text-sm text-muted-foreground">
-          Este dashboard ainda nao tem versoes salvas no historico.
+          Este dashboard ainda nao tem versoes salvas no histórico.
         </div>
       )}
     </div>
@@ -2947,7 +2947,7 @@ function WidgetBody({
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-              Nenhum item disponivel.
+              Nenhum item disponível.
             </div>
           )}
           {data.helper ? <p className="text-xs text-muted-foreground">{data.helper}</p> : null}
@@ -3031,7 +3031,7 @@ function DashboardSettingsDialog({
         <DialogHeader>
           <DialogTitle>Configurar dashboard</DialogTitle>
           <DialogDescription>
-            Ajuste nome, descricao, tipo e os filtros globais que ficarao disponiveis nesta visao.
+            Ajuste nome, descrição, tipo e os filtros globais que ficarao disponiveis nesta visao.
           </DialogDescription>
         </DialogHeader>
 
@@ -3063,7 +3063,7 @@ function DashboardSettingsDialog({
               </Field>
             </div>
 
-            <Field label="Descricao">
+            <Field label="Descrição">
               <Textarea
                 rows={3}
                 value={dashboard.description || ""}
@@ -3074,7 +3074,7 @@ function DashboardSettingsDialog({
             <div className="rounded-2xl border border-border/60 bg-background/50 p-4">
               <div className="text-sm font-medium">Filtros globais</div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Cada dashboard escolhe quais filtros aparecem e quais valores padrao serao aplicados.
+                Cada dashboard escolhe quais filtros aparecem e quais valores padrão serao aplicados.
               </p>
               <div className="mt-4 space-y-3">
                 {sortFilters(dashboard.filters).map((filter) => (
@@ -3091,7 +3091,7 @@ function DashboardSettingsDialog({
                     <FilterSelect
                       value={filter.defaultValue || ""}
                       options={filterOptions[filter.type] || []}
-                      placeholder="Sem padrao"
+                      placeholder="Sem padrão"
                       disabled={!filter.enabled}
                       onChange={(value) => onFilterChange(filter.id, { defaultValue: value || "" })}
                     />
@@ -3155,7 +3155,7 @@ function ComponentConfigDialog({
           {component ? (
             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Titulo">
+                <Field label="Título">
                   <Input
                     value={component.title}
                     onChange={(event) => onChange({ title: event.target.value })}
@@ -3180,7 +3180,7 @@ function ComponentConfigDialog({
                 </Field>
               </div>
 
-              <Field label="Subtitulo">
+              <Field label="Subtítulo">
                 <Input
                   value={component.subtitle || ""}
                   onChange={(event) => onChange({ subtitle: event.target.value })}
@@ -3309,7 +3309,7 @@ function ComponentConfigDialog({
               </div>
 
               {component.type === "text" ? (
-                <Field label="Conteudo do texto">
+                <Field label="Conteúdo do texto">
                   <Textarea
                     rows={8}
                     value={String(component.configJson?.body || component.subtitle || "")}
@@ -3326,7 +3326,7 @@ function ComponentConfigDialog({
               ) : null}
 
               {component.type === "section" ? (
-                <Field label="Descricao da secao">
+                <Field label="Descrição da secao">
                   <Textarea
                     rows={5}
                     value={String(component.configJson?.description || component.subtitle || "")}
@@ -3372,7 +3372,7 @@ function ComponentConfigDialog({
 
           <DialogFooter className="border-t border-border/60 bg-background/90 px-6 py-4 sm:justify-between">
             <div className="text-sm text-muted-foreground">
-              As alteracoes deste bloco entram no rascunho. Use salvar para persistir o dashboard.
+              As alterações deste bloco entram no rascunho. Use salvar para persistir o dashboard.
             </div>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -3418,7 +3418,7 @@ function CreateDashboardDialog({
           <Field label="Nome">
             <Input value={form.name} onChange={(event) => onChange({ name: event.target.value })} />
           </Field>
-          <Field label="Descricao">
+          <Field label="Descrição">
             <Textarea
               rows={3}
               value={form.description}
@@ -3611,7 +3611,7 @@ function FunnelView({
         })
       ) : (
         <div className="rounded-2xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-          Nenhuma etapa disponivel.
+          Nenhuma etapa disponível.
         </div>
       )}
     </div>
@@ -3799,7 +3799,7 @@ function EmptyDashboardState({ onCreate }: { onCreate?: () => void }) {
       <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl border border-primary/30 bg-primary/10 text-primary">
         <LayoutDashboard className="h-7 w-7" />
       </div>
-      <h2 className="mt-4 text-xl font-semibold tracking-tight">Nenhum dashboard disponivel</h2>
+      <h2 className="mt-4 text-xl font-semibold tracking-tight">Nenhum dashboard disponível</h2>
       <p className="mt-2 text-sm text-muted-foreground">
         Crie um dashboard para publicar a visao operacional do sistema.
       </p>

@@ -166,12 +166,12 @@ function toUserOption(user: {
     user.name ||
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.username ||
-    "Usuario";
+    "Usuário";
 
   return {
     value: user.id,
     label,
-    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuario disponivel",
+    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuário disponível",
     keywords: [user.email || "", user.username || "", user.job_title || "", user.specialty || ""],
   };
 }
@@ -191,7 +191,7 @@ function toUserSelectOption(user: {
       [user.first_name, user.last_name].filter(Boolean).join(" ") ||
       user.username ||
       user.email ||
-      "Usuario",
+      "Usuário",
   };
 }
 
@@ -589,7 +589,7 @@ export function TicketForm({
     setFormErrors({});
 
     if (!data.organization || !data.requesterUser) {
-      toast.error("Preencha organizacao atendida e solicitante.");
+      toast.error("Preencha organização atendida e solicitante.");
       return;
     }
 
@@ -625,10 +625,10 @@ export function TicketForm({
 
       <div className="space-y-5 lg:col-span-2">
         <FormSection
-          title="Dados da solicitacao"
-          description="Informacoes basicas do chamado, da organizacao atendida e dos envolvidos."
+          title="Dados da solicitação"
+          description="Informações básicas do chamado, da organização atendida e dos envolvidos."
         >
-          <Field label="Titulo" required>
+          <Field label="Título" required>
             <Input
               value={data.title}
               onChange={(event) => set("title", event.target.value)}
@@ -641,7 +641,7 @@ export function TicketForm({
             )}
           </Field>
           <Field
-            label="Descricao"
+            label="Descrição"
             required
             hint="Descreva o contexto, o impacto e o comportamento esperado."
           >
@@ -658,21 +658,21 @@ export function TicketForm({
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
-              label="Organizacao atendida"
+              label="Organização atendida"
               required
-              hint="Selecione a organizacao, cliente, setor ou area atendida."
+              hint="Selecione a organização, cliente, setor ou área atendida."
             >
               <Selectable
                 value={data.organization}
                 onChange={(value) => set("organization", value)}
                 options={organizationOptions}
-                placeholder="Selecionar organizacao"
+                placeholder="Selecionar organização"
               />
             </Field>
             <Field
               label="Solicitante"
               required
-              hint="Selecione o usuario que abriu ou solicitou a demanda."
+              hint="Selecione o usuário que abriu ou solicitou a demanda."
             >
               <Selectable
                 value={data.requesterUser}
@@ -682,19 +682,19 @@ export function TicketForm({
               />
             </Field>
             <Field
-              label="Contato responsavel"
-              hint="Pessoa de referencia para duvidas, validacao e aprovacao da demanda."
+              label="Contato responsável"
+              hint="Pessoa de referência para dúvidas, validação e aprovação da demanda."
             >
               <Input
                 value={data.contactResponsibleName}
                 onChange={(event) => set("contactResponsibleName", event.target.value)}
-                placeholder="Nome do contato responsavel"
+                placeholder="Nome do contato responsável"
                 maxLength={140}
               />
             </Field>
             <Field
               label="Telefone do contato"
-              hint="Use o telefone principal para duvidas, alinhamentos e aprovacao."
+              hint="Use o telefone principal para dúvidas, alinhamentos e aprovação."
             >
               <Input
                 value={data.contactResponsiblePhone}
@@ -710,7 +710,7 @@ export function TicketForm({
               label={mode === "create" ? "Status inicial" : "Status"}
               hint={
                 mode === "edit"
-                  ? "O status segue o workflow do chamado e deve ser alterado pelas acoes de fluxo."
+                  ? "O status segue o workflow do chamado e deve ser alterado pelas ações de fluxo."
                   : undefined
               }
             >
@@ -728,8 +728,8 @@ export function TicketForm({
         </FormSection>
 
         <FormSection
-          title="Categorizacao interna"
-          description="Defina a classificacao e as regras operacionais do chamado."
+          title="Categorização interna"
+          description="Defina a classificação e as regras operacionais do chamado."
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Categoria">
@@ -773,7 +773,7 @@ export function TicketForm({
                 }))}
               />
             </Field>
-            <Field label="Urgencia">
+            <Field label="Urgência">
               <Selectable
                 value={data.urgency}
                 onChange={(value) => set("urgency", value)}
@@ -790,24 +790,24 @@ export function TicketForm({
                 placeholder="Ex.: 8h"
               />
             </Field>
-            <Field label="Exige aprovacao">
+            <Field label="Exige aprovação">
               <ToggleField
                 checked={data.approvalRequired}
                 onCheckedChange={(checked) => set("approvalRequired", checked)}
                 label={
                   selectedCategory?.approval_required
-                    ? "Categoria exige aprovacao."
-                    : "Sem aprovacao obrigatoria."
+                    ? "Categoria exige aprovação."
+                    : "Sem aprovação obrigatória."
                 }
               />
             </Field>
-            <Field label="Exige avaliacao da organizacao">
+            <Field label="Exige avaliação da organização">
               <ToggleField
                 checked={data.requiresClientValidation}
                 onCheckedChange={(checked) => set("requiresClientValidation", checked)}
                 label={
                   data.requiresClientValidation
-                    ? "Retorna para validacao da organizacao."
+                    ? "Retorna para validação da organização."
                     : "Pode ser finalizado internamente."
                 }
               />
@@ -816,11 +816,11 @@ export function TicketForm({
         </FormSection>
 
         <FormSection
-          title="Atendimento tecnico"
-          description="Equipe, responsaveis, esforco e controles internos do chamado."
+          title="Atendimento técnico"
+          description="Equipe, responsáveis, esforço e controles internos do chamado."
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Equipe responsavel">
+            <Field label="Equipe responsável">
               <Input
                 value={data.team}
                 onChange={(event) => set("team", event.target.value)}
@@ -828,14 +828,14 @@ export function TicketForm({
               />
             </Field>
             <Field
-              label="Responsavel tecnico"
-              hint="Selecione o tecnico ou responsavel interno pelo atendimento."
+              label="Responsável técnico"
+              hint="Selecione o técnico ou responsável interno pelo atendimento."
             >
               <Selectable
                 value={data.responsibleTechnician}
                 onChange={(value) => set("responsibleTechnician", value)}
                 options={technicianSelectOptions}
-                placeholder="Selecionar responsavel tecnico"
+                placeholder="Selecionar responsável técnico"
                 allowEmpty
               />
             </Field>
@@ -852,24 +852,24 @@ export function TicketForm({
 
           <div className="space-y-3">
             <div>
-              <div className="text-xs font-medium text-muted-foreground">Tecnicos envolvidos</div>
+              <div className="text-xs font-medium text-muted-foreground">Técnicos envolvidos</div>
               <p className="text-[11px] text-muted-foreground">
-                Use multiplos tecnicos quando o atendimento exigir colaboracao.
+                Use múltiplos técnicos quando o atendimento exigir colaboração.
               </p>
             </div>
             <UserPickerField
               options={technicianOptions}
               selected={data.tech}
               onChange={(selected) => set("tech", selected)}
-              placeholder="Adicionar tecnico..."
-              emptySelectedText="Nenhum tecnico envolvido ainda."
+              placeholder="Adicionar técnico..."
+              emptySelectedText="Nenhum técnico envolvido ainda."
             />
           </div>
         </FormSection>
 
         <FormSection
-          title="Checklist e observacoes"
-          description="Estruture a execucao tecnica e registre o contexto interno."
+          title="Checklist e observações"
+          description="Estruture a execução técnica e registre o contexto interno."
         >
           <div className="flex gap-2">
             <Input
@@ -931,19 +931,19 @@ export function TicketForm({
               ))}
             </ul>
           )}
-          <Field label="Observacoes internas">
+          <Field label="Observações internas">
             <Textarea
               value={data.internalNotes}
               onChange={(event) => set("internalNotes", event.target.value)}
               rows={4}
-              placeholder="Use este campo para contexto tecnico, riscos e decisoes internas."
+              placeholder="Use este campo para contexto técnico, riscos e decisões internas."
             />
           </Field>
         </FormSection>
       </div>
 
       <div className="space-y-5">
-        <FormSection title="Datas e esforco">
+        <FormSection title="Datas e esforço">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Abertura">
               <Input
@@ -996,7 +996,7 @@ export function TicketForm({
                       <>
                         Nenhuma tag cadastrada ainda. Cadastre as tags em{" "}
                         <Link to="/settings" className="text-primary underline underline-offset-4">
-                          Configuracoes
+                          Configurações
                         </Link>
                         .
                       </>
@@ -1021,7 +1021,7 @@ export function TicketForm({
                           <span className="truncate text-sm font-medium">{tag.name}</span>
                         </div>
                         <div className="mt-1 truncate text-xs text-muted-foreground">
-                          {tag.description || "Tag ativa disponivel para selecao."}
+                          {tag.description || "Tag ativa disponível para seleção."}
                         </div>
                       </div>
                       <span className="rounded-md bg-primary/10 px-2 py-1 text-[11px] text-primary">
@@ -1094,7 +1094,7 @@ export function TicketForm({
           <label className="block cursor-pointer rounded-xl border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary/40">
             <Upload className="mx-auto h-5 w-5 text-muted-foreground" />
             <p className="mt-2 text-xs text-muted-foreground">
-              A interface esta pronta para anexos. A API atual pode ainda nao persistir os arquivos.
+              A interface está pronta para anexos. A API atual pode ainda não persistir os arquivos.
             </p>
             <input
               type="file"
@@ -1111,7 +1111,7 @@ export function TicketForm({
             className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Save className="h-4 w-4" />
-            {mode === "create" ? "Criar chamado" : "Salvar alteracoes"}
+            {mode === "create" ? "Criar chamado" : "Salvar alterações"}
           </Button>
           <Button
             type="button"

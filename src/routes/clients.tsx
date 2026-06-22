@@ -16,14 +16,14 @@ import type { Organization } from "@/lib/types";
 import { listOrganizations } from "@/services/clientService";
 
 export const Route = createFileRoute("/clients")({
-  head: () => ({ meta: [{ title: "Organizacoes · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Organizações · NimbusDesk" }] }),
   component: OrganizationsPage,
 });
 
 const healthClr: Record<string, string> = {
   Otimo: "bg-success/15 text-success",
   Bom: "bg-info/15 text-info",
-  Atencao: "bg-warning/15 text-warning",
+  Atenção: "bg-warning/15 text-warning",
 };
 
 function money(value?: string | number) {
@@ -53,9 +53,9 @@ function OrganizationsPage() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Organizacoes</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Organizações</h1>
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "Carregando organizacoes..." : `${organizations.length} organizacoes cadastradas`}
+              {isLoading ? "Carregando organizações..." : `${organizations.length} organizações cadastradas`}
             </p>
           </div>
           <Button
@@ -63,20 +63,20 @@ function OrganizationsPage() {
             className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Link to="/clients/new">
-              <Plus className="h-4 w-4" /> Nova organizacao
+              <Plus className="h-4 w-4" /> Nova organização
             </Link>
           </Button>
         </div>
 
         {isError ? (
           <div className="glass rounded-2xl p-4 text-sm text-destructive">
-            Nao foi possivel carregar as organizacoes.
+            Não foi possível carregar as organizações.
           </div>
         ) : null}
 
         {!isLoading && organizations.length === 0 ? (
           <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">
-            Nenhuma organizacao cadastrada.
+            Nenhuma organização cadastrada.
           </div>
         ) : null}
 
@@ -84,10 +84,10 @@ function OrganizationsPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground hover:bg-transparent">
-                <TableHead className="px-4 py-2.5">Organizacao</TableHead>
+                <TableHead className="px-4 py-2.5">Organização</TableHead>
                 <TableHead className="px-2 py-2.5">Contato</TableHead>
                 <TableHead className="px-2 py-2.5">Tipo</TableHead>
-                <TableHead className="px-2 py-2.5">Saude</TableHead>
+                <TableHead className="px-2 py-2.5">Saúde</TableHead>
                 <TableHead className="px-2 py-2.5">Chamados</TableHead>
                 <TableHead className="px-2 py-2.5">Status</TableHead>
                 <TableHead className="px-4 py-2.5 text-right">MRR</TableHead>
@@ -114,17 +114,17 @@ function OrganizationsPage() {
                           {organization.name}
                         </Link>
                         <div className="text-[11px] text-muted-foreground">
-                          {organization.sector || organization.organization_type || organization.type || "Sem classificacao"}
+                          {organization.sector || organization.organization_type || organization.type || "Sem classificação"}
                         </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="px-2 py-3 text-muted-foreground">
-                    <div>{organization.contact_name || "Nao informado"}</div>
+                    <div>{organization.contact_name || "Não informado"}</div>
                     <div className="text-[11px]">{organization.email || organization.phone || "-"}</div>
                   </TableCell>
                   <TableCell className="px-2 py-3">
-                    {organization.organization_type || organization.type || "Organizacao"}
+                    {organization.organization_type || organization.type || "Organização"}
                   </TableCell>
                   <TableCell className="px-2 py-3">
                     <span

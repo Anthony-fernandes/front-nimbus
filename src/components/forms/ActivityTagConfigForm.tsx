@@ -71,7 +71,7 @@ export function ActivityTagConfigForm({
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-[0.7fr_0.3fr]">
-        <Field label="Descricao">
+        <Field label="Descrição">
           <Textarea
             value={data.description}
             onChange={(event) => set("description", event.target.value)}
@@ -105,7 +105,7 @@ export function ActivityTagConfigForm({
         <span className="space-y-1">
           <span className="block text-sm font-medium">Tag ativa</span>
           <span className="block text-sm text-muted-foreground">
-            Tags inativas continuam aparecendo em atividades antigas, mas nao podem ser escolhidas em novos cadastros.
+            Tags inativas continuam aparecendo em atividades antigas, mas não podem ser escolhidas em novos cadastros.
           </span>
         </span>
       </label>

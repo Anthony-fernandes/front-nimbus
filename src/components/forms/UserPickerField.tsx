@@ -33,14 +33,14 @@ export function UserPickerField({
   options,
   selected,
   onChange,
-  placeholder = "Adicionar responsavel...",
-  emptySelectedText = "Nenhum responsavel adicionado ainda.",
+  placeholder = "Adicionar responsável...",
+  emptySelectedText = "Nenhum responsável adicionado ainda.",
   maxSelections,
   query,
   onQueryChange,
   dropdownStrategy = "portal",
   selectedLabel,
-  emptyAvailableText = "Nenhum usuario disponivel para adicionar.",
+  emptyAvailableText = "Nenhum usuário disponível para adicionar.",
 }: UserPickerFieldProps) {
   const [internalQuery, setInternalQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -200,7 +200,7 @@ export function UserPickerField({
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{option.label}</div>
                 <div className="truncate text-xs text-muted-foreground">
-                  {option.subtitle || "Usuario disponivel"}
+                  {option.subtitle || "Usuário disponível"}
                 </div>
               </div>
             </button>
@@ -269,7 +269,7 @@ export function UserPickerField({
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{option.label}</div>
                 <div className="truncate text-xs text-muted-foreground">
-                  {option.subtitle || "Usuario selecionado"}
+                  {option.subtitle || "Usuário selecionado"}
                 </div>
               </div>
               <button

@@ -28,7 +28,7 @@ function EditTicketPage() {
             { label: "Editar" },
           ]}
           title={`Editar ${id}`}
-          subtitle="Atualize informacoes, atribuicao e contexto. O status segue o workflow do chamado."
+          subtitle="Atualize informações, atribuicao e contexto. O status segue o workflow do chamado."
         />
         {isLoading ? (
           <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">

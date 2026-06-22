@@ -81,12 +81,12 @@ function toUserOption(user: {
     user.name
     || [user.first_name, user.last_name].filter(Boolean).join(" ")
     || user.username
-    || "Usuario";
+    || "Usuário";
 
   return {
     value: user.id,
     label,
-    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuario disponivel",
+    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuário disponível",
     keywords: [user.email || "", user.username || "", user.job_title || "", user.specialty || ""],
   };
 }
@@ -328,7 +328,7 @@ export function ActivityForm({
           title="Dados da atividade"
           description="Cadastre a demanda base da atividade. O planejamento detalhado acontece depois, na sprint."
         >
-          <Field label="Titulo" required>
+          <Field label="Título" required>
             <Input
               value={data.title}
               onChange={(event) => set("title", event.target.value)}
@@ -341,7 +341,7 @@ export function ActivityForm({
             )}
           </Field>
 
-          <Field label="Descricao" hint="Descreva o objetivo, escopo e criterios da atividade.">
+          <Field label="Descrição" hint="Descreva o objetivo, escopo e criterios da atividade.">
             <Textarea
               value={data.description}
               onChange={(event) => set("description", event.target.value)}
@@ -389,7 +389,7 @@ export function ActivityForm({
 
         <FormSection
           title="Origem e vinculos"
-          description="Associe a atividade ao projeto, ao chamado de origem e ao responsavel sugerido."
+          description="Associe a atividade ao projeto, ao chamado de origem e ao responsável sugerido."
         >
           {duplicateWarningMessage ? (
             <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
@@ -443,13 +443,13 @@ export function ActivityForm({
             </Field>
           </div>
 
-          <Field label="Responsavel sugerido" hint="Opcional. O responsavel real pode ser ajustado depois no planejamento da sprint.">
+          <Field label="Responsável sugerido" hint="Opcional. O responsável real pode ser ajustado depois no planejamento da sprint.">
             <UserPickerField
               options={userOptions}
               selected={data.assignee ? [data.assignee] : []}
               onChange={(selected) => set("assignee", selected[0] || "")}
-              placeholder="Adicionar responsavel sugerido..."
-              emptySelectedText="Nenhum responsavel sugerido."
+              placeholder="Adicionar responsável sugerido..."
+              emptySelectedText="Nenhum responsável sugerido."
               maxSelections={1}
             />
           </Field>
@@ -474,7 +474,7 @@ export function ActivityForm({
               <span className="space-y-1 text-sm">
                 <span className="block font-medium">Manter vinculo com o chamado</span>
                 <span className="block text-muted-foreground">
-                  Ao salvar, a atividade continua vinculada ao chamado e o historico do ticket e atualizado.
+                  Ao salvar, a atividade continua vinculada ao chamado e o histórico do ticket e atualizado.
                 </span>
               </span>
             </label>
@@ -518,7 +518,7 @@ export function ActivityForm({
 
         <FormSection
           title="Tags da atividade"
-          description="Selecione apenas tags pre-cadastradas nas configuracoes. Nao e permitido criar tag livre nesta tela."
+          description="Selecione apenas tags pre-cadastradas nas configurações. Nao e permitido criar tag livre nesta tela."
         >
           <Field
             label="Selecionar tags"
@@ -541,7 +541,7 @@ export function ActivityForm({
                       <>
                         Nenhuma tag cadastrada ainda. Cadastre as tags em{" "}
                         <Link to="/settings" className="text-primary underline underline-offset-4">
-                          Configuracoes
+                          Configurações
                         </Link>
                         .
                       </>
@@ -566,7 +566,7 @@ export function ActivityForm({
                           <span className="truncate text-sm font-medium">{tag.name}</span>
                         </div>
                         <div className="mt-1 truncate text-xs text-muted-foreground">
-                          {tag.description || "Tag ativa disponivel para selecao."}
+                          {tag.description || "Tag ativa disponível para selecao."}
                         </div>
                       </div>
                       <span className="rounded-md bg-primary/10 px-2 py-1 text-[11px] text-primary">
@@ -637,7 +637,7 @@ export function ActivityForm({
             className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Save className="h-4 w-4" />
-            {mode === "create" ? "Criar atividade" : "Salvar alteracoes"}
+            {mode === "create" ? "Criar atividade" : "Salvar alterações"}
           </Button>
           <Button
             type="button"

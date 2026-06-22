@@ -64,7 +64,7 @@ import {
 } from "@/services/customFieldService";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Configuracoes - Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Configurações - Nimbus" }] }),
   component: SettingsPage,
 });
 
@@ -160,7 +160,7 @@ function SettingsPage() {
 
   const handleSubmit = async (data: TicketStatusConfigFormData) => {
     if (!canManageWorkflow) {
-      toast.error("Seu perfil nao pode alterar configuracoes de chamados.");
+      toast.error("Seu perfil nao pode alterar configurações de chamados.");
       return;
     }
 
@@ -198,7 +198,7 @@ function SettingsPage() {
 
   const handleTagSubmit = async (data: ActivityTagConfigFormData) => {
     if (!canManageWorkflow) {
-      toast.error("Seu perfil nao pode alterar configuracoes.");
+      toast.error("Seu perfil nao pode alterar configurações.");
       return;
     }
 
@@ -233,7 +233,7 @@ function SettingsPage() {
     }
 
     if (status.system) {
-      toast.error("Os status padrao do sistema nao podem ser removidos.");
+      toast.error("Os status padrão do sistema nao podem ser removidos.");
       return;
     }
 
@@ -271,8 +271,8 @@ function SettingsPage() {
     <AppShell>
       <div className="max-w-7xl space-y-5">
         <PageHeader
-          crumbs={[{ label: "Workspace", to: "/" }, { label: "Configuracoes" }]}
-          title="Configuracoes do sistema"
+          crumbs={[{ label: "Workspace", to: "/" }, { label: "Configurações" }]}
+          title="Configurações do sistema"
           subtitle="Controle o workflow dos chamados, tags de atividades e dados da empresa."
           actions={
             activeTab === "workflow" && canManageWorkflow ? (
@@ -507,7 +507,7 @@ function SettingsPage() {
             icon={Flag}
             label="Status finais"
             value={String(finalStatuses.length)}
-            description="Encerram o chamado e travam novas acoes."
+            description="Encerram o chamado e travam novas ações."
           />
           <SummaryCard
             icon={Tags}
@@ -522,7 +522,7 @@ function SettingsPage() {
             <div className="border-b border-border px-4 py-3">
               <h2 className="font-semibold">Status de chamados</h2>
               <p className="text-xs text-muted-foreground">
-                Os status padrao ficam protegidos contra exclusao e os customizados podem ampliar o workflow.
+                Os status padrão ficam protegidos contra exclusao e os customizados podem ampliar o workflow.
               </p>
             </div>
 
@@ -531,12 +531,12 @@ function SettingsPage() {
                 <thead>
                   <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
                     <th className="px-4 py-2.5 text-left font-medium">Status</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Codigo</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Código</th>
                     <th className="px-2 py-2.5 text-left font-medium">SLA</th>
                     <th className="px-2 py-2.5 text-left font-medium">Retomar</th>
                     <th className="px-2 py-2.5 text-left font-medium">Final</th>
                     <th className="px-2 py-2.5 text-left font-medium">Ativo</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Acoes</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -559,7 +559,7 @@ function SettingsPage() {
                               <span className="font-medium">{status.name}</span>
                               {status.system ? (
                                 <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                                  Padrao
+                                  Padrão
                                 </span>
                               ) : (
                                 <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary">
@@ -568,7 +568,7 @@ function SettingsPage() {
                               )}
                             </div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {status.description || "Sem descricao cadastrada."}
+                              {status.description || "Sem descrição cadastrada."}
                             </div>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {(status.next_statuses || []).slice(0, 3).map((nextStatus) => (
@@ -643,7 +643,7 @@ function SettingsPage() {
                 <p className="text-xs text-muted-foreground">
                   {canManageWorkflow
                     ? "Use este formulario para manter o fluxo centralizado e previsivel."
-                    : "Seu perfil tem acesso apenas de leitura a essa configuracao."}
+                    : "Seu perfil tem acesso apenas de leitura a essa configuração."}
                 </p>
               </div>
 
@@ -662,8 +662,8 @@ function SettingsPage() {
               <div className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <p>Use status customizados para pausas reais como "Aguardando fornecedor".</p>
                 <p>Marque "Permite retomar atendimento" quando o status interromper o trabalho tecnico.</p>
-                <p>Status finais bloqueiam novas acoes de fluxo e mantem apenas consulta do chamado.</p>
-                <p>Os status padrao seguem protegidos para evitar quebra do processo base do Nimbus.</p>
+                <p>Status finais bloqueiam novas ações de fluxo e mantem apenas consulta do chamado.</p>
+                <p>Os status padrão seguem protegidos para evitar quebra do processo base do Nimbus.</p>
               </div>
             </div>
           </div>
@@ -674,7 +674,7 @@ function SettingsPage() {
             <div className="border-b border-border px-4 py-3">
               <h2 className="font-semibold">Tags de atividades</h2>
               <p className="text-xs text-muted-foreground">
-                As tags sao pre-cadastradas aqui e apenas selecionadas na criacao ou edicao das atividades.
+                As tags sao pre-cadastradas aqui e apenas selecionadas na criação ou edição das atividades.
               </p>
             </div>
 
@@ -685,7 +685,7 @@ function SettingsPage() {
                     <th className="px-4 py-2.5 text-left font-medium">Tag</th>
                     <th className="px-2 py-2.5 text-left font-medium">Status</th>
                     <th className="px-2 py-2.5 text-left font-medium">Uso</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Acoes</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -706,7 +706,7 @@ function SettingsPage() {
                           <div>
                             <div className="font-medium">{tag.name}</div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {tag.description || "Sem descricao cadastrada."}
+                              {tag.description || "Sem descrição cadastrada."}
                             </div>
                           </div>
                         </div>
@@ -756,7 +756,7 @@ function SettingsPage() {
                   {selectedTag ? `Editar ${selectedTag.name}` : "Nova tag"}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Mantenha um catalogo limpo de tags para facilitar filtros, backlog e organizacao das atividades.
+                  Mantenha um catalogo limpo de tags para facilitar filtros, backlog e organização das atividades.
                 </p>
               </div>
 
@@ -773,7 +773,7 @@ function SettingsPage() {
               <h3 className="text-sm font-semibold">Regras das tags</h3>
               <div className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <p>Atividades novas selecionam apenas tags ativas cadastradas nesta tela.</p>
-                <p>Tags inativas continuam aparecendo em atividades antigas para preservar o historico.</p>
+                <p>Tags inativas continuam aparecendo em atividades antigas para preservar o histórico.</p>
                 <p>Tags em uso nao podem ser removidas, evitando quebra nos vinculos ja existentes.</p>
               </div>
             </div>
@@ -825,7 +825,7 @@ function MfaSection() {
       setSetupCode("");
       setSetupOpen(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar configuracao MFA.");
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar configuração MFA.");
     } finally {
       setLoadingSetup(false);
     }
@@ -841,7 +841,7 @@ function MfaSection() {
       setSetupCode("");
       await queryClient.invalidateQueries({ queryKey: ["mfa-status"] });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Codigo invalido. Tente novamente.");
+      toast.error(error instanceof Error ? error.message : "Código invalido. Tente novamente.");
     } finally {
       setConfirming(false);
     }
@@ -856,7 +856,7 @@ function MfaSection() {
       setDisableCode("");
       await queryClient.invalidateQueries({ queryKey: ["mfa-status"] });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Codigo invalido. Tente novamente.");
+      toast.error(error instanceof Error ? error.message : "Código invalido. Tente novamente.");
     } finally {
       setDisabling(false);
     }
@@ -919,7 +919,7 @@ function MfaSection() {
           <DialogHeader>
             <DialogTitle>Ativar autenticacao em dois fatores</DialogTitle>
             <DialogDescription>
-              Escaneie o QR code ou insira o segredo manualmente no seu aplicativo autenticador, depois confirme com o codigo gerado.
+              Escaneie o QR code ou insira o segredo manualmente no seu aplicativo autenticador, depois confirme com o código gerado.
             </DialogDescription>
           </DialogHeader>
 
@@ -952,7 +952,7 @@ function MfaSection() {
               <div>
                 <label className="block">
                   <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                    Codigo de verificacao (6 digitos)
+                    Código de verificacao (6 digitos)
                   </span>
                   <input
                     autoFocus
@@ -995,14 +995,14 @@ function MfaSection() {
           <DialogHeader>
             <DialogTitle>Desativar autenticacao em dois fatores</DialogTitle>
             <DialogDescription>
-              Para confirmar, insira o codigo atual do seu aplicativo autenticador.
+              Para confirmar, insira o código atual do seu aplicativo autenticador.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-2">
             <label className="block">
               <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                Codigo de verificacao (6 digitos)
+                Código de verificacao (6 digitos)
               </span>
               <input
                 autoFocus

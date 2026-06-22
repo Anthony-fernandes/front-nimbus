@@ -41,12 +41,12 @@ function toUserOption(user: User): UserPickerOption {
     || [user.first_name, user.last_name].filter(Boolean).join(" ")
     || user.username
     || user.email
-    || "Usuario";
+    || "Usuário";
 
   return {
     value: user.id,
     label,
-    subtitle: user.job_title || user.specialty || user.email || "Colaborador disponivel",
+    subtitle: user.job_title || user.specialty || user.email || "Colaborador disponível",
     keywords: [user.username || "", user.email || "", user.job_title || "", user.specialty || ""],
   };
 }
@@ -161,14 +161,14 @@ export function ActivityTimeEntryForm({
       </Field>
 
       <Field
-        label="Descricao do trabalho realizado"
+        label="Descrição do trabalho realizado"
         hint="Explique resumidamente o que foi executado neste apontamento."
       >
         <Textarea
           value={data.workDescription}
           onChange={(event) => set("workDescription", event.target.value)}
           rows={5}
-          placeholder="Ex.: configuracao do workflow, testes e ajustes finais."
+          placeholder="Ex.: configuração do workflow, testes e ajustes finais."
         />
       </Field>
 

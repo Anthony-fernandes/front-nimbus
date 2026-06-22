@@ -88,12 +88,12 @@ function toUserOption(user: {
     user.name ||
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.username ||
-    "Usuario";
+    "Usuário";
 
   return {
     value: user.id,
     label,
-    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuario da equipe",
+    subtitle: user.job_title || user.specialty || user.email || user.username || "Usuário da equipe",
     keywords: [user.email || "", user.username || "", user.job_title || "", user.specialty || ""],
   };
 }
@@ -191,7 +191,7 @@ export function ProjectForm({
     setFormErrors({});
 
     if (!data.organization) {
-      toast.error("Preencha organizacao atendida");
+      toast.error("Preencha organização atendida");
       return;
     }
 
@@ -208,8 +208,8 @@ export function ProjectForm({
     <form onSubmit={submit} className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
         <FormSection
-          title="Informacoes do projeto"
-          description="Escopo principal, organizacao atendida e lideranca interna da entrega."
+          title="Informações do projeto"
+          description="Escopo principal, organização atendida e lideranca interna da entrega."
         >
           <Field label="Nome do projeto" required>
             <Input
@@ -221,7 +221,7 @@ export function ProjectForm({
               <p className="mt-1 text-xs text-destructive">{formErrors.name}</p>
             )}
           </Field>
-          <Field label="Descricao">
+          <Field label="Descrição">
             <Textarea
               value={data.description}
               onChange={(event) => set("description", event.target.value)}
@@ -230,7 +230,7 @@ export function ProjectForm({
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
-              label="Organizacao atendida"
+              label="Organização atendida"
               required
               hint="Selecione a empresa, cliente, setor ou area para quem o projeto sera entregue."
             >
@@ -238,12 +238,12 @@ export function ProjectForm({
                 value={data.organization}
                 onChange={(value) => set("organization", value)}
                 options={organizationOptions}
-                placeholder="Selecionar organizacao"
+                placeholder="Selecionar organização"
               />
             </Field>
             <Field
               label="Contato principal"
-              hint="Pessoa da organizacao que acompanha escopo, duvidas e validacoes do projeto."
+              hint="Pessoa da organização que acompanha escopo, duvidas e validações do projeto."
             >
               <UserPickerField
                 options={organizationUserOptions}
@@ -256,7 +256,7 @@ export function ProjectForm({
             </Field>
             <Field
               label="Lider do projeto"
-              hint="Selecione a pessoa responsavel por conduzir o projeto."
+              hint="Selecione a pessoa responsável por conduzir o projeto."
             >
               <UserPickerField
                 options={internalUserOptions}
@@ -301,7 +301,7 @@ export function ProjectForm({
 
         <FormSection title="Cronograma">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Data de inicio">
+            <Field label="Data de início">
               <Input
                 type="date"
                 value={data.startAt}
@@ -509,7 +509,7 @@ export function ProjectForm({
             className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
           >
             <Save className="h-4 w-4" />
-            {mode === "create" ? "Criar projeto" : "Salvar alteracoes"}
+            {mode === "create" ? "Criar projeto" : "Salvar alterações"}
           </Button>
           <Button
             type="button"

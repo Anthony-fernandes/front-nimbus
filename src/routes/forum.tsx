@@ -43,7 +43,7 @@ function formatDate(value?: string | null) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-type SortKey = "recentes" | "respostas" | "visualizacoes";
+type SortKey = "recentes" | "respostas" | "visualizações";
 
 function ForumPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -97,7 +97,7 @@ function ForumPage() {
   // Sort
   const topics = [...filtered].sort((a, b) => {
     if (sort === "respostas") return (b.replies_count ?? 0) - (a.replies_count ?? 0);
-    if (sort === "visualizacoes") return (b.views_count ?? 0) - (a.views_count ?? 0);
+    if (sort === "visualizações") return (b.views_count ?? 0) - (a.views_count ?? 0);
     // recentes: pinned first, then by date
     if (a.is_pinned && !b.is_pinned) return -1;
     if (!a.is_pinned && b.is_pinned) return 1;
@@ -107,7 +107,7 @@ function ForumPage() {
   const sortTabs: { key: SortKey; label: string }[] = [
     { key: "recentes", label: "Recentes" },
     { key: "respostas", label: "Mais respostas" },
-    { key: "visualizacoes", label: "Mais visualizações" },
+    { key: "visualizações", label: "Mais visualizações" },
   ];
 
   if (pathname !== "/forum") return <Outlet />;

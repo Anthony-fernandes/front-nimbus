@@ -36,7 +36,7 @@ export const Route = createFileRoute("/inbox")({
 const CATEGORIES = [
   "Todos",
   "Chamados",
-  "Aprovacoes",
+  "Aprovações",
   "Projetos",
   "Atividades",
   "Comentarios",
@@ -60,7 +60,7 @@ function formatDate(value?: string | null) {
 
 const CATEGORY_STYLE: Record<string, string> = {
   Chamados: "bg-primary/15 text-primary",
-  Aprovacoes: "bg-warning/15 text-warning",
+  Aprovações: "bg-warning/15 text-warning",
   Projetos: "bg-info/15 text-info",
   Atividades: "bg-success/15 text-success",
   Comentarios: "bg-accent/30 text-foreground",
@@ -115,7 +115,7 @@ function InboxPage() {
     mutationFn: () => markAllNotificationsRead(),
     onSuccess: () => {
       invalidate();
-      toast.success("Todas as notificacoes foram marcadas como lidas.");
+      toast.success("Todas as notificações foram marcadas como lidas.");
     },
   });
 
@@ -222,7 +222,7 @@ function InboxPage() {
         <div className="space-y-2">
           {notificationsQuery.isLoading ? (
             <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
-              Carregando notificacoes...
+              Carregando notificações...
             </div>
           ) : notifications.length === 0 ? (
             <div className="glass flex flex-col items-center gap-2 rounded-2xl p-10 text-center">

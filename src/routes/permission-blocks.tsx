@@ -29,7 +29,7 @@ import {
 } from "@/services/permissionBlockService";
 
 export const Route = createFileRoute("/permission-blocks")({
-  head: () => ({ meta: [{ title: "Blocos de permissoes · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Blocos de permissões · Nimbus" }] }),
   component: PermissionBlocksPage,
 });
 
@@ -110,7 +110,7 @@ function PermissionBlocksPage() {
     event.preventDefault();
 
     if (!canManage) {
-      toast.error("Seu perfil nao pode alterar blocos de permissoes.");
+      toast.error("Seu perfil não pode alterar blocos de permissões.");
       return;
     }
 
@@ -138,7 +138,7 @@ function PermissionBlocksPage() {
       toast.success(selectedBlock ? "Bloco atualizado." : "Bloco criado.");
       resetForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o bloco.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o bloco.");
     } finally {
       setSaving(false);
     }
@@ -146,7 +146,7 @@ function PermissionBlocksPage() {
 
   const handleDelete = async (block: PermissionBlock) => {
     if (!canManage) {
-      toast.error("Seu perfil nao pode remover blocos.");
+      toast.error("Seu perfil não pode remover blocos.");
       return;
     }
 
@@ -158,7 +158,7 @@ function PermissionBlocksPage() {
       }
       toast.success("Bloco removido.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover o bloco.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível remover o bloco.");
     }
   };
 
@@ -166,9 +166,9 @@ function PermissionBlocksPage() {
     <AppShell>
       <div className="max-w-7xl space-y-5">
         <PageHeader
-          crumbs={[{ label: "Workspace", to: "/" }, { label: "Blocos de permissoes" }]}
-          title="Blocos de permissoes"
-          subtitle="Monte conjuntos reutilizaveis de acessos para perfis como Dev, Suporte N1, Suporte N2 e Gestor Cliente."
+          crumbs={[{ label: "Workspace", to: "/" }, { label: "Blocos de permissões" }]}
+          title="Blocos de permissões"
+          subtitle="Monte conjuntos reutilizáveis de acessos para perfis como Dev, Suporte N1, Suporte N2 e Gestor Cliente."
           actions={
             canManage ? (
               <Button
@@ -186,8 +186,8 @@ function PermissionBlocksPage() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
           <SummaryCard label="Blocos ativos" value={String(blocks.filter((block) => block.active !== false).length)} />
           <SummaryCard label="Blocos totais" value={String(blocks.length)} />
-          <SummaryCard label="Permissoes mapeadas" value={String(totalPermissions)} />
-          <SummaryCard label="Modo" value={canManage ? "Edicao" : "Leitura"} />
+          <SummaryCard label="Permissões mapeadas" value={String(totalPermissions)} />
+          <SummaryCard label="Modo" value={canManage ? "Edição" : "Leitura"} />
         </div>
 
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.15fr_0.85fr]">
@@ -195,7 +195,7 @@ function PermissionBlocksPage() {
             <div className="border-b border-border px-4 py-3">
               <h2 className="font-semibold">Blocos cadastrados</h2>
               <p className="text-xs text-muted-foreground">
-                Cada bloco pode ser aplicado a usuarios tecnicos ou clientes sem mudar o tipo principal da conta.
+                Cada bloco pode ser aplicado a usuários técnicos ou clientes sem mudar o tipo principal da conta.
               </p>
             </div>
 
@@ -204,9 +204,9 @@ function PermissionBlocksPage() {
                 <thead>
                   <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
                     <th className="px-4 py-2.5 text-left font-medium">Bloco</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Permissoes</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Permissões</th>
                     <th className="px-2 py-2.5 text-left font-medium">Status</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Acoes</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -218,7 +218,7 @@ function PermissionBlocksPage() {
                       <td className="px-4 py-3">
                         <div className="font-medium">{block.name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {block.description || "Sem descricao cadastrada."}
+                          {block.description || "Sem descrição cadastrada."}
                         </div>
                       </td>
                       <td className="px-2 py-3 text-muted-foreground">
@@ -273,8 +273,8 @@ function PermissionBlocksPage() {
               title={selectedBlock ? `Editar ${selectedBlock.name}` : "Novo bloco"}
               description={
                 canManage
-                  ? "Escolha as permissoes que esse bloco vai conceder sempre que for aplicado."
-                  : "Seu perfil tem acesso apenas de leitura a essa area."
+                  ? "Escolha as permissões que esse bloco vai conceder sempre que for aplicado."
+                  : "Seu perfil tem acesso apenas de leitura a essa área."
               }
             >
               <form onSubmit={submit} className="space-y-4">
@@ -288,7 +288,7 @@ function PermissionBlocksPage() {
                     required
                   />
                 </Field>
-                <Field label="Descricao">
+                <Field label="Descrição">
                   <Textarea
                     value={formData.description}
                     onChange={(event) =>

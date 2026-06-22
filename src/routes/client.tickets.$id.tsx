@@ -140,7 +140,7 @@ function ClientTicketDetailPage() {
         />
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Stat icon={Ticket} label="Codigo" value={ticket.code || id.slice(0, 8)} />
+          <Stat icon={Ticket} label="Código" value={ticket.code || id.slice(0, 8)} />
           <Stat icon={Clock} label="Prazo" value={formatDate(ticket.due_at)} />
           <Stat icon={Clock} label="Atualizado em" value={formatDate(ticket.updated_at)} />
         </div>
@@ -148,7 +148,7 @@ function ClientTicketDetailPage() {
         {canValidate && (
           <div className="glass rounded-2xl p-5 shadow-card space-y-3">
             <div>
-              <h3 className="text-sm font-semibold">Validacao da solucao</h3>
+              <h3 className="text-sm font-semibold">Validação da solução</h3>
               <p className="text-xs text-muted-foreground">
                 A equipe marcou o chamado como pronto para avaliação. Você pode aprovar ou devolver.
               </p>
@@ -157,10 +157,10 @@ function ClientTicketDetailPage() {
               <Button
                 type="button"
                 onClick={() =>
-                  handleTransition("Finalizado", "Cliente aprovou a solucao no portal.")
+                  handleTransition("Finalizado", "Cliente aprovou a solução no portal.")
                 }
               >
-                Aprovar solucao
+                Aprovar solução
               </Button>
               <Button
                 type="button"
@@ -179,14 +179,14 @@ function ClientTicketDetailPage() {
           <div className="space-y-5 lg:col-span-2">
             <section className="glass rounded-2xl p-5 shadow-card space-y-4">
               <header className="space-y-1">
-                <h3 className="text-sm font-semibold">Dados da solicitacao</h3>
+                <h3 className="text-sm font-semibold">Dados da solicitação</h3>
                 <p className="text-xs text-muted-foreground">
                   Informações publicadas para acompanhamento do cliente.
                 </p>
               </header>
               <dl className="grid gap-3 sm:grid-cols-2">
-                <DataRow label="Tipo" value={ticket.type || "Solicitacao"} />
-                <DataRow label="Urgência informada" value={ticket.urgency || "Media"} />
+                <DataRow label="Tipo" value={ticket.type || "Solicitação"} />
+                <DataRow label="Urgência informada" value={ticket.urgency || "Média"} />
                 <DataRow label="Status" value={ticket.status || "Aberto"} />
                 <DataRow label="Atualizado em" value={formatDateTime(ticket.updated_at)} />
               </dl>
