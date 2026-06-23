@@ -40,6 +40,8 @@ function KnowledgeEditPage() {
     category: "",
     status: "DRAFT" as KnowledgeArticle["status"],
     visibility: "INTERNAL" as KnowledgeArticle["visibility"],
+    expires_at: "",
+    review_at: "",
   });
   const [initialized, setInitialized] = useState(false);
 

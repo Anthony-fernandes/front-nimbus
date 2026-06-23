@@ -9,6 +9,7 @@ import {
   FolderKanban,
   FolderOpen,
   HelpCircle,
+  LifeBuoy,
   Shield,
   ShieldCheck,
   Inbox,
@@ -113,6 +114,7 @@ function getInternalMenu(user: User | null | undefined) {
     { title: "Conhecimento", url: "/knowledge", icon: BookOpen, visible: true },
     { title: "Fórum", url: "/forum", icon: MessagesSquare, visible: true },
     { title: "Dúvidas", url: "/doubts", icon: HelpCircle, visible: true },
+    { title: "Central de Ajuda", url: "/help", icon: LifeBuoy, visible: true },
     {
       title: "Categorias",
       url: "/categories",

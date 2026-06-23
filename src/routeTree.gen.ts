@@ -30,6 +30,7 @@ import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as KnowledgeCategoriesRouteImport } from './routes/knowledge-categories'
 import { Route as ForumCategoriesRouteImport } from './routes/forum-categories'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as ForumRouteImport } from './routes/forum'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
@@ -60,6 +61,7 @@ import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as KnowledgeNewRouteImport } from './routes/knowledge.new'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
+import { Route as ForumTagsTagRouteImport } from './routes/forum.tags.$tag'
 import { Route as ForumIdRouteImport } from './routes/forum.$id'
 import { Route as DoubtsIdRouteImport } from './routes/doubts.$id'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
@@ -192,6 +194,11 @@ const ForumCategoriesRoute = ForumCategoriesRouteImport.update({
 const CategoriesRoute = CategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForumRoute = ForumRouteImport.update({
@@ -343,6 +350,11 @@ const KnowledgeIdRoute = KnowledgeIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => KnowledgeRoute,
+} as any)
+const ForumTagsTagRoute = ForumTagsTagRouteImport.update({
+  id: '/tags/$tag',
+  path: '/tags/$tag',
+  getParentRoute: () => ForumRoute,
 } as any)
 const ForumIdRoute = ForumIdRouteImport.update({
   id: '/$id',
@@ -502,6 +514,7 @@ export interface FileRoutesByFullPath {
   '/forum': typeof ForumRouteWithChildren
   '/categories': typeof CategoriesRoute
   '/forum-categories': typeof ForumCategoriesRoute
+  '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
@@ -535,6 +548,7 @@ export interface FileRoutesByFullPath {
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
+  '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
   '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
@@ -583,6 +597,7 @@ export interface FileRoutesByTo {
   '/forum': typeof ForumRouteWithChildren
   '/categories': typeof CategoriesRoute
   '/forum-categories': typeof ForumCategoriesRoute
+  '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
@@ -616,6 +631,7 @@ export interface FileRoutesByTo {
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
+  '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
   '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
@@ -665,6 +681,7 @@ export interface FileRoutesById {
   '/forum': typeof ForumRouteWithChildren
   '/categories': typeof CategoriesRoute
   '/forum-categories': typeof ForumCategoriesRoute
+  '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/knowledge': typeof KnowledgeRouteWithChildren
@@ -698,6 +715,7 @@ export interface FileRoutesById {
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
+  '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
   '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
@@ -747,6 +765,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/forum'
     | '/forum-categories'
+    | '/help'
     | '/inbox'
     | '/kanban'
     | '/knowledge'
@@ -780,6 +799,7 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/doubts/$id'
     | '/forum/$id'
+    | '/forum/tags/$tag'
     | '/knowledge/$id'
     | '/knowledge/new'
     | '/projects/$id'
@@ -827,6 +847,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/forum'
     | '/forum-categories'
+    | '/help'
     | '/inbox'
     | '/kanban'
     | '/knowledge'
@@ -860,6 +881,7 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/doubts/$id'
     | '/forum/$id'
+    | '/forum/tags/$tag'
     | '/knowledge/$id'
     | '/knowledge/new'
     | '/projects/$id'
@@ -907,6 +929,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/forum'
     | '/forum-categories'
+    | '/help'
     | '/inbox'
     | '/kanban'
     | '/knowledge'
@@ -940,6 +963,7 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/doubts/$id'
     | '/forum/$id'
+    | '/forum/tags/$tag'
     | '/knowledge/$id'
     | '/knowledge/new'
     | '/projects/$id'
@@ -989,6 +1013,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ForumRoute: typeof ForumRouteWithChildren
   ForumCategoriesRoute: typeof ForumCategoriesRoute
+  HelpRoute: typeof HelpRoute
   InboxRoute: typeof InboxRoute
   KanbanRoute: typeof KanbanRoute
   KnowledgeRoute: typeof KnowledgeRouteWithChildren
@@ -1173,6 +1198,13 @@ declare module '@tanstack/react-router' {
       path: '/forum-categories'
       fullPath: '/forum-categories'
       preLoaderRoute: typeof ForumCategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -1383,6 +1415,13 @@ declare module '@tanstack/react-router' {
       path: '/$id'
       fullPath: '/forum/$id'
       preLoaderRoute: typeof ForumIdRouteImport
+      parentRoute: typeof ForumRoute
+    }
+    '/forum/tags/$tag': {
+      id: '/tags/$tag'
+      path: '/tags/$tag'
+      fullPath: '/forum/tags/$tag'
+      preLoaderRoute: typeof ForumTagsTagRouteImport
       parentRoute: typeof ForumRoute
     }
     '/doubts/$id': {
@@ -1693,10 +1732,12 @@ const DoubtsRouteWithChildren =
 
 interface ForumRouteChildren {
   ForumIdRoute: typeof ForumIdRoute
+  ForumTagsTagRoute: typeof ForumTagsTagRoute
 }
 
 const ForumRouteChildren: ForumRouteChildren = {
   ForumIdRoute: ForumIdRoute,
+  ForumTagsTagRoute: ForumTagsTagRoute,
 }
 
 const ForumRouteWithChildren = ForumRoute._addFileChildren(ForumRouteChildren)
@@ -1883,6 +1924,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ForumRoute: ForumRouteWithChildren,
   ForumCategoriesRoute: ForumCategoriesRoute,
+  HelpRoute: HelpRoute,
   InboxRoute: InboxRoute,
   KanbanRoute: KanbanRoute,
   KnowledgeRoute: KnowledgeRouteWithChildren,

@@ -1,10 +1,18 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, BookOpen, CheckCircle2, Eye, Heart, Lock, Pencil, Pin, PinOff, Tag, ThumbsUp, Unlock,
+  ArrowLeft, BookOpen, CheckCircle2, ChevronDown, ChevronUp, Eye, Flag, Heart, Lock, Pencil, Pin, PinOff, Tag, ThumbsDown, ThumbsUp, Trash2, Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
+import hljs from "highlight.js/lib/core";
+import javascript from "highlight.js/lib/languages/javascript";
+import typescript from "highlight.js/lib/languages/typescript";
+import python from "highlight.js/lib/languages/python";
+import bash from "highlight.js/lib/languages/bash";
+import json from "highlight.js/lib/languages/json";
+import xml from "highlight.js/lib/languages/xml";
+import "highlight.js/styles/github-dark.css";
 
 import { AppShell } from "@/components/app/AppShell";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
@@ -15,24 +23,37 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { ForumReply, ForumTopic } from "@/lib/types";
+import type { ForumComment, ForumReply, ForumTopic } from "@/lib/types";
 import {
   convertForumTopicToKb,
+  createForumComment,
   createForumReply,
+  deleteForumComment,
   deleteForumReply,
   deleteForumTopic,
+  flagContent,
   getForumTopic,
+  listForumComments,
   listForumReplies,
   listKnowledgeCategories,
   lockForumTopic,
   markBestAnswer,
   pinForumTopic,
+  toggleReplyDownvote,
   toggleReplyLike,
+  toggleTopicDownvote,
   toggleTopicLike,
   updateForumReply,
   updateForumTopic,
 } from "@/services/knowledgeService";
 import { getStoredUser } from "@/services/session";
+
+hljs.registerLanguage("javascript", javascript);
+hljs.registerLanguage("typescript", typescript);
+hljs.registerLanguage("python", python);
+hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("json", json);
+hljs.registerLanguage("xml", xml);
 
 export const Route = createFileRoute("/forum/$id")({
   head: () => ({ meta: [{ title: "Tópico · Nimbus" }] }),
@@ -51,6 +72,175 @@ function formatDate(value?: string | null) {
 
 function truncate(str: string, len = 60) {
   return str.length > len ? str.slice(0, len) + "…" : str;
+}
+
+const FLAG_REASONS = [
+  { value: "spam", label: "Spam" },
+  { value: "conteudo_inadequado", label: "Conteúdo inadequado" },
+  { value: "duplicado", label: "Duplicado" },
+  { value: "outro", label: "Outro" },
+];
+
+function FlagButton({ contentType, objectId }: { contentType: string; objectId: string }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+
+  const flagMutation = useMutation({
+    mutationFn: () => flagContent(contentType, objectId, reason),
+    onSuccess: () => {
+      toast.success("Conteúdo sinalizado. Nossa equipe irá revisar.");
+      setOpen(false);
+      setReason("");
+    },
+    onError: () => toast.error("Não foi possível sinalizar o conteúdo."),
+  });
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-orange-500 transition-colors"
+        title="Sinalizar conteúdo"
+      >
+        <Flag className="h-3 w-3" />
+        Sinalizar
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Sinalizar conteúdo</DialogTitle></DialogHeader>
+          <div className="space-y-2 py-1">
+            <p className="text-sm text-muted-foreground">Selecione o motivo para sinalizar este conteúdo:</p>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger><SelectValue placeholder="Motivo" /></SelectTrigger>
+              <SelectContent>
+                {FLAG_REASONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={!reason || flagMutation.isPending}
+              onClick={() => flagMutation.mutate()}
+            >
+              {flagMutation.isPending ? "Enviando..." : "Sinalizar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function CommentsSection({
+  topicId,
+  replyId,
+  currentUserId,
+}: {
+  topicId?: string;
+  replyId?: string;
+  currentUserId?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const queryClient = useQueryClient();
+
+  const params = topicId ? { topic: topicId } : { reply: replyId };
+  const queryKey = ["forum-comments", topicId ?? "", replyId ?? ""];
+
+  const commentsQuery = useQuery({
+    queryKey,
+    queryFn: () => listForumComments(params),
+    enabled: open,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      createForumComment(topicId ? { topic: topicId, content: newComment } : { reply: replyId, content: newComment }),
+    onSuccess: () => {
+      setNewComment("");
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    onError: () => toast.error("Não foi possível adicionar o comentário."),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteForumComment(id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
+    onError: () => toast.error("Não foi possível remover o comentário."),
+  });
+
+  const comments = (commentsQuery.data ?? []) as ForumComment[];
+
+  return (
+    <div className="border-t border-border/30 pt-2 mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        Comentários {comments.length > 0 && open ? `(${comments.length})` : ""}
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-2">
+          {commentsQuery.isLoading ? (
+            <p className="text-[11px] text-muted-foreground">Carregando...</p>
+          ) : comments.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground">Nenhum comentário ainda.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {comments.map((c) => (
+                <li key={c.id} className="flex items-start gap-2 text-[11px]">
+                  <span className="font-semibold shrink-0">{c.author_name ?? "Usuário"}:</span>
+                  <span className="text-muted-foreground flex-1">{c.content}</span>
+                  <span className="text-muted-foreground/50 shrink-0">{formatDate(c.created_at)}</span>
+                  {c.author === currentUserId && (
+                    <button
+                      type="button"
+                      onClick={() => deleteMutation.mutate(c.id)}
+                      className="shrink-0 text-muted-foreground/40 hover:text-destructive transition-colors"
+                      title="Excluir comentário"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex gap-2 mt-2">
+            <Input
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Adicionar comentário..."
+              className="h-7 text-xs"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && newComment.trim()) {
+                  e.preventDefault();
+                  createMutation.mutate();
+                }
+              }}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs px-2"
+              disabled={!newComment.trim() || createMutation.isPending}
+              onClick={() => createMutation.mutate()}
+            >
+              Enviar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function EditTopicDialog({
@@ -125,6 +315,7 @@ function ForumTopicPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = getStoredUser();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const [replyContent, setReplyContent] = useState("");
   const [editTopicOpen, setEditTopicOpen] = useState(false);
@@ -135,6 +326,15 @@ function ForumTopicPage() {
   const topicQuery = useQuery({ queryKey: ["forum-topic", id], queryFn: () => getForumTopic(id) });
   const repliesQuery = useQuery({ queryKey: ["forum-replies", id], queryFn: () => listForumReplies(id) });
   const categoriesQuery = useQuery({ queryKey: ["knowledge-categories"], queryFn: listKnowledgeCategories, enabled: convertDialogOpen });
+
+  // Apply syntax highlighting after content renders
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.querySelectorAll("pre code").forEach((block) => {
+        hljs.highlightElement(block as HTMLElement);
+      });
+    }
+  });
 
   function invalidate() {
     void queryClient.invalidateQueries({ queryKey: ["forum-topic", id] });
@@ -156,6 +356,16 @@ function ForumTopicPage() {
   const topicLikeMutation = useMutation({
     mutationFn: () => toggleTopicLike(id),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["forum-topic", id] }),
+  });
+
+  const topicDownvoteMutation = useMutation({
+    mutationFn: () => toggleTopicDownvote(id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["forum-topic", id] }),
+  });
+
+  const replyDownvoteMutation = useMutation({
+    mutationFn: (replyId: string) => toggleReplyDownvote(replyId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["forum-replies", id] }),
   });
 
   const bestAnswerMutation = useMutation({
@@ -223,7 +433,7 @@ function ForumTopicPage() {
 
   return (
     <AppShell>
-      <div className="max-w-3xl space-y-5">
+      <div className="max-w-3xl space-y-5" ref={contentRef}>
         <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Link to="/forum" className="flex items-center gap-1 hover:text-foreground transition-colors">
             <ArrowLeft className="h-3 w-3" /> Fórum
@@ -252,6 +462,14 @@ function ForumTopicPage() {
                     <span className="text-xs font-bold leading-none">{topic.likes_count ?? 0}</span>
                     <span className="text-[9px]">votos</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => topicDownvoteMutation.mutate()}
+                    className="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                  >
+                    <ThumbsDown className="h-4 w-4" />
+                    <span className="text-xs font-bold leading-none">{(topic as unknown as { downvotes_count?: number }).downvotes_count ?? 0}</span>
+                  </button>
                   <div className="flex flex-col items-center gap-0.5">
                     <Eye className="h-4 w-4 text-muted-foreground" />
                     <span className="text-xs font-bold leading-none">{topic.views_count ?? 0}</span>
@@ -271,9 +489,14 @@ function ForumTopicPage() {
                   {(topic.tags ?? []).length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {topic.tags.map((tag) => (
-                        <span key={tag} className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                        <Link
+                          key={tag}
+                          to="/forum/tags/$tag"
+                          params={{ tag }}
+                          className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors"
+                        >
                           <Tag className="h-2.5 w-2.5" />{tag}
-                        </span>
+                        </Link>
                       ))}
                     </div>
                   )}
@@ -305,11 +528,15 @@ function ForumTopicPage() {
                         </>
                       )}
                     </div>
-                    <div className="rounded-xl bg-primary/5 border border-primary/10 px-3 py-2 text-xs text-right space-y-0.5">
-                      <div className="text-muted-foreground">publicado em {formatDate(topic.created_at)}</div>
-                      {topic.author_name && <div className="font-semibold">{topic.author_name}</div>}
+                    <div className="flex items-center gap-3">
+                      <FlagButton contentType="forum_topic" objectId={topic.id} />
+                      <div className="rounded-xl bg-primary/5 border border-primary/10 px-3 py-2 text-xs text-right space-y-0.5">
+                        <div className="text-muted-foreground">publicado em {formatDate(topic.created_at)}</div>
+                        {topic.author_name && <div className="font-semibold">{topic.author_name}</div>}
+                      </div>
                     </div>
                   </div>
+                  <CommentsSection topicId={id} currentUserId={user?.id} />
                 </div>
               </div>
             </div>
@@ -355,6 +582,14 @@ function ForumTopicPage() {
                             <Heart className="h-4 w-4" />
                             <span className="text-[11px] font-medium">{reply.likes_count}</span>
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => replyDownvoteMutation.mutate(reply.id)}
+                            className="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                          >
+                            <ThumbsDown className="h-4 w-4" />
+                            <span className="text-[11px] font-medium">{(reply as unknown as { downvotes_count?: number }).downvotes_count ?? 0}</span>
+                          </button>
                         </div>
                         <div className="flex-1 min-w-0 p-4 space-y-3">
                           {reply.is_best_answer && (
@@ -364,7 +599,7 @@ function ForumTopicPage() {
                           )}
                           <p className="text-sm whitespace-pre-wrap leading-relaxed">{reply.content}</p>
                           <div className="flex flex-wrap items-end justify-between gap-3 pt-2 border-t border-border/50">
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 items-center">
                               {isReplyAuthor && (
                                 <>
                                   <button
@@ -381,12 +616,14 @@ function ForumTopicPage() {
                                   />
                                 </>
                               )}
+                              <FlagButton contentType="forum_reply" objectId={reply.id} />
                             </div>
                             <div className="rounded-xl bg-muted/40 border border-border/50 px-3 py-2 text-xs text-right space-y-0.5">
                               <div className="text-muted-foreground">respondido em {formatDate(reply.created_at)}</div>
                               {reply.author_name && <div className="font-semibold">{reply.author_name}</div>}
                             </div>
                           </div>
+                          <CommentsSection replyId={reply.id} currentUserId={user?.id} />
                         </div>
                       </div>
                     </div>

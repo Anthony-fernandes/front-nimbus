@@ -31,6 +31,7 @@ import {
   updateDoubtsAnswer,
   updateDoubtsQuestion,
 } from "@/services/knowledgeService";
+import { api } from "@/services/api";
 import { getStoredUser } from "@/services/session";
 
 export const Route = createFileRoute("/doubts/$id")({
@@ -126,6 +127,9 @@ function DoubtsQuestionPage() {
   const user = getStoredUser();
 
   const [answerContent, setAnswerContent] = useState("");
+  const [csatOpen, setCsatOpen] = useState(false);
+  const [csatRating, setCsatRating] = useState(0);
+  const [csatComment, setCsatComment] = useState("");
   const [editQuestionOpen, setEditQuestionOpen] = useState(false);
   const [editAnswerTarget, setEditAnswerTarget] = useState<DoubtsAnswer | null>(null);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
@@ -159,7 +163,7 @@ function DoubtsQuestionPage() {
 
   const acceptMutation = useMutation({
     mutationFn: (answerId: string) => acceptAnswer(id, answerId),
-    onSuccess: () => { toast.success("Resposta aceita."); invalidate(); },
+    onSuccess: () => { toast.success("Resposta aceita."); invalidate(); setCsatOpen(true); },
   });
 
   const updateQuestionMutation = useMutation({
@@ -429,6 +433,71 @@ function DoubtsQuestionPage() {
           saving={updateAnswerMutation.isPending}
         />
       )}
+
+      {/* CSAT modal */}
+      <Dialog open={csatOpen} onOpenChange={setCsatOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Como foi sua experiência?</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">Avalie a resposta que você recebeu.</p>
+            <div className="flex items-center justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setCsatRating(star)}
+                  className={cn(
+                    "rounded-full p-1 transition-colors",
+                    csatRating >= star ? "text-warning" : "text-muted-foreground/40 hover:text-warning/60",
+                  )}
+                  aria-label={`${star} estrela${star > 1 ? "s" : ""}`}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="csat-comment">Comentário (opcional)</Label>
+              <Textarea
+                id="csat-comment"
+                value={csatComment}
+                onChange={(e) => setCsatComment(e.target.value)}
+                placeholder="Conte-nos mais sobre sua experiência..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCsatOpen(false);
+                toast.success("Obrigado pelo feedback!");
+              }}
+            >
+              Pular
+            </Button>
+            <Button
+              disabled={csatRating === 0}
+              onClick={() => {
+                void api.post(`/communication/doubts-questions/${id}/rate/`, {
+                  rating: csatRating,
+                  comment: csatComment,
+                }).finally(() => {
+                  setCsatOpen(false);
+                  setCsatRating(0);
+                  setCsatComment("");
+                  toast.success("Obrigado pelo feedback!");
+                });
+              }}
+            >
+              Enviar avaliação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
         <DialogContent>

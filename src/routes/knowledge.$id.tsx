@@ -3,20 +3,27 @@ import { marked } from "marked";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, BookOpen, Edit, Eye, Printer, Tag, ThumbsDown, ThumbsUp,
+  ArrowLeft, BookOpen, Edit, Eye, MessageSquare, Printer, Tag, ThumbsDown, ThumbsUp,
 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { hasAnyPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import {
   getKnowledgeArticle,
   listKnowledgeArticles,
+  listKnowledgeInternalComments,
+  createKnowledgeInternalComment,
+  deleteKnowledgeInternalComment,
   publishArticle,
   rateArticle,
+  requestKnowledgeReview,
 } from "@/services/knowledgeService";
+import type { KnowledgeInternalComment } from "@/lib/types";
 import { getStoredUser } from "@/services/session";
 
 export const Route = createFileRoute("/knowledge/$id")({
@@ -37,12 +44,14 @@ const STATUS_LABELS: Record<string, string> = {
   PUBLISHED: "Publicado",
   DRAFT: "Rascunho",
   ARCHIVED: "Arquivado",
+  REVIEW: "Em Revisão",
 };
 
 const STATUS_CLASS: Record<string, string> = {
   PUBLISHED: "bg-success/15 text-success",
   DRAFT: "bg-warning/15 text-warning",
   ARCHIVED: "bg-muted text-muted-foreground",
+  REVIEW: "bg-amber-500/15 text-amber-600",
 };
 
 const VISIBILITY_LABELS: Record<string, string> = {
@@ -58,6 +67,8 @@ function KnowledgeArticlePage() {
   const user = getStoredUser();
   const isAdminOrTech = hasAnyPermission(user, ["tickets.viewAll", "tickets.viewAssigned"]);
 
+  const [newComment, setNewComment] = useState("");
+
   const articleQuery = useQuery({
     queryKey: ["knowledge-article", id],
     queryFn: () => getKnowledgeArticle(id),
@@ -69,6 +80,12 @@ function KnowledgeArticlePage() {
       listKnowledgeArticles({ category: articleQuery.data!.category, status: "PUBLISHED" }),
     enabled: !!articleQuery.data?.category,
     select: (articles) => articles.filter((a) => a.id !== id).slice(0, 5),
+  });
+
+  const internalCommentsQuery = useQuery({
+    queryKey: ["kb-internal-comments", id],
+    queryFn: () => listKnowledgeInternalComments(id),
+    enabled: isAdminOrTech,
   });
 
   const rateMutation = useMutation({
@@ -88,6 +105,33 @@ function KnowledgeArticlePage() {
     onError: () => toast.error("Não foi possível publicar o artigo."),
   });
 
+  const reviewMutation = useMutation({
+    mutationFn: () => requestKnowledgeReview(id),
+    onSuccess: () => {
+      toast.success("Revisão solicitada.");
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-article", id] });
+    },
+    onError: () => toast.error("Não foi possível solicitar revisão."),
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: (content: string) =>
+      createKnowledgeInternalComment({ article: id, content }),
+    onSuccess: () => {
+      setNewComment("");
+      void queryClient.invalidateQueries({ queryKey: ["kb-internal-comments", id] });
+    },
+    onError: () => toast.error("Não foi possível adicionar comentário."),
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: string) => deleteKnowledgeInternalComment(commentId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["kb-internal-comments", id] });
+    },
+    onError: () => toast.error("Não foi possível excluir comentário."),
+  });
+
   const article = articleQuery.data;
 
   function renderContent(content: string): string {
@@ -102,14 +146,22 @@ function KnowledgeArticlePage() {
     ? Math.round(((article?.helpful_count ?? 0) / totalRatings) * 100)
     : null;
 
+  const internalComments: KnowledgeInternalComment[] = internalCommentsQuery.data ?? [];
+
   return (
     <AppShell>
+      <style>{`
+        @media print {
+          .print-hide { display: none !important; }
+          .glass { background: white !important; border: none !important; box-shadow: none !important; }
+        }
+      `}</style>
       <div className="max-w-4xl">
         <div className="grid gap-6 lg:grid-cols-[1fr_220px]">
           {/* Main column */}
           <div className="space-y-5 min-w-0">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 print-hide">
               <Link
                 to="/knowledge"
                 className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -151,7 +203,26 @@ function KnowledgeArticlePage() {
                         <p className="text-sm text-muted-foreground leading-relaxed">{article.summary}</p>
                       )}
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-2 shrink-0 print-hide">
+                      {article.status === "DRAFT" && (isAdminOrTech || article.author === user?.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => reviewMutation.mutate()}
+                          disabled={reviewMutation.isPending}
+                        >
+                          Solicitar Revisão
+                        </Button>
+                      )}
+                      {article.status === "REVIEW" && isAdminOrTech && (
+                        <Button
+                          size="sm"
+                          onClick={() => publishMutation.mutate()}
+                          disabled={publishMutation.isPending}
+                        >
+                          Aprovar e Publicar
+                        </Button>
+                      )}
                       {article.status === "DRAFT" && isAdminOrTech && (
                         <Button size="sm" onClick={() => publishMutation.mutate()} disabled={publishMutation.isPending}>
                           Publicar
@@ -208,7 +279,7 @@ function KnowledgeArticlePage() {
                 </div>
 
                 {/* Feedback */}
-                <div className="glass rounded-2xl p-5 shadow-card">
+                <div className="glass rounded-2xl p-5 shadow-card print-hide">
                   <p className="text-sm font-medium mb-3">Este artigo foi útil?</p>
                   <div className="flex items-center gap-3">
                     <Button
@@ -227,13 +298,71 @@ function KnowledgeArticlePage() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Internal comments (admin/tech only) */}
+                {isAdminOrTech && (
+                  <div className="glass rounded-2xl p-5 shadow-card bg-yellow-500/5 border-yellow-500/20 space-y-3 print-hide">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Comentários internos da equipe (não visíveis ao público)
+                    </p>
+
+                    {internalCommentsQuery.isLoading ? (
+                      <p className="text-xs text-muted-foreground">Carregando...</p>
+                    ) : internalComments.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Nenhum comentário interno.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {internalComments.map((comment) => (
+                          <li key={comment.id} className="flex items-start gap-2 rounded-lg bg-muted/40 p-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-medium">{comment.author_name ?? "—"}</span>
+                                <span className="text-[10px] text-muted-foreground">{formatDate(comment.created_at)}</span>
+                              </div>
+                              <p className="text-xs text-foreground whitespace-pre-wrap">{comment.content}</p>
+                            </div>
+                            {comment.author === user?.id && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-1.5 text-xs text-destructive hover:text-destructive shrink-0"
+                                onClick={() => deleteCommentMutation.mutate(comment.id)}
+                                disabled={deleteCommentMutation.isPending}
+                              >
+                                Excluir
+                              </Button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <div className="space-y-2 pt-1">
+                      <Textarea
+                        rows={2}
+                        placeholder="Adicionar comentário interno..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="text-xs resize-none"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => addCommentMutation.mutate(newComment)}
+                        disabled={addCommentMutation.isPending || !newComment.trim()}
+                      >
+                        Comentar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Sidebar: related articles */}
           {article && (
-            <aside className="space-y-4 hidden lg:block">
+            <aside className="space-y-4 hidden lg:block print-hide">
               <div className="glass rounded-2xl p-4 shadow-card sticky top-6">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                   Artigos relacionados

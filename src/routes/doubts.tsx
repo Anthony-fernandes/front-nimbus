@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, HelpCircle, MessageSquare, Plus, Search, Tag, ThumbsUp } from "lucide-react";
+import { CheckCircle2, HelpCircle, MessageSquare, Plus, Search, Star, Tag, ThumbsUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -126,6 +126,13 @@ function DoubtsPage() {
 
   const kbSuggestions = (kbSuggestionsQuery.data ?? []).slice(0, 3);
 
+  const faqQuery = useQuery({
+    queryKey: ["doubts-faq"],
+    queryFn: () => listDoubtsQuestions({ status: "ANSWERED", ordering: "-views_count" }),
+  });
+  const faqQuestions = (faqQuery.data ?? []).slice(0, 4);
+  const showFaq = !search.trim() && !selectedTag;
+
   return (
     <AppShell>
       <div className="max-w-5xl space-y-5">
@@ -189,6 +196,32 @@ function DoubtsPage() {
                 ×
               </button>
             </span>
+          </div>
+        )}
+
+        {/* FAQ section */}
+        {showFaq && faqQuestions.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 text-warning" />
+              <h2 className="text-sm font-semibold">Perguntas frequentes</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {faqQuestions.map((q) => (
+                <Link
+                  key={q.id}
+                  to="/doubts/$id"
+                  params={{ id: q.id }}
+                  className="glass flex flex-col gap-1 rounded-xl p-3 hover:border-primary/40 transition-colors"
+                >
+                  <span className="text-sm font-medium line-clamp-2 hover:text-primary transition-colors">{q.title}</span>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{q.answers_count} respostas</span>
+                    <span>{q.views_count} visitas</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 

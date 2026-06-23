@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, Lock, MessagesSquare, Pin, Plus, Search, Tag, ThumbsUp, X } from "lucide-react";
 import { toast } from "sonner";
@@ -55,6 +55,7 @@ interface KbSuggestion {
 function ForumPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ title: "", content: "", category: "", tags: "" });
@@ -362,6 +363,7 @@ function ForumPage() {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 setSelectedTag(tag === selectedTag ? null : tag);
+                                void navigate({ to: "/forum/tags/$tag", params: { tag } });
                               }}
                               className="rounded-md bg-secondary/20 px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground hover:bg-secondary/40 transition-colors"
                             >
