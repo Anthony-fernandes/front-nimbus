@@ -102,6 +102,11 @@ function DoubtsPage() {
     onError: () => toast.error("Não foi possível enviar a pergunta."),
   });
 
+  const faqQuery = useQuery({
+    queryKey: ["doubts-faq"],
+    queryFn: () => listDoubtsQuestions({ status: "ANSWERED", ordering: "-views_count" }),
+  });
+
   if (pathname !== "/doubts") return <Outlet />;
 
   const rawQuestions = questionsQuery.data ?? [];
@@ -126,10 +131,6 @@ function DoubtsPage() {
 
   const kbSuggestions = (kbSuggestionsQuery.data ?? []).slice(0, 3);
 
-  const faqQuery = useQuery({
-    queryKey: ["doubts-faq"],
-    queryFn: () => listDoubtsQuestions({ status: "ANSWERED", ordering: "-views_count" }),
-  });
   const faqQuestions = (faqQuery.data ?? []).slice(0, 4);
   const showFaq = !search.trim() && !selectedTag;
 
