@@ -1,17 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, HelpCircle, LifeBuoy, MessageSquare, Search, Ticket } from "lucide-react";
+import { BookOpen, HelpCircle, MessageSquare, Search, LifeBuoy, ExternalLink } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader } from "@/components/app/PageHeader";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  listDoubtsQuestions,
-  listForumTopics,
-  listKnowledgeArticles,
-} from "@/services/knowledgeService";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { listKnowledgeArticles, listForumTopics, listDoubtsQuestions } from "@/services/knowledgeService";
 
 export const Route = createFileRoute("/help")({
   head: () => ({ meta: [{ title: "Central de Ajuda · Nimbus" }] }),
@@ -19,58 +16,52 @@ export const Route = createFileRoute("/help")({
 });
 
 function HelpPage() {
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setDebouncedSearch(search.length >= 3 ? search : "");
-    }, 300);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [search]);
+    const t = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
-  const isSearching = debouncedSearch.length >= 3;
+  const hasQuery = debouncedQuery.trim().length >= 3;
 
   const kbQuery = useQuery({
-    queryKey: ["help-kb", debouncedSearch],
-    queryFn: () => listKnowledgeArticles({ search: debouncedSearch, status: "PUBLISHED" }),
-    enabled: isSearching,
+    queryKey: ["help-kb", debouncedQuery],
+    queryFn: () => listKnowledgeArticles({ search: debouncedQuery, status: "PUBLISHED" }),
+    enabled: hasQuery,
   });
 
   const forumQuery = useQuery({
-    queryKey: ["help-forum", debouncedSearch],
-    queryFn: () => listForumTopics({ search: debouncedSearch }),
-    enabled: isSearching,
+    queryKey: ["help-forum", debouncedQuery],
+    queryFn: () => listForumTopics({ search: debouncedQuery }),
+    enabled: hasQuery,
   });
 
   const doubtsQuery = useQuery({
-    queryKey: ["help-doubts", debouncedSearch],
-    queryFn: () => listDoubtsQuestions({ search: debouncedSearch }),
-    enabled: isSearching,
+    queryKey: ["help-doubts", debouncedQuery],
+    queryFn: () => listDoubtsQuestions({ search: debouncedQuery }),
+    enabled: hasQuery,
   });
 
-  const popularKbQuery = useQuery({
-    queryKey: ["help-popular-kb"],
+  const popularQuery = useQuery({
+    queryKey: ["help-popular"],
     queryFn: () => listKnowledgeArticles({ status: "PUBLISHED", ordering: "-views_count" }),
-    enabled: !isSearching,
+    enabled: !hasQuery,
+    select: (data) => data.slice(0, 6),
   });
 
-  const popularArticles = (popularKbQuery.data ?? []).slice(0, 6);
-
-  const kbResults = (kbQuery.data ?? []).slice(0, 5);
-  const forumResults = (forumQuery.data ?? []).slice(0, 5);
-  const doubtsResults = (doubtsQuery.data ?? []).slice(0, 5);
+  const kbResults = kbQuery.data ?? [];
+  const forumResults = forumQuery.data ?? [];
+  const doubtsResults = doubtsQuery.data ?? [];
+  const totalResults = kbResults.length + forumResults.length + doubtsResults.length;
 
   return (
     <AppShell>
-      <div className="max-w-5xl space-y-8">
+      <div className="max-w-4xl space-y-8">
         <PageHeader
           title="Central de Ajuda"
-          subtitle="Encontre respostas, artigos e suporte."
+          subtitle="Encontre respostas, artigos e documentação."
           badges={
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-glow">
               <LifeBuoy className="h-4 w-4" />
@@ -78,166 +69,136 @@ function HelpPage() {
           }
         />
 
-        {/* Hero search */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-8 text-center space-y-4">
-          <h2 className="text-2xl font-bold">Como podemos ajudar?</h2>
-          <p className="text-sm text-muted-foreground">Pesquise na base de conhecimento, fórum e central de dúvidas.</p>
-          <div className="relative max-w-md mx-auto">
+        {/* Search hero */}
+        <div className="glass rounded-2xl p-8 shadow-card text-center space-y-4">
+          <h2 className="text-lg font-semibold">Como podemos ajudar?</h2>
+          <div className="relative max-w-xl mx-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
-              className="pl-10 h-10 text-sm"
-              placeholder="Digite sua pergunta..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 h-11 text-base"
+              placeholder="Pesquisar artigos, perguntas, tópicos..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               autoFocus
             />
           </div>
+          {hasQuery && (
+            <p className="text-xs text-muted-foreground">
+              {kbQuery.isLoading || forumQuery.isLoading || doubtsQuery.isLoading
+                ? "Buscando..."
+                : `${totalResults} resultado(s) para "${debouncedQuery}"`}
+            </p>
+          )}
         </div>
 
         {/* Search results */}
-        {isSearching ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {/* KB Results */}
-            <div className="glass rounded-2xl p-4 space-y-3">
-              <div className="flex items-center gap-2 font-semibold text-sm">
-                <BookOpen className="h-4 w-4 text-primary" />
-                Base de Conhecimento
+        {hasQuery && (
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* KB results */}
+            <div className="glass rounded-2xl p-4 shadow-card space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <BookOpen className="h-4 w-4 text-primary" /> Base de Conhecimento
+                <span className="ml-auto text-xs text-muted-foreground">{kbResults.length}</span>
               </div>
-              {kbQuery.isLoading ? (
-                <p className="text-xs text-muted-foreground">Buscando...</p>
-              ) : kbResults.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum resultado.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {kbResults.map((a) => (
-                    <li key={a.id}>
-                      <Link
-                        to="/knowledge/$id"
-                        params={{ id: a.id }}
-                        className="text-xs text-primary underline underline-offset-2 hover:opacity-80 transition-opacity line-clamp-2"
-                      >
-                        {a.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {kbQuery.isLoading ? <p className="text-xs text-muted-foreground">Buscando...</p>
+               : kbResults.length === 0 ? <p className="text-xs text-muted-foreground">Nenhum artigo encontrado.</p>
+               : kbResults.slice(0, 5).map((a) => (
+                <Link key={a.id} to="/knowledge/$id" params={{ id: a.id }}
+                  className="block text-sm text-foreground hover:text-primary transition-colors leading-snug py-1 border-b border-border/40 last:border-0">
+                  {a.title}
+                </Link>
+              ))}
             </div>
 
-            {/* Forum Results */}
-            <div className="glass rounded-2xl p-4 space-y-3">
-              <div className="flex items-center gap-2 font-semibold text-sm">
-                <MessageSquare className="h-4 w-4 text-primary" />
-                Fórum
+            {/* Forum results */}
+            <div className="glass rounded-2xl p-4 shadow-card space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <MessageSquare className="h-4 w-4 text-primary" /> Fórum
+                <span className="ml-auto text-xs text-muted-foreground">{forumResults.length}</span>
               </div>
-              {forumQuery.isLoading ? (
-                <p className="text-xs text-muted-foreground">Buscando...</p>
-              ) : forumResults.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum resultado.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {forumResults.map((t) => (
-                    <li key={t.id}>
-                      <Link
-                        to="/forum/$id"
-                        params={{ id: t.id }}
-                        className="text-xs text-primary underline underline-offset-2 hover:opacity-80 transition-opacity line-clamp-2"
-                      >
-                        {t.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {forumQuery.isLoading ? <p className="text-xs text-muted-foreground">Buscando...</p>
+               : forumResults.length === 0 ? <p className="text-xs text-muted-foreground">Nenhum tópico encontrado.</p>
+               : forumResults.slice(0, 5).map((t) => (
+                <Link key={t.id} to="/forum/$id" params={{ id: t.id }}
+                  className="block text-sm text-foreground hover:text-primary transition-colors leading-snug py-1 border-b border-border/40 last:border-0">
+                  {t.title}
+                </Link>
+              ))}
             </div>
 
-            {/* Doubts Results */}
-            <div className="glass rounded-2xl p-4 space-y-3">
-              <div className="flex items-center gap-2 font-semibold text-sm">
-                <HelpCircle className="h-4 w-4 text-primary" />
-                Central de Dúvidas
+            {/* Doubts results */}
+            <div className="glass rounded-2xl p-4 shadow-card space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <HelpCircle className="h-4 w-4 text-primary" /> Central de Dúvidas
+                <span className="ml-auto text-xs text-muted-foreground">{doubtsResults.length}</span>
               </div>
-              {doubtsQuery.isLoading ? (
-                <p className="text-xs text-muted-foreground">Buscando...</p>
-              ) : doubtsResults.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum resultado.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {doubtsResults.map((q) => (
-                    <li key={q.id}>
-                      <Link
-                        to="/doubts/$id"
-                        params={{ id: q.id }}
-                        className="text-xs text-primary underline underline-offset-2 hover:opacity-80 transition-opacity line-clamp-2"
-                      >
-                        {q.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {doubtsQuery.isLoading ? <p className="text-xs text-muted-foreground">Buscando...</p>
+               : doubtsResults.length === 0 ? <p className="text-xs text-muted-foreground">Nenhuma dúvida encontrada.</p>
+               : doubtsResults.slice(0, 5).map((q) => (
+                <Link key={q.id} to="/doubts/$id" params={{ id: q.id }}
+                  className="block text-sm text-foreground hover:text-primary transition-colors leading-snug py-1 border-b border-border/40 last:border-0">
+                  {q.title}
+                </Link>
+              ))}
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* Category cards (no search) */}
+        {!hasQuery && (
           <>
-            {/* Category cards */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <Link to="/knowledge" className="glass rounded-2xl p-5 space-y-2 hover:border-primary/40 transition-colors group">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="font-semibold text-sm">Base de Conhecimento</h3>
-                <p className="text-xs text-muted-foreground">Artigos e guias sobre o sistema.</p>
-              </Link>
-              <Link to="/forum" className="glass rounded-2xl p-5 space-y-2 hover:border-primary/40 transition-colors group">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="font-semibold text-sm">Fórum</h3>
-                <p className="text-xs text-muted-foreground">Perguntas e discussões da comunidade.</p>
-              </Link>
-              <Link to="/doubts" className="glass rounded-2xl p-5 space-y-2 hover:border-primary/40 transition-colors group">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <HelpCircle className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="font-semibold text-sm">Central de Dúvidas</h3>
-                <p className="text-xs text-muted-foreground">Suporte direto e perguntas técnicas.</p>
-              </Link>
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                { to: "/knowledge" as const, icon: BookOpen, label: "Base de Conhecimento", desc: "Artigos, guias e documentação" },
+                { to: "/forum" as const, icon: MessageSquare, label: "Fórum", desc: "Perguntas e respostas da comunidade" },
+                { to: "/doubts" as const, icon: HelpCircle, label: "Central de Dúvidas", desc: "Suporte direto e atendimento" },
+              ].map(({ to, icon: Icon, label, desc }) => (
+                <Link key={to} to={to}
+                  className="glass group flex flex-col items-center gap-3 rounded-2xl p-6 shadow-card text-center hover:border-primary/40 transition-colors">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-sm">{label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                  </div>
+                </Link>
+              ))}
             </div>
 
-            {/* Popular KB articles */}
-            {popularArticles.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="font-semibold text-sm text-foreground">Artigos populares</h3>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {popularArticles.map((a) => (
-                    <Link
-                      key={a.id}
-                      to="/knowledge/$id"
-                      params={{ id: a.id }}
-                      className="glass flex items-center gap-3 rounded-xl p-3 hover:border-primary/40 transition-colors"
-                    >
-                      <BookOpen className="h-4 w-4 shrink-0 text-primary" />
-                      <span className="text-sm font-medium line-clamp-1">{a.title}</span>
+            {/* Popular articles */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" /> Artigos mais acessados
+              </h3>
+              {popularQuery.isLoading ? (
+                <div className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">Carregando...</div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {(popularQuery.data ?? []).map((a) => (
+                    <Link key={a.id} to="/knowledge/$id" params={{ id: a.id }}
+                      className="glass flex items-start gap-3 rounded-2xl p-4 shadow-card hover:border-primary/30 transition-colors">
+                      <BookOpen className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium leading-snug line-clamp-2">{a.title}</p>
+                        {a.category_name && <p className="text-xs text-muted-foreground mt-0.5">{a.category_name}</p>}
+                      </div>
                     </Link>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* CTA */}
+            <div className="glass rounded-2xl p-6 shadow-card text-center space-y-3">
+              <p className="text-sm font-medium">Não encontrou o que procura?</p>
+              <p className="text-xs text-muted-foreground">Abra um chamado e nossa equipe irá ajudar você.</p>
+              <Button asChild size="sm" className="gap-1.5">
+                <Link to="/tickets/new"><ExternalLink className="h-3.5 w-3.5" /> Abrir um chamado</Link>
+              </Button>
+            </div>
           </>
         )}
-
-        {/* Bottom CTA */}
-        <div className="glass rounded-2xl p-6 text-center space-y-3 border border-border/50">
-          <p className="text-sm font-medium">Não encontrou o que procura?</p>
-          <p className="text-xs text-muted-foreground">Nossa equipe está pronta para ajudar você diretamente.</p>
-          <Link to="/tickets/new">
-            <Button className="gap-2">
-              <Ticket className="h-4 w-4" />
-              Abrir um chamado
-            </Button>
-          </Link>
-        </div>
       </div>
     </AppShell>
   );

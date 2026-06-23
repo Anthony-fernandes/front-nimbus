@@ -99,6 +99,7 @@ function KnowledgePage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("PUBLISHED");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [rankingTab, setRankingTab] = useState<"all" | "published" | "most_viewed" | "most_helpful">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const [form, setForm] = useState({
@@ -126,14 +127,19 @@ function KnowledgePage() {
     queryFn: listKnowledgeCategories,
   });
 
+  const articlesQueryStatus =
+    rankingTab === "published" ? "PUBLISHED"
+    : rankingTab === "all" ? (statusFilter !== "all" ? statusFilter : undefined)
+    : "PUBLISHED";
+
   const articlesQuery = useQuery({
     queryKey: [
       "knowledge-articles",
-      { status: statusFilter, category: categoryFilter, search: debouncedSearch, visibility: visibilityFilter },
+      { status: articlesQueryStatus, category: categoryFilter, search: debouncedSearch, visibility: visibilityFilter, rankingTab },
     ],
     queryFn: () =>
       listKnowledgeArticles({
-        status: statusFilter !== "all" ? statusFilter : undefined,
+        status: articlesQueryStatus,
         category: categoryFilter !== "all" ? categoryFilter : undefined,
         search: debouncedSearch || undefined,
         visibility: visibilityFilter !== "all" ? visibilityFilter : undefined,
@@ -163,7 +169,23 @@ function KnowledgePage() {
   });
 
   const categories = categoriesQuery.data ?? [];
-  const articles = articlesQuery.data ?? [];
+  const rawArticles = articlesQuery.data ?? [];
+  const articles = (() => {
+    if (rankingTab === "most_viewed") {
+      return [...rawArticles].sort((a, b) => (b.views_count ?? 0) - (a.views_count ?? 0)).slice(0, 20);
+    }
+    if (rankingTab === "most_helpful") {
+      return [...rawArticles]
+        .filter((a) => (a.helpful_count + a.not_helpful_count) > 0)
+        .sort((a, b) => {
+          const ra = a.helpful_count / (a.helpful_count + a.not_helpful_count);
+          const rb = b.helpful_count / (b.helpful_count + b.not_helpful_count);
+          return rb - ra;
+        })
+        .slice(0, 20);
+    }
+    return rawArticles;
+  })();
 
   return (
     <AppShell>
@@ -184,6 +206,20 @@ function KnowledgePage() {
             ) : undefined
           }
         />
+
+        {/* Ranking tabs */}
+        <div className="flex gap-1 rounded-xl bg-muted/50 p-1 w-fit">
+          {(["all", "published", "most_viewed", "most_helpful"] as const).map((tab) => (
+            <button key={tab} type="button"
+              onClick={() => setRankingTab(tab)}
+              className={cn("rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                rankingTab === tab ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab === "all" ? "Todos" : tab === "published" ? "Publicados" : tab === "most_viewed" ? "Mais visualizados" : "Mais úteis"}
+            </button>
+          ))}
+        </div>
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">

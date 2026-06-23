@@ -65,6 +65,8 @@ function KnowledgeEditPage() {
         category: a.category ?? "",
         status: a.status ?? "DRAFT",
         visibility: a.visibility ?? "INTERNAL",
+        expires_at: a.expires_at ?? "",
+        review_at: a.review_at ?? "",
       });
       setInitialized(true);
     }
@@ -77,6 +79,8 @@ function KnowledgeEditPage() {
       updateKnowledgeArticle(id, {
         ...form,
         category: form.category || null,
+        expires_at: form.expires_at || null,
+        review_at: form.review_at || null,
       }),
     onSuccess: () => {
       toast.success("Artigo atualizado com sucesso.");
@@ -184,6 +188,7 @@ function KnowledgeEditPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DRAFT">Rascunho</SelectItem>
+                  <SelectItem value="REVIEW">Em Revisão</SelectItem>
                   <SelectItem value="PUBLISHED">Publicado</SelectItem>
                   <SelectItem value="ARCHIVED">Arquivado</SelectItem>
                 </SelectContent>
@@ -204,6 +209,17 @@ function KnowledgeEditPage() {
                   <SelectItem value="RESTRICTED">Restrito</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <div className="flex-1 space-y-1">
+              <Label>Data de validade</Label>
+              <Input type="date" value={form.expires_at ?? ""} onChange={(e) => setForm((f) => ({ ...f, expires_at: e.target.value }))} />
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label>Próxima revisão</Label>
+              <Input type="date" value={form.review_at ?? ""} onChange={(e) => setForm((f) => ({ ...f, review_at: e.target.value }))} />
             </div>
           </div>
 
