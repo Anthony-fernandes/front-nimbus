@@ -221,10 +221,6 @@ function TicketsPage() {
     queryFn: () => listTicketWorkflowStatuses(),
   });
 
-  if (pathname !== "/tickets") {
-    return <Outlet />;
-  }
-
   const canApprove = canApproveTickets(currentUser);
   const canCategorize = canCategorizeTickets(currentUser);
   const canFinalize = canFinalizeTickets(currentUser);
@@ -285,6 +281,10 @@ function TicketsPage() {
   const hasActiveListControls = Boolean(
     activeQuickFilter || searchTerm.trim() || activeAdvancedFilterCount,
   );
+
+  if (pathname !== "/tickets") {
+    return <Outlet />;
+  }
 
   const resetAdvancedFilters = () => {
     setFilters(DEFAULT_TICKET_ADVANCED_FILTERS);
