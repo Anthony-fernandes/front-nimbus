@@ -324,6 +324,186 @@ export async function requestKnowledgeReview(id: string) {
   return r.data;
 }
 
+// ─── KB Versions ──────────────────────────────────────────────────────────────
+
+export interface ArticleVersion {
+  id: string;
+  article: string;
+  version: number;
+  title: string;
+  content: string;
+  changed_by: string | null;
+  changed_by_name?: string | null;
+  change_summary: string;
+  created_at: string;
+}
+
+export function listArticleVersions(articleId: string) {
+  return listResource<ArticleVersion>("/knowledge/article-versions", { article: articleId });
+}
+
+// ─── KB Attachments ───────────────────────────────────────────────────────────
+
+export interface ArticleAttachment {
+  id: string;
+  article: string;
+  file: string;
+  name: string;
+  size: number | null;
+  created_at: string;
+}
+
+export function listArticleAttachments(articleId: string) {
+  return listResource<ArticleAttachment>("/knowledge/article-attachments", { article: articleId });
+}
+
+export async function uploadArticleAttachment(articleId: string, file: File) {
+  const form = new FormData();
+  form.append("article", articleId);
+  form.append("file", file);
+  form.append("name", file.name);
+  form.append("size", String(file.size));
+  const r = await api.post<ArticleAttachment>("/knowledge/article-attachments/", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return r.data;
+}
+
+export function deleteArticleAttachment(id: string) {
+  return deleteResource("/knowledge/article-attachments", id);
+}
+
+// ─── Tickets Reports ──────────────────────────────────────────────────────────
+
+export interface TicketReportsData {
+  total: number;
+  open: number;
+  closed: number;
+  pending: number;
+  avg_csat: number | null;
+  avg_response_hours: number | null;
+  volume_by_day: { date: string; count: number }[];
+  top_categories: { category: string; count: number }[];
+}
+
+export async function getTicketReports() {
+  const r = await api.get<TicketReportsData>("/tickets/reports/");
+  return r.data;
+}
+
+// ─── Admin Dashboard ──────────────────────────────────────────────────────────
+
+export interface AdminDashboardData {
+  forum: { total_topics: number; total_replies: number; active_users: number };
+  kb: { total_articles: number; avg_rating: number | null };
+  tickets: { open: number; closed: number; avg_csat: number | null };
+  chat: { active_conversations: number };
+}
+
+export async function getAdminDashboard() {
+  const r = await api.get<AdminDashboardData>("/admin-dashboard/");
+  return r.data;
+}
+
+// ─── SLA Policies ────────────────────────────────────────────────────────────
+
+export interface SLAPolicy {
+  id: string;
+  name: string;
+  priority: string;
+  category: string;
+  response_time: string;
+  priority_weight: number;
+  active: boolean;
+}
+
+export function listSLAPolicies() {
+  return listResource<SLAPolicy>("/tickets/sla-policies/");
+}
+
+export function createSLAPolicy(data: Partial<SLAPolicy>) {
+  return createResource<SLAPolicy>("/tickets/sla-policies/", data);
+}
+
+export function updateSLAPolicy(id: string, data: Partial<SLAPolicy>) {
+  return updateResource<SLAPolicy>("/tickets/sla-policies/", id, data);
+}
+
+export function deleteSLAPolicy(id: string) {
+  return deleteResource("/tickets/sla-policies/", id);
+}
+
+// ─── Custom Fields ────────────────────────────────────────────────────────────
+
+export interface TicketCustomField {
+  id: string;
+  name: string;
+  label: string;
+  field_type: "text" | "number" | "date" | "select" | "boolean";
+  options: string[];
+  required: boolean;
+  active: boolean;
+  order: number;
+}
+
+export function listTicketCustomFields() {
+  return listResource<TicketCustomField>("/tickets/custom-fields/");
+}
+
+export function createTicketCustomField(data: Partial<TicketCustomField>) {
+  return createResource<TicketCustomField>("/tickets/custom-fields/", data);
+}
+
+export function updateTicketCustomField(id: string, data: Partial<TicketCustomField>) {
+  return updateResource<TicketCustomField>("/tickets/custom-fields/", id, data);
+}
+
+export function deleteTicketCustomField(id: string) {
+  return deleteResource("/tickets/custom-fields/", id);
+}
+
+// ─── Chat Read Receipts ───────────────────────────────────────────────────────
+
+export async function markMessageRead(messageId: string) {
+  const r = await api.post<ChatMessage>(`/communication/chat-messages/${messageId}/mark-read/`);
+  return r.data;
+}
+
+// ─── User Last Seen ───────────────────────────────────────────────────────────
+
+export async function updateLastSeen() {
+  await api.post("/communication/last-seen/");
+}
+
+export async function getLastSeen(userId: string) {
+  const r = await api.get<{ user: string; last_seen: string | null }>(`/communication/last-seen/${userId}/`);
+  return r.data;
+}
+
+// ─── Forum Badges ─────────────────────────────────────────────────────────────
+
+export interface ForumBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  criteria_type: string;
+  criteria_value: number;
+}
+
+export interface UserBadge {
+  id: string;
+  badge: string;
+  badge_name: string;
+  badge_icon: string;
+  badge_description: string;
+  earned_at: string;
+}
+
+export function listUserBadges(userId: string) {
+  return listResource<UserBadge>("/communication/user-badges/", { user: userId });
+}
+
 // ─── Convert to KB ────────────────────────────────────────────────────────────
 
 export async function convertForumTopicToKb(topicId: string, categoryId?: string): Promise<KnowledgeArticle> {
