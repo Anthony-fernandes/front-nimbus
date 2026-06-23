@@ -65,6 +65,7 @@ import { Route as ForumTagsTagRouteImport } from './routes/forum.tags.$tag'
 import { Route as ForumModerationRouteImport } from './routes/forum.moderation'
 import { Route as ForumUsersIdRouteImport } from './routes/forum.users.$id'
 import { Route as ForumIdRouteImport } from './routes/forum.$id'
+import { Route as DoubtsReportsRouteImport } from './routes/doubts.reports'
 import { Route as DoubtsIdRouteImport } from './routes/doubts.$id'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as ClientsIdRouteImport } from './routes/clients.$id'
@@ -373,6 +374,11 @@ const ForumIdRoute = ForumIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ForumRoute,
 } as any)
+const DoubtsReportsRoute = DoubtsReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => DoubtsRoute,
+} as any)
 const DoubtsIdRoute = DoubtsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -559,6 +565,7 @@ export interface FileRoutesByFullPath {
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
+  '/doubts/reports': typeof DoubtsReportsRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/forum/moderation': typeof ForumModerationRoute
@@ -644,6 +651,7 @@ export interface FileRoutesByTo {
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
+  '/doubts/reports': typeof DoubtsReportsRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/forum/moderation': typeof ForumModerationRoute
@@ -730,6 +738,7 @@ export interface FileRoutesById {
   '/clients/$id': typeof ClientsIdRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
+  '/doubts/reports': typeof DoubtsReportsRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/forum/moderation': typeof ForumModerationRoute
@@ -816,6 +825,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/clients/new'
     | '/doubts/$id'
+    | '/doubts/reports'
     | '/forum/$id'
     | '/forum/tags/$tag'
     | '/knowledge/$id'
@@ -898,6 +908,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/clients/new'
     | '/doubts/$id'
+    | '/doubts/reports'
     | '/forum/$id'
     | '/forum/tags/$tag'
     | '/knowledge/$id'
@@ -980,6 +991,7 @@ export interface FileRouteTypes {
     | '/clients/$id'
     | '/clients/new'
     | '/doubts/$id'
+    | '/doubts/reports'
     | '/forum/$id'
     | '/forum/tags/$tag'
     | '/knowledge/$id'
@@ -1449,6 +1461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DoubtsIdRouteImport
       parentRoute: typeof DoubtsRoute
     }
+    '/doubts/reports': {
+      id: '/doubts/reports'
+      path: '/reports'
+      fullPath: '/doubts/reports'
+      preLoaderRoute: typeof DoubtsReportsRouteImport
+      parentRoute: typeof DoubtsRoute
+    }
     '/clients/new': {
       id: '/clients/new'
       path: '/new'
@@ -1739,10 +1758,12 @@ const ClientsRouteWithChildren =
 
 interface DoubtsRouteChildren {
   DoubtsIdRoute: typeof DoubtsIdRoute
+  DoubtsReportsRoute: typeof DoubtsReportsRoute
 }
 
 const DoubtsRouteChildren: DoubtsRouteChildren = {
   DoubtsIdRoute: DoubtsIdRoute,
+  DoubtsReportsRoute: DoubtsReportsRoute,
 }
 
 const DoubtsRouteWithChildren =

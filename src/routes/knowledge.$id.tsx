@@ -3,9 +3,9 @@ import { marked } from "marked";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, BookOpen, Edit, Eye, MessageSquare, Printer, Tag, ThumbsDown, ThumbsUp,
+  ArrowLeft, BookOpen, ChevronDown, ChevronUp, Clock, Edit, Eye, MessageSquare, Paperclip, Printer, Tag, ThumbsDown, ThumbsUp, Trash2, Upload,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -19,12 +19,18 @@ import {
   listKnowledgeInternalComments,
   createKnowledgeInternalComment,
   deleteKnowledgeInternalComment,
+  listArticleVersions,
+  listArticleAttachments,
+  uploadArticleAttachment,
+  deleteArticleAttachment,
   publishArticle,
   rateArticle,
   requestKnowledgeReview,
 } from "@/services/knowledgeService";
+import type { ArticleVersion, ArticleAttachment } from "@/services/knowledgeService";
 import type { KnowledgeInternalComment } from "@/lib/types";
 import { getStoredUser } from "@/services/session";
+import { API_BASE_URL } from "@/services/api";
 
 export const Route = createFileRoute("/knowledge/$id")({
   head: () => ({ meta: [{ title: "Artigo · Nimbus" }] }),
@@ -68,6 +74,9 @@ function KnowledgeArticlePage() {
   const isAdminOrTech = hasAnyPermission(user, ["tickets.viewAll", "tickets.viewAssigned"]);
 
   const [newComment, setNewComment] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const [diffVersion, setDiffVersion] = useState<ArticleVersion | null>(null);
+  const fileUploadRef = useRef<HTMLInputElement | null>(null);
 
   const articleQuery = useQuery({
     queryKey: ["knowledge-article", id],
@@ -86,6 +95,34 @@ function KnowledgeArticlePage() {
     queryKey: ["kb-internal-comments", id],
     queryFn: () => listKnowledgeInternalComments(id),
     enabled: isAdminOrTech,
+  });
+
+  const versionsQuery = useQuery({
+    queryKey: ["kb-article-versions", id],
+    queryFn: () => listArticleVersions(id),
+    enabled: isAdminOrTech && showHistory,
+  });
+
+  const attachmentsQuery = useQuery({
+    queryKey: ["kb-article-attachments", id],
+    queryFn: () => listArticleAttachments(id),
+  });
+
+  const uploadAttachmentMutation = useMutation({
+    mutationFn: (file: File) => uploadArticleAttachment(id, file),
+    onSuccess: () => {
+      toast.success("Anexo enviado.");
+      void queryClient.invalidateQueries({ queryKey: ["kb-article-attachments", id] });
+    },
+    onError: () => toast.error("Erro ao enviar anexo."),
+  });
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: (attachmentId: string) => deleteArticleAttachment(attachmentId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["kb-article-attachments", id] });
+    },
+    onError: () => toast.error("Erro ao excluir anexo."),
   });
 
   const rateMutation = useMutation({
@@ -133,6 +170,36 @@ function KnowledgeArticlePage() {
   });
 
   const article = articleQuery.data;
+
+  function computeDiff(oldText: string, newText: string): { type: "add" | "remove" | "equal"; line: string }[] {
+    const oldLines = oldText.split("\n");
+    const newLines = newText.split("\n");
+    const result: { type: "add" | "remove" | "equal"; line: string }[] = [];
+    let oi = 0;
+    let ni = 0;
+    while (oi < oldLines.length || ni < newLines.length) {
+      if (oi >= oldLines.length) {
+        result.push({ type: "add", line: newLines[ni++] });
+      } else if (ni >= newLines.length) {
+        result.push({ type: "remove", line: oldLines[oi++] });
+      } else if (oldLines[oi] === newLines[ni]) {
+        result.push({ type: "equal", line: oldLines[oi] });
+        oi++;
+        ni++;
+      } else {
+        result.push({ type: "remove", line: oldLines[oi++] });
+        result.push({ type: "add", line: newLines[ni++] });
+      }
+    }
+    return result;
+  }
+
+  function formatBytes(bytes: number | null): string {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
 
   function renderContent(content: string): string {
     // If content looks like HTML (starts with <), render as-is; otherwise parse as Markdown
@@ -298,6 +365,131 @@ function KnowledgeArticlePage() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Attachments */}
+                <div className="glass rounded-2xl p-5 shadow-card space-y-3 print-hide">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold flex items-center gap-1.5">
+                      <Paperclip className="h-4 w-4" /> Anexos
+                    </p>
+                    {isAdminOrTech && (
+                      <>
+                        <Button
+                          size="sm" variant="outline" className="gap-1.5"
+                          onClick={() => fileUploadRef.current?.click()}
+                          disabled={uploadAttachmentMutation.isPending}
+                        >
+                          <Upload className="h-3.5 w-3.5" /> Enviar
+                        </Button>
+                        <input
+                          ref={fileUploadRef}
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) { uploadAttachmentMutation.mutate(f); e.target.value = ""; }
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+                  {attachmentsQuery.isLoading ? (
+                    <p className="text-xs text-muted-foreground">Carregando...</p>
+                  ) : (attachmentsQuery.data ?? []).length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhum anexo.</p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {attachmentsQuery.data!.map((att: ArticleAttachment) => (
+                        <li key={att.id} className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
+                          <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <a
+                            href={att.file.startsWith("http") ? att.file : `${API_BASE_URL.replace(/\/api$/, "")}${att.file}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 text-xs text-primary hover:underline truncate"
+                          >
+                            {att.name}
+                          </a>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{formatBytes(att.size)}</span>
+                          {isAdminOrTech && (
+                            <Button
+                              size="sm" variant="ghost" className="h-6 px-1.5 text-destructive hover:text-destructive shrink-0"
+                              onClick={() => deleteAttachmentMutation.mutate(att.id)}
+                              disabled={deleteAttachmentMutation.isPending}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Version history (admin/tech only) */}
+                {isAdminOrTech && (
+                  <div className="glass rounded-2xl p-5 shadow-card space-y-3 print-hide">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 text-sm font-semibold w-full text-left"
+                      onClick={() => setShowHistory((v) => !v)}
+                    >
+                      <Clock className="h-4 w-4" />
+                      Histórico de versões
+                      {showHistory ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
+                    </button>
+
+                    {showHistory && (
+                      <>
+                        {versionsQuery.isLoading ? (
+                          <p className="text-xs text-muted-foreground">Carregando...</p>
+                        ) : (versionsQuery.data ?? []).length === 0 ? (
+                          <p className="text-xs text-muted-foreground">Nenhuma versão anterior registrada.</p>
+                        ) : (
+                          <ul className="space-y-2">
+                            {versionsQuery.data!.map((v) => (
+                              <li key={v.id} className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="space-y-0.5">
+                                    <p className="text-xs font-medium">v{v.version} — {v.title}</p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {v.changed_by_name ?? "—"} · {formatDate(v.created_at)}
+                                      {v.change_summary && <> · <em>{v.change_summary}</em></>}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="sm" variant="outline" className="shrink-0 text-xs h-7"
+                                    onClick={() => setDiffVersion(diffVersion?.id === v.id ? null : v)}
+                                  >
+                                    {diffVersion?.id === v.id ? "Fechar diff" : "Ver diff"}
+                                  </Button>
+                                </div>
+                                {diffVersion?.id === v.id && article && (
+                                  <div className="mt-3 rounded-lg overflow-auto max-h-64 border border-border/50 bg-background text-xs font-mono">
+                                    {computeDiff(v.content, article.content).map((line, idx) => (
+                                      <div
+                                        // eslint-disable-next-line react/no-array-index-key
+                                        key={idx}
+                                        className={cn(
+                                          "px-3 py-0.5 whitespace-pre",
+                                          line.type === "add" && "bg-green-500/10 text-green-700 dark:text-green-400",
+                                          line.type === "remove" && "bg-red-500/10 text-red-700 dark:text-red-400",
+                                        )}
+                                      >
+                                        {line.type === "add" ? "+ " : line.type === "remove" ? "- " : "  "}
+                                        {line.line}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Internal comments (admin/tech only) */}
                 {isAdminOrTech && (

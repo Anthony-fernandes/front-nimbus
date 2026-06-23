@@ -429,6 +429,24 @@ function TicketDetail() {
                   SLA pausado
                 </span>
               ) : null}
+              {ticket.sla_due_at && !isTicketSlaPaused(ticket, statusConfigs) && (() => {
+                const due = new Date(ticket.sla_due_at);
+                const now = new Date();
+                const diff = due.getTime() - now.getTime();
+                const isOverdue = diff < 0;
+                const hoursLeft = Math.abs(diff) / 3600000;
+                const label = isOverdue
+                  ? `SLA vencido há ${hoursLeft.toFixed(0)}h`
+                  : hoursLeft < 2
+                  ? `SLA: ${(diff / 60000).toFixed(0)}min restantes`
+                  : `SLA: ${hoursLeft.toFixed(0)}h restantes`;
+                return (
+                  <span className={`rounded-md px-2 py-1 text-[11px] font-medium ${isOverdue ? "bg-destructive/15 text-destructive" : hoursLeft < 4 ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}>
+                    <Clock className="inline h-3 w-3 mr-0.5" />
+                    {label}
+                  </span>
+                );
+              })()}
             </span>
           }
           actions={

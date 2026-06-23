@@ -34,6 +34,8 @@ import { listTicketCategories } from "@/services/ticketCategoryService";
 import { saveTicket } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
 import { getStoredUser } from "@/services/authService";
+import { listTicketCustomFields } from "@/services/knowledgeService";
+import type { TicketCustomField } from "@/services/knowledgeService";
 import {
   findTicketCategory,
   getCategoryDefaults,
@@ -302,6 +304,12 @@ export function TicketForm({
     queryKey: ["activity-tag-configs"],
     queryFn: () => listActivityTags(),
   });
+
+  const { data: customFields = [] } = useQuery({
+    queryKey: ["ticket-custom-fields"],
+    queryFn: listTicketCustomFields,
+  });
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
 
   const organizationOptions = organizations.map((organization) => ({
     value: organization.id,
@@ -1089,6 +1097,44 @@ export function TicketForm({
             </div>
           </div>
         </FormSection>
+
+        {customFields.filter((f: TicketCustomField) => f.active).length > 0 && (
+          <FormSection title="Campos adicionais">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {customFields.filter((f: TicketCustomField) => f.active).map((field: TicketCustomField) => (
+                <Field key={field.id} label={field.label} hint={field.required ? "Obrigatório" : undefined}>
+                  {field.field_type === "select" ? (
+                    <Select
+                      value={customValues[field.id] ?? ""}
+                      onValueChange={(v) => setCustomValues((prev) => ({ ...prev, [field.id]: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.options.map((opt: string) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : field.field_type === "boolean" ? (
+                    <Checkbox
+                      checked={customValues[field.id] === "true"}
+                      onCheckedChange={(c) => setCustomValues((prev) => ({ ...prev, [field.id]: c ? "true" : "false" }))}
+                    />
+                  ) : (
+                    <Input
+                      type={field.field_type === "number" ? "number" : field.field_type === "date" ? "date" : "text"}
+                      value={customValues[field.id] ?? ""}
+                      onChange={(e) => setCustomValues((prev) => ({ ...prev, [field.id]: e.target.value }))}
+                      placeholder={field.label}
+                    />
+                  )}
+                </Field>
+              ))}
+            </div>
+          </FormSection>
+        )}
 
         <FormSection title="Anexos">
           <label className="block cursor-pointer rounded-xl border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary/40">

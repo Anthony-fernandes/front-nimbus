@@ -406,6 +406,7 @@ export type Ticket = {
   rating_comment?: string;
   rated_at?: string | null;
   custom_values?: { id: string; field_id: string; field_label: string; value: string }[];
+  sla_due_at?: string | null;
 };
 
 export type User = {
