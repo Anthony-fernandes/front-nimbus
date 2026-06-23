@@ -113,6 +113,36 @@ export async function toggleReplyLike(replyId: string) {
   await api.post(`/communication/forum-replies/${replyId}/toggle-like/`);
 }
 
+export async function toggleTopicLike(topicId: string) {
+  await api.post(`/communication/forum-topics/${topicId}/toggle-like/`);
+}
+
+export function updateForumTopic(id: string, data: Partial<ForumTopic>) {
+  return updateResource<ForumTopic>("/communication/forum-topics", id, data);
+}
+
+export function deleteForumTopic(id: string) {
+  return deleteResource("/communication/forum-topics", id);
+}
+
+export function updateForumReply(id: string, data: Partial<ForumReply>) {
+  return updateResource<ForumReply>("/communication/forum-replies", id, data);
+}
+
+export function deleteForumReply(id: string) {
+  return deleteResource("/communication/forum-replies", id);
+}
+
+export async function pinForumTopic(topicId: string) {
+  const response = await api.post<ForumTopic>(`/communication/forum-topics/${topicId}/pin/`);
+  return response.data;
+}
+
+export async function lockForumTopic(topicId: string) {
+  const response = await api.post<ForumTopic>(`/communication/forum-topics/${topicId}/lock/`);
+  return response.data;
+}
+
 // ─── Doubts ───────────────────────────────────────────────────────────────────
 
 export function listDoubtsQuestions(params?: Record<string, unknown>) {
@@ -145,6 +175,31 @@ export async function toggleAnswerLike(answerId: string) {
   await api.post(`/communication/doubts-answers/${answerId}/toggle-like/`);
 }
 
+export async function toggleQuestionLike(questionId: string) {
+  await api.post(`/communication/doubts-questions/${questionId}/toggle-like/`);
+}
+
+export function updateDoubtsQuestion(id: string, data: Partial<DoubtsQuestion>) {
+  return updateResource<DoubtsQuestion>("/communication/doubts-questions", id, data);
+}
+
+export function deleteDoubtsQuestion(id: string) {
+  return deleteResource("/communication/doubts-questions", id);
+}
+
+export function updateDoubtsAnswer(id: string, data: Partial<DoubtsAnswer>) {
+  return updateResource<DoubtsAnswer>("/communication/doubts-answers", id, data);
+}
+
+export function deleteDoubtsAnswer(id: string) {
+  return deleteResource("/communication/doubts-answers", id);
+}
+
+export async function closeDoubtsQuestion(questionId: string) {
+  const response = await api.post<DoubtsQuestion>(`/communication/doubts-questions/${questionId}/close/`);
+  return response.data;
+}
+
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
 export function listChatConversations() {
@@ -164,10 +219,22 @@ export function listChatMessages(conversationId: string) {
   });
 }
 
-export async function sendChatMessage(conversationId: string, content: string) {
+export async function sendChatMessage(conversationId: string, content: string, replyTo?: string) {
   const response = await api.post<ChatMessage>("/communication/chat-messages/", {
     conversation: conversationId,
     content,
+    ...(replyTo ? { reply_to: replyTo } : {}),
+  });
+  return response.data;
+}
+
+export async function sendChatFile(conversationId: string, file: File, content?: string) {
+  const form = new FormData();
+  form.append("conversation", conversationId);
+  form.append("file", file);
+  if (content) form.append("content", content);
+  const response = await api.post<ChatMessage>("/communication/chat-messages/", form, {
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 }

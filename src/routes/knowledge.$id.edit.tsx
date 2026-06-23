@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { MarkdownEditor } from "@/components/app/MarkdownEditor";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import type { KnowledgeArticle } from "@/lib/types";
 import {
   getKnowledgeArticle,
@@ -161,13 +161,12 @@ function KnowledgeEditPage() {
             />
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label>Conteúdo</Label>
-            <Textarea
+            <MarkdownEditor
               value={form.content}
-              onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-              placeholder="Conteúdo do artigo..."
-              className="min-h-[200px]"
+              onChange={(v) => setForm((f) => ({ ...f, content: v }))}
+              rows={14}
             />
           </div>
 
