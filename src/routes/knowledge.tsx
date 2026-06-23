@@ -189,7 +189,7 @@ function KnowledgePage() {
 
   return (
     <AppShell>
-      <div className="max-w-5xl space-y-5">
+      <div className="space-y-5">
         <PageHeader
           title="Base de Conhecimento"
           subtitle="Artigos e documentação para consulta rápida."
@@ -207,171 +207,134 @@ function KnowledgePage() {
           }
         />
 
-        {/* Ranking tabs */}
-        <div className="flex gap-1 rounded-xl bg-muted/50 p-1 w-fit">
-          {(["all", "published", "most_viewed", "most_helpful"] as const).map((tab) => (
-            <button key={tab} type="button"
-              onClick={() => setRankingTab(tab)}
-              className={cn("rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                rankingTab === tab ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {tab === "all" ? "Todos" : tab === "published" ? "Publicados" : tab === "most_viewed" ? "Mais visualizados" : "Mais úteis"}
-            </button>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-8 text-sm"
-              placeholder="Pesquisar artigos..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        {/* Filters + ranking */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/50 pb-4">
+          <div className="flex gap-1 rounded-xl bg-muted/50 p-1">
+            {(["all", "published", "most_viewed", "most_helpful"] as const).map((tab) => (
+              <button key={tab} type="button"
+                onClick={() => setRankingTab(tab)}
+                className={cn("rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  rankingTab === tab ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tab === "all" ? "Todos" : tab === "published" ? "Publicados" : tab === "most_viewed" ? "Mais visualizados" : "Mais úteis"}
+              </button>
+            ))}
           </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-40 text-sm">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as categorias</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-36 text-sm">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="PUBLISHED">Publicados</SelectItem>
-              <SelectItem value="DRAFT">Rascunhos</SelectItem>
-              <SelectItem value="ARCHIVED">Arquivados</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-            <SelectTrigger className="w-36 text-sm">
-              <SelectValue placeholder="Visibilidade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="PUBLIC">Público</SelectItem>
-              <SelectItem value="INTERNAL">Interno</SelectItem>
-              <SelectItem value="RESTRICTED">Restrito</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-8 h-8 text-sm w-48" placeholder="Pesquisar..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Categoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="PUBLISHED">Publicados</SelectItem>
+                <SelectItem value="DRAFT">Rascunhos</SelectItem>
+                <SelectItem value="ARCHIVED">Arquivados</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+              <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="Visibilidade" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="PUBLIC">Público</SelectItem>
+                <SelectItem value="INTERNAL">Interno</SelectItem>
+                <SelectItem value="RESTRICTED">Restrito</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Article grid */}
+        {/* Table */}
         {articlesQuery.isLoading ? (
-          <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
-            Carregando artigos...
-          </div>
+          <div className="glass rounded-xl p-8 text-center text-sm text-muted-foreground">Carregando artigos...</div>
         ) : articles.length === 0 ? (
-          <div className="glass flex flex-col items-center gap-3 rounded-2xl p-12 text-center">
+          <div className="glass flex flex-col items-center gap-3 rounded-xl p-12 text-center">
             <BookOpen className="h-10 w-10 text-muted-foreground/50" />
             <div>
               <p className="font-medium text-sm">Nenhum artigo encontrado</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {search
-                  ? `Nenhum resultado para "${search}". Tente outros termos.`
-                  : 'Crie o primeiro artigo clicando em "Novo artigo".'}
+                {search ? `Nenhum resultado para "${search}". Tente outros termos.` : 'Crie o primeiro artigo clicando em "Novo artigo".'}
               </p>
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl border border-border/50 overflow-hidden bg-card/30">
+            {/* Header */}
+            <div className="grid grid-cols-[1fr_100px_100px_80px_80px_160px] border-b border-border/50 bg-muted/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span>Artigo</span>
+              <span>Status</span>
+              <span>Visibilidade</span>
+              <span className="text-center">Visitas</span>
+              <span className="text-center">Útil</span>
+              <span className="text-right">Autor · Data</span>
+            </div>
             {articles.map((article) => {
               const total = article.helpful_count + article.not_helpful_count;
               const helpfulPct = total > 0 ? Math.round((article.helpful_count / total) * 100) : null;
-              const excerpt = article.summary
-                ? article.summary.slice(0, 150)
-                : article.content
-                  ? article.content.slice(0, 150)
-                  : null;
               return (
                 <div
                   key={article.id}
-                  className="glass group flex cursor-pointer flex-col gap-3 rounded-2xl p-5 shadow-card transition-colors hover:border-primary/40"
+                  className="grid grid-cols-[1fr_100px_100px_80px_80px_160px] items-center border-b border-border/30 last:border-0 px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer gap-x-2"
                   onClick={() => navigate({ to: "/knowledge/$id", params: { id: article.id } })}
                 >
-                  {/* Badges */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                        STATUS_CLASS[article.status] ?? STATUS_CLASS.DRAFT,
+                  {/* Title + category + tags */}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium line-clamp-1 group-hover:text-primary">{article.title}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      {article.category_name && (
+                        <span className="rounded bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">{article.category_name}</span>
                       )}
-                    >
-                      {STATUS_LABELS[article.status] ?? article.status}
-                    </span>
-                    {article.category_name ? (
-                      <span className="rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        {article.category_name}
-                      </span>
-                    ) : null}
-                    <span
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                        VISIBILITY_CLASS[article.visibility] ?? "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {VISIBILITY_LABELS[article.visibility] ?? article.visibility}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <p className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                    {article.title}
-                  </p>
-
-                  {/* Excerpt */}
-                  {excerpt ? (
-                    <p className="line-clamp-3 flex-1 text-xs leading-relaxed text-muted-foreground">
-                      {excerpt}{excerpt.length >= 150 ? "…" : ""}
-                    </p>
-                  ) : (
-                    <div className="flex-1" />
-                  )}
-
-                  {/* Tag badges */}
-                  {article.tag_names && article.tag_names.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {article.tag_names.map((tag) => (
-                        <span
-                          key={tag}
-                          className="flex items-center gap-0.5 rounded-full bg-muted/70 px-2 py-0.5 text-[10px] text-muted-foreground"
-                        >
-                          <Tag className="h-2.5 w-2.5" />
-                          {tag}
+                      {article.tag_names?.map((tag) => (
+                        <span key={tag} className="flex items-center gap-0.5 rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                          <Tag className="h-2.5 w-2.5" />{tag}
                         </span>
                       ))}
                     </div>
-                  ) : null}
+                  </div>
 
-                  {/* Meta */}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground border-t border-border/50 pt-2.5">
-                    {article.author_name ? <span className="font-medium">{article.author_name}</span> : null}
+                  {/* Status */}
+                  <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide w-fit", STATUS_CLASS[article.status] ?? STATUS_CLASS.DRAFT)}>
+                    {STATUS_LABELS[article.status] ?? article.status}
+                  </span>
+
+                  {/* Visibility */}
+                  <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide w-fit", VISIBILITY_CLASS[article.visibility] ?? "bg-muted text-muted-foreground")}>
+                    {VISIBILITY_LABELS[article.visibility] ?? article.visibility}
+                  </span>
+
+                  {/* Views */}
+                  <div className="flex items-center justify-center gap-1 text-sm tabular-nums text-muted-foreground">
+                    <Eye className="h-3 w-3" />{article.views_count}
+                  </div>
+
+                  {/* Helpful % */}
+                  <div className="text-center text-sm tabular-nums">
+                    {helpfulPct !== null ? <span className="text-success font-medium">{helpfulPct}%</span> : <span className="text-muted-foreground">—</span>}
+                  </div>
+
+                  {/* Author + date */}
+                  <div className="text-right text-[11px] text-muted-foreground leading-snug">
+                    {article.author_name && <span className="font-medium text-foreground block">{article.author_name}</span>}
                     <span>{formatDate(article.created_at)}</span>
-                    <span className="ml-auto flex items-center gap-1">
-                      <Eye className="h-3 w-3" />
-                      {article.views_count}
-                    </span>
-                    {helpfulPct !== null ? (
-                      <span className="text-success font-medium">{helpfulPct}% útil</span>
-                    ) : null}
                   </div>
                 </div>
               );
             })}
           </div>
+        )}
+
+        {!articlesQuery.isLoading && articles.length > 0 && (
+          <p className="text-xs text-muted-foreground">{articles.length} {articles.length === 1 ? "artigo" : "artigos"}</p>
         )}
       </div>
 

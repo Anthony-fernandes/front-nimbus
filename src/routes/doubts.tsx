@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, HelpCircle, MessageSquare, Plus, Search, Star, Tag, ThumbsUp } from "lucide-react";
+import { CheckCircle2, HelpCircle, Plus, Search, Star, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -135,7 +135,7 @@ function DoubtsPage() {
 
   return (
     <AppShell>
-      <div className="max-w-5xl space-y-5">
+      <div className="space-y-5">
         <PageHeader
           title="Central de Dúvidas"
           subtitle="Tire suas dúvidas e ajude outros colegas."
@@ -152,16 +152,7 @@ function DoubtsPage() {
         />
 
         {/* Search + status tabs */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              className="pl-8 h-8 text-sm"
-              placeholder="Buscar dúvidas..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-3 border-b border-border/50 pb-4">
           <div className="flex items-center gap-1">
             {TABS.map((tab) => (
               <button
@@ -169,15 +160,24 @@ function DoubtsPage() {
                 type="button"
                 onClick={() => setStatusFilter(tab.value)}
                 className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                   statusFilter === tab.value
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-muted text-foreground"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 )}
               >
                 {tab.label}
               </button>
             ))}
+          </div>
+          <div className="ml-auto relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-8 h-8 text-sm w-56"
+              placeholder="Buscar dúvidas..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
 
@@ -186,52 +186,38 @@ function DoubtsPage() {
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium">
               <Tag className="h-3 w-3" />
-              Filtrando por tag: {selectedTag}
-              <button
-                type="button"
-                onClick={() => setSelectedTag(null)}
-                className="ml-1 opacity-60 hover:opacity-100 transition-opacity"
-                aria-label="Remover filtro de tag"
-              >
-                ×
-              </button>
+              Tag: {selectedTag}
+              <button type="button" onClick={() => setSelectedTag(null)} className="ml-1 opacity-60 hover:opacity-100">×</button>
             </span>
           </div>
         )}
 
-        {/* FAQ section */}
+        {/* FAQ highlight strip */}
         {showFaq && faqQuestions.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-warning" />
-              <h2 className="text-sm font-semibold">Perguntas frequentes</h2>
+          <div className="rounded-xl border border-border/50 overflow-hidden bg-card/30">
+            <div className="flex items-center gap-2 border-b border-border/50 bg-muted/30 px-4 py-2">
+              <Star className="h-3.5 w-3.5 text-warning" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Perguntas frequentes</span>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="divide-y divide-border/30">
               {faqQuestions.map((q) => (
-                <Link
-                  key={q.id}
-                  to="/doubts/$id"
-                  params={{ id: q.id }}
-                  className="glass flex flex-col gap-1 rounded-xl p-3 hover:border-primary/40 transition-colors"
+                <Link key={q.id} to="/doubts/$id" params={{ id: q.id }}
+                  className="flex items-center gap-4 px-4 py-2.5 hover:bg-muted/20 transition-colors group"
                 >
-                  <span className="text-sm font-medium line-clamp-2 hover:text-primary transition-colors">{q.title}</span>
-                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{q.answers_count} respostas</span>
-                    <span>{q.views_count} visitas</span>
-                  </div>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                  <span className="flex-1 text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{q.title}</span>
+                  <span className="text-[11px] text-muted-foreground shrink-0">{q.answers_count} respostas · {q.views_count} visitas</span>
                 </Link>
               ))}
             </div>
           </div>
         )}
 
-        {/* Question list */}
+        {/* Table */}
         {questionsQuery.isLoading ? (
-          <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
-            Carregando dúvidas...
-          </div>
+          <div className="glass rounded-xl p-8 text-center text-sm text-muted-foreground">Carregando dúvidas...</div>
         ) : questions.length === 0 ? (
-          <div className="glass flex flex-col items-center gap-3 rounded-2xl p-12 text-center">
+          <div className="glass flex flex-col items-center gap-3 rounded-xl p-12 text-center">
             <HelpCircle className="h-10 w-10 text-muted-foreground/50" />
             <div>
               <p className="text-sm font-medium">Nenhuma dúvida encontrada</p>
@@ -241,101 +227,65 @@ function DoubtsPage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="rounded-xl border border-border/50 overflow-hidden bg-card/30">
+            {/* Header */}
+            <div className="grid grid-cols-[1fr_80px_80px_80px_160px] border-b border-border/50 bg-muted/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span>Dúvida</span>
+              <span className="text-center">Status</span>
+              <span className="text-center">Respostas</span>
+              <span className="text-center">Visitas</span>
+              <span className="text-right">Autor · Data</span>
+            </div>
             {questions.map((q) => (
-              <div
-                key={q.id}
-                className="glass flex gap-0 rounded-2xl shadow-card transition-colors hover:border-primary/40 overflow-hidden"
-              >
-                {/* Stats column */}
-                <div className="flex w-20 shrink-0 flex-col items-center justify-center gap-3 border-r border-border/50 py-4 px-2">
-                  {q.status === "ANSWERED" ? (
-                    <CheckCircle2 className="h-5 w-5 text-success" />
-                  ) : null}
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span className={cn(
-                      "text-base font-bold leading-none",
-                      q.answers_count > 0 ? "text-foreground" : "text-muted-foreground",
-                    )}>
-                      {q.answers_count}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">respostas</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-base font-bold text-muted-foreground leading-none">
-                      {q.views_count}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">visitas</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-0.5">
-                    <ThumbsUp className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">{q.likes_count}</span>
-                  </div>
-                </div>
-
-                {/* Content column */}
-                <Link
-                  to="/doubts/$id"
-                  params={{ id: q.id }}
-                  className="flex flex-1 flex-col gap-1.5 px-4 py-3 min-w-0"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shrink-0",
-                        STATUS_CLASS[q.status],
-                      )}
-                    >
-                      {STATUS_LABELS[q.status]}
-                    </span>
-                    <span className="font-semibold text-sm leading-snug line-clamp-1 hover:text-primary transition-colors">
-                      {q.title}
-                    </span>
-                  </div>
-
-                  {q.content ? (
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                      {q.content}
-                    </p>
-                  ) : null}
-
-                  {/* Tags */}
-                  {q.tags && q.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1 mt-0.5">
+              <div key={q.id} className="grid grid-cols-[1fr_80px_80px_80px_160px] items-center border-b border-border/30 last:border-0 px-4 py-3 hover:bg-muted/20 transition-colors gap-x-2">
+                {/* Title + tags */}
+                <div className="min-w-0">
+                  <Link to="/doubts/$id" params={{ id: q.id }} className="group block">
+                    <p className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{q.title}</p>
+                  </Link>
+                  {q.tags && q.tags.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
                       {q.tags.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedTag(tag);
-                          }}
-                          className="flex items-center gap-0.5 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium hover:bg-primary/20 transition-colors"
+                        <button key={tag} type="button"
+                          onClick={(e) => { e.preventDefault(); setSelectedTag(tag); }}
+                          className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-medium hover:bg-primary/20 transition-colors"
                         >
-                          <Tag className="h-2.5 w-2.5" />
                           {tag}
                         </button>
                       ))}
                     </div>
-                  ) : null}
+                  )}
+                </div>
 
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                    <MessageSquare className="h-3 w-3" />
-                    <span>{q.answers_count} respostas</span>
-                    <span className="ml-auto flex items-center gap-1.5">
-                      {q.author_name ? (
-                        <span className="rounded-full bg-muted/60 px-2 py-0.5 font-medium">
-                          {q.author_name}
-                        </span>
-                      ) : null}
-                      <span>{formatDate(q.created_at)}</span>
-                    </span>
-                  </div>
-                </Link>
+                {/* Status */}
+                <div className="flex justify-center">
+                  <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide", STATUS_CLASS[q.status])}>
+                    {STATUS_LABELS[q.status]}
+                  </span>
+                </div>
+
+                {/* Answers */}
+                <div className={cn("text-center text-sm font-semibold tabular-nums", q.answers_count > 0 ? "text-foreground" : "text-muted-foreground")}>
+                  {q.answers_count}
+                </div>
+
+                {/* Views */}
+                <div className="text-center text-sm tabular-nums text-muted-foreground">
+                  {q.views_count}
+                </div>
+
+                {/* Author + date */}
+                <div className="text-right text-[11px] text-muted-foreground leading-snug">
+                  {q.author_name && <span className="font-medium text-foreground block">{q.author_name}</span>}
+                  <span>{formatDate(q.created_at)}</span>
+                </div>
               </div>
             ))}
           </div>
+        )}
+
+        {!questionsQuery.isLoading && questions.length > 0 && (
+          <p className="text-xs text-muted-foreground">{questions.length} {questions.length === 1 ? "dúvida" : "dúvidas"}</p>
         )}
       </div>
 

@@ -130,7 +130,7 @@ function ForumPage() {
 
   return (
     <AppShell>
-      <div className="max-w-5xl space-y-6">
+      <div className="space-y-5">
         <PageHeader
           title="Fórum"
           subtitle="Tire dúvidas e troque experiências com a equipe."
@@ -146,180 +146,155 @@ function ForumPage() {
           }
         />
 
-        <div className="flex gap-6">
-          {/* ── Category sidebar ── */}
-          <aside className="w-44 shrink-0 space-y-0.5">
-            <p className="px-2 mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Categorias</p>
-            <button
-              type="button"
-              onClick={() => setSelectedCategory(null)}
-              className={cn(
-                "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                selectedCategory === null ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-              )}
-            >
-              Todos
-            </button>
+        {/* Top bar: tabs + search + category select */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-border/50 pb-4">
+          <div className="flex items-center gap-1">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setFilter(tab.key)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                  filter === tab.key ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Category filter */}
+            <div className="flex items-center gap-0.5">
+              {[{ id: null, name: "Todas" }, ...categories].map((cat) => (
+                <button
+                  key={cat.id ?? "all"}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                    selectedCategory === cat.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50",
+                  )}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
             {isAdmin && (
               <Link
                 to="/forum/moderation"
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-orange-500/10 hover:text-orange-400 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-muted-foreground hover:bg-orange-500/10 hover:text-orange-400 transition-colors"
               >
                 <Shield className="h-3.5 w-3.5" /> Moderação
               </Link>
             )}
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedCategory(cat.id)}
-                className={cn(
-                  "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                  selectedCategory === cat.id ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                )}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </aside>
-
-          {/* ── Main content ── */}
-          <div className="flex-1 min-w-0">
-            {/* Top bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-1 border-b border-border/50 pb-3 w-full">
-                {TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setFilter(tab.key)}
-                    className={cn(
-                      "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                      filter === tab.key ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                    )}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-                <div className="ml-auto relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                  <Input className="pl-8 h-8 text-sm w-52" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
-                </div>
-              </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input className="pl-8 h-8 text-sm w-52" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-
-            {/* Tag filter chip */}
-            {selectedTag && (
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 px-3 py-1 text-xs font-medium text-blue-400">
-                  <Tag className="h-3 w-3" /> {selectedTag}
-                  <button type="button" onClick={() => setSelectedTag(null)} className="ml-1 hover:text-foreground">
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              </div>
-            )}
-
-            {/* Count */}
-            {!topicsQ.isLoading && (
-              <p className="mb-3 text-xs text-muted-foreground">
-                {topics.length} {topics.length === 1 ? "pergunta" : "perguntas"}
-                {selectedCategory ? ` na categoria selecionada` : ""}
-              </p>
-            )}
-
-            {/* Topic list */}
-            {topicsQ.isLoading ? (
-              <div className="glass rounded-2xl p-10 text-center text-sm text-muted-foreground">Carregando...</div>
-            ) : topics.length === 0 ? (
-              <div className="glass flex flex-col items-center gap-3 rounded-2xl p-12 text-center">
-                <MessagesSquare className="h-10 w-10 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">Nenhuma pergunta encontrada.</p>
-                <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
-                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Fazer a primeira pergunta
-                </Button>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/50 border border-border/50 rounded-2xl overflow-hidden bg-card/30">
-                {topics.map((topic) => {
-                  const tags = (topic as unknown as { tags?: string[] }).tags ?? [];
-                  const votes = ((topic as unknown as { likes_count?: number }).likes_count ?? 0) - 0;
-                  const hasAccepted = !!topic.best_answer;
-
-                  return (
-                    <div key={topic.id} className="flex gap-0 hover:bg-muted/20 transition-colors">
-                      {/* Stats column */}
-                      <div className="flex w-36 shrink-0 items-center justify-end gap-4 p-4 pr-5">
-                        {/* Votes */}
-                        <div className={cn("flex flex-col items-center gap-0.5 text-center min-w-[38px]", votes > 0 && "text-orange-400")}>
-                          <span className="text-sm font-bold leading-none tabular-nums">{votes}</span>
-                          <span className="text-[10px] text-muted-foreground">votos</span>
-                        </div>
-                        {/* Answers */}
-                        <div className={cn(
-                          "flex flex-col items-center gap-0.5 text-center min-w-[38px] rounded-md px-1.5 py-0.5",
-                          hasAccepted ? "bg-green-500/15 text-green-500" : (topic.replies_count ?? 0) > 0 ? "text-foreground" : "text-muted-foreground",
-                        )}>
-                          <span className="text-sm font-bold leading-none tabular-nums">{topic.replies_count ?? 0}</span>
-                          <span className="text-[10px]">respostas</span>
-                        </div>
-                        {/* Views */}
-                        <div className="flex flex-col items-center gap-0.5 text-center min-w-[38px] text-muted-foreground">
-                          <span className="text-sm font-bold leading-none tabular-nums">{topic.views_count ?? 0}</span>
-                          <span className="text-[10px]">visitas</span>
-                        </div>
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0 py-4 pr-4">
-                        <Link
-                          to="/forum/$id"
-                          params={{ id: topic.id }}
-                          className="block group"
-                        >
-                          <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2 mb-1.5">
-                            {topic.is_pinned && <span className="mr-1.5 text-primary text-[10px] font-bold uppercase tracking-wide">📌</span>}
-                            {topic.is_locked && <span className="mr-1.5 text-yellow-500 text-[10px] font-bold uppercase tracking-wide">🔒</span>}
-                            {topic.title}
-                          </h3>
-                          <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
-                            {topic.content.replace(/[#*`]/g, "").slice(0, 120)}
-                          </p>
-                        </Link>
-
-                        {/* Tags + meta */}
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          {tags.map((tag) => (
-                            <button
-                              key={tag}
-                              type="button"
-                              onClick={() => {
-                                setSelectedTag(tag);
-                                void navigate({ to: "/forum/tags/$tag", params: { tag } });
-                              }}
-                              className="rounded-md bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[11px] font-medium text-blue-400 hover:bg-blue-500/20 transition-colors"
-                            >
-                              {tag}
-                            </button>
-                          ))}
-                          {topic.category_name && (
-                            <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                              {topic.category_name}
-                            </span>
-                          )}
-                          <span className="ml-auto text-[11px] text-muted-foreground">
-                            {topic.author_name && <span className="font-medium text-foreground">{topic.author_name}</span>}
-                            {" "}perguntou {fmtDate(topic.created_at)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
+
+        {/* Tag filter chip */}
+        {selectedTag && (
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 px-3 py-1 text-xs font-medium text-blue-400">
+              <Tag className="h-3 w-3" /> {selectedTag}
+              <button type="button" onClick={() => setSelectedTag(null)} className="ml-1 hover:text-foreground">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          </div>
+        )}
+
+        {/* Table */}
+        {topicsQ.isLoading ? (
+          <div className="glass rounded-xl p-10 text-center text-sm text-muted-foreground">Carregando...</div>
+        ) : topics.length === 0 ? (
+          <div className="glass flex flex-col items-center gap-3 rounded-xl p-12 text-center">
+            <MessagesSquare className="h-10 w-10 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">Nenhuma pergunta encontrada.</p>
+            <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" /> Fazer a primeira pergunta
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border/50 overflow-hidden bg-card/30">
+            {/* Table header */}
+            <div className="grid grid-cols-[1fr_72px_72px_72px_180px] border-b border-border/50 bg-muted/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span>Pergunta</span>
+              <span className="text-center">Votos</span>
+              <span className="text-center">Respostas</span>
+              <span className="text-center">Visitas</span>
+              <span className="text-right">Autor · Data</span>
+            </div>
+            {topics.map((topic) => {
+              const tags = (topic as unknown as { tags?: string[] }).tags ?? [];
+              const votes = ((topic as unknown as { likes_count?: number }).likes_count ?? 0);
+              const hasAccepted = !!topic.best_answer;
+
+              return (
+                <div key={topic.id} className="grid grid-cols-[1fr_72px_72px_72px_180px] items-center border-b border-border/30 last:border-0 px-4 py-3 hover:bg-muted/20 transition-colors gap-x-2">
+                  {/* Title + tags */}
+                  <div className="min-w-0">
+                    <Link to="/forum/$id" params={{ id: topic.id }} className="group block">
+                      <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1 leading-snug">
+                        {topic.is_pinned && <span className="mr-1">📌</span>}
+                        {topic.is_locked && <span className="mr-1">🔒</span>}
+                        {topic.title}
+                      </p>
+                    </Link>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {topic.category_name && (
+                        <span className="rounded bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">{topic.category_name}</span>
+                      )}
+                      {tags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => { setSelectedTag(tag); void navigate({ to: "/forum/tags/$tag", params: { tag } }); }}
+                          className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-400 hover:bg-blue-500/20 transition-colors"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Votes */}
+                  <div className={cn("text-center text-sm font-semibold tabular-nums", votes > 0 ? "text-orange-400" : "text-muted-foreground")}>
+                    {votes}
+                  </div>
+
+                  {/* Answers */}
+                  <div className={cn(
+                    "text-center text-sm font-semibold tabular-nums rounded px-1",
+                    hasAccepted ? "text-green-500 bg-green-500/10" : (topic.replies_count ?? 0) > 0 ? "text-foreground" : "text-muted-foreground",
+                  )}>
+                    {topic.replies_count ?? 0}
+                  </div>
+
+                  {/* Views */}
+                  <div className="text-center text-sm tabular-nums text-muted-foreground">
+                    {topic.views_count ?? 0}
+                  </div>
+
+                  {/* Author + date */}
+                  <div className="text-right text-[11px] text-muted-foreground leading-snug">
+                    {topic.author_name && <span className="font-medium text-foreground block">{topic.author_name}</span>}
+                    <span>{fmtDate(topic.created_at)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!topicsQ.isLoading && topics.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {topics.length} {topics.length === 1 ? "pergunta" : "perguntas"}
+          </p>
+        )}
       </div>
 
       {/* Create topic dialog */}
