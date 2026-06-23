@@ -62,6 +62,8 @@ import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as KnowledgeNewRouteImport } from './routes/knowledge.new'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as ForumTagsTagRouteImport } from './routes/forum.tags.$tag'
+import { Route as ForumModerationRouteImport } from './routes/forum.moderation'
+import { Route as ForumUsersIdRouteImport } from './routes/forum.users.$id'
 import { Route as ForumIdRouteImport } from './routes/forum.$id'
 import { Route as DoubtsIdRouteImport } from './routes/doubts.$id'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
@@ -356,6 +358,16 @@ const ForumTagsTagRoute = ForumTagsTagRouteImport.update({
   path: '/tags/$tag',
   getParentRoute: () => ForumRoute,
 } as any)
+const ForumModerationRoute = ForumModerationRouteImport.update({
+  id: '/moderation',
+  path: '/moderation',
+  getParentRoute: () => ForumRoute,
+} as any)
+const ForumUsersIdRoute = ForumUsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
+  getParentRoute: () => ForumRoute,
+} as any)
 const ForumIdRoute = ForumIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -549,6 +561,8 @@ export interface FileRoutesByFullPath {
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
+  '/forum/moderation': typeof ForumModerationRoute
+  '/forum/users/$id': typeof ForumUsersIdRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
   '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
@@ -632,6 +646,8 @@ export interface FileRoutesByTo {
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
+  '/forum/moderation': typeof ForumModerationRoute
+  '/forum/users/$id': typeof ForumUsersIdRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
   '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
@@ -716,6 +732,8 @@ export interface FileRoutesById {
   '/doubts/$id': typeof DoubtsIdRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
+  '/forum/moderation': typeof ForumModerationRoute
+  '/forum/users/$id': typeof ForumUsersIdRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
   '/knowledge/new': typeof KnowledgeNewRoute
   '/projects/$id': typeof ProjectsIdRouteWithChildren
@@ -1733,11 +1751,15 @@ const DoubtsRouteWithChildren =
 interface ForumRouteChildren {
   ForumIdRoute: typeof ForumIdRoute
   ForumTagsTagRoute: typeof ForumTagsTagRoute
+  ForumModerationRoute: typeof ForumModerationRoute
+  ForumUsersIdRoute: typeof ForumUsersIdRoute
 }
 
 const ForumRouteChildren: ForumRouteChildren = {
   ForumIdRoute: ForumIdRoute,
   ForumTagsTagRoute: ForumTagsTagRoute,
+  ForumModerationRoute: ForumModerationRoute,
+  ForumUsersIdRoute: ForumUsersIdRoute,
 }
 
 const ForumRouteWithChildren = ForumRoute._addFileChildren(ForumRouteChildren)

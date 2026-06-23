@@ -349,3 +349,54 @@ export async function convertTicketToKb(ticketId: string, categoryId?: string): 
   );
   return response.data;
 }
+
+// ─── Forum Edit History ───────────────────────────────────────────────────────
+
+export function listForumTopicEdits(topicId: string) {
+  return listResource<{
+    id: string; editor: string; editor_name: string;
+    old_title: string; new_title: string;
+    old_content: string; new_content: string;
+    edit_comment: string; created_at: string;
+  }>("/communication/forum-topic-edits", { topic: topicId });
+}
+
+export function listForumReplyEdits(replyId: string) {
+  return listResource<{
+    id: string; editor: string; editor_name: string;
+    old_content: string; new_content: string;
+    edit_comment: string; created_at: string;
+  }>("/communication/forum-reply-edits", { reply: replyId });
+}
+
+// ─── Forum Moderation ─────────────────────────────────────────────────────────
+
+export function listContentFlags(params?: Record<string, unknown>) {
+  return listResource<{
+    id: string; content_type: string; object_id: string;
+    reason: string; author: string; reviewed: boolean;
+    action_taken: string; created_at: string;
+  }>("/communication/flags", params);
+}
+
+export async function resolveContentFlag(id: string, action_taken: string) {
+  const r = await api.post(`/communication/flags/${id}/resolve/`, { action_taken });
+  return r.data;
+}
+
+// ─── Forum User Profile ───────────────────────────────────────────────────────
+
+export async function getForumUserProfile(userId: string) {
+  const r = await api.get(`/communication/forum-users/${userId}/profile/`);
+  return r.data as {
+    id: string; username: string; full_name: string; job_title: string;
+    topics_count: number; replies_count: number; best_answers: number; reputation: number;
+    recent_topics: ForumTopic[]; recent_replies: ForumReply[];
+  };
+}
+
+export function listForumReputation(params?: Record<string, unknown>) {
+  return listResource<{ id: string; user: string; username: string; full_name: string; score: number }>(
+    "/communication/forum-reputation", params,
+  );
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, MessagesSquare, Plus, Search, Tag, X } from "lucide-react";
+import { BookOpen, MessagesSquare, Plus, Search, Shield, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   createForumTopic, listForumCategories, listForumTopics, listKnowledgeArticles,
 } from "@/services/knowledgeService";
+import { getStoredUser } from "@/services/session";
 
 export const Route = createFileRoute("/forum")({
   head: () => ({ meta: [{ title: "Fórum · Nimbus" }] }),
@@ -38,6 +39,8 @@ function ForumPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const user = getStoredUser();
+  const isAdmin = user?.is_staff || user?.is_superuser;
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -157,6 +160,14 @@ function ForumPage() {
             >
               Todos
             </button>
+            {isAdmin && (
+              <Link
+                to="/forum/moderation"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-orange-500/10 hover:text-orange-400 transition-colors"
+              >
+                <Shield className="h-3.5 w-3.5" /> Moderação
+              </Link>
+            )}
             {categories.map((cat) => (
               <button
                 key={cat.id}

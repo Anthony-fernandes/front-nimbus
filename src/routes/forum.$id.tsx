@@ -30,7 +30,8 @@ import type { ForumComment, ForumReply, ForumTopic } from "@/lib/types";
 import {
   convertForumTopicToKb, createForumComment, createForumReply,
   deleteForumComment, deleteForumReply, deleteForumTopic, flagContent,
-  getForumTopic, listForumComments, listForumReplies, listKnowledgeCategories,
+  getForumTopic, listForumComments, listForumReplies, listForumReplyEdits,
+  listForumTopicEdits, listKnowledgeCategories,
   lockForumTopic, markBestAnswer, pinForumTopic, toggleReplyDownvote,
   toggleReplyLike, toggleTopicDownvote, toggleTopicLike,
   updateForumReply, updateForumTopic,
@@ -123,18 +124,95 @@ function VoteColumn({
 
 // ─── Author card ──────────────────────────────────────────────────────────────
 
-function AuthorCard({ name, date, label }: { name?: string; date?: string; label: string }) {
+function AuthorCard({ name, date, label, authorId, reputation }: { name?: string; date?: string; label: string; authorId?: string; reputation?: number }) {
   const initials = name ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "?";
-  return (
+  const content = (
     <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-2 min-w-[150px] space-y-1">
       <p className="text-[10px] text-muted-foreground">{label} {fmtDate(date)}</p>
       <div className="flex items-center gap-2">
         <div className="h-7 w-7 rounded-md bg-blue-500/20 grid place-items-center text-[11px] font-bold text-blue-400 shrink-0">
           {initials}
         </div>
-        <span className="text-xs font-semibold text-blue-400 truncate max-w-[100px]">{name ?? "Usuário"}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-xs font-semibold text-blue-400 truncate max-w-[100px]">{name ?? "Usuário"}</span>
+          {reputation !== undefined && reputation > 0 && (
+            <span className="text-[10px] text-muted-foreground">{reputation} pts</span>
+          )}
+        </div>
       </div>
     </div>
+  );
+  if (authorId) {
+    return (
+      <Link to="/forum/users/$id" params={{ id: authorId }} className="hover:opacity-80 transition-opacity">
+        {content}
+      </Link>
+    );
+  }
+  return content;
+}
+
+// ─── Edit History ─────────────────────────────────────────────────────────────
+
+function EditHistoryButton({ topicId, replyId, editCount }: { topicId?: string; replyId?: string; editCount?: number }) {
+  const [open, setOpen] = useState(false);
+  if (!editCount || editCount === 0) return null;
+
+  const historyQ = useQuery({
+    queryKey: ["forum-edit-history", topicId ?? "", replyId ?? ""],
+    queryFn: () => topicId ? listForumTopicEdits(topicId) : listForumReplyEdits(replyId!),
+    enabled: open,
+  });
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground transition-colors italic"
+      >
+        editado {editCount}×
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Histórico de edições ({editCount})</DialogTitle></DialogHeader>
+          {historyQ.isLoading ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Carregando...</p>
+          ) : (
+            <div className="space-y-4 py-2">
+              {(historyQ.data ?? []).map((edit, i) => (
+                <div key={edit.id} className="border border-border/50 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/40 text-[11px] text-muted-foreground">
+                    <span>Edição #{(historyQ.data?.length ?? 0) - i} por <strong className="text-foreground">{edit.editor_name || "Usuário"}</strong></span>
+                    <span>{fmtDateTime(edit.created_at)}</span>
+                  </div>
+                  {topicId && (edit as { old_title?: string }).old_title !== (edit as { new_title?: string }).new_title && (
+                    <div className="px-3 py-2 border-b border-border/50 space-y-1">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Título</p>
+                      <p className="text-xs line-through text-red-400/70">{(edit as { old_title: string }).old_title}</p>
+                      <p className="text-xs text-green-400">{(edit as { new_title: string }).new_title}</p>
+                    </div>
+                  )}
+                  <div className="px-3 py-2 space-y-2">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Conteúdo anterior</p>
+                    <pre className="text-xs text-red-400/70 whitespace-pre-wrap line-through font-mono bg-red-500/5 rounded p-2 max-h-32 overflow-y-auto">
+                      {edit.old_content || "(vazio)"}
+                    </pre>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Novo conteúdo</p>
+                    <pre className="text-xs text-green-400 whitespace-pre-wrap font-mono bg-green-500/5 rounded p-2 max-h-32 overflow-y-auto">
+                      {edit.new_content || "(vazio)"}
+                    </pre>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -448,8 +526,18 @@ function ForumTopicPage() {
                     )}
                     <span className="opacity-30">·</span>
                     <FlagButton contentType="forum_topic" objectId={topic.id} />
+                    <EditHistoryButton
+                      topicId={id}
+                      editCount={(topic as unknown as { edit_count?: number }).edit_count}
+                    />
                   </div>
-                  <AuthorCard name={topic.author_name} date={topic.created_at} label="perguntado" />
+                  <AuthorCard
+                    name={topic.author_name}
+                    date={topic.created_at}
+                    label="perguntado"
+                    authorId={topic.author ?? undefined}
+                    reputation={(topic as unknown as { author_reputation?: number }).author_reputation}
+                  />
                 </div>
 
                 <CommentsSection topicId={id} currentUserId={user?.id} />
@@ -519,8 +607,18 @@ function ForumTopicPage() {
                                 </>
                               )}
                               <FlagButton contentType="forum_reply" objectId={reply.id} />
+                              <EditHistoryButton
+                                replyId={reply.id}
+                                editCount={(reply as unknown as { edit_count?: number }).edit_count}
+                              />
                             </div>
-                            <AuthorCard name={reply.author_name} date={reply.created_at} label="respondido" />
+                            <AuthorCard
+                              name={reply.author_name}
+                              date={reply.created_at}
+                              label="respondido"
+                              authorId={reply.author ?? undefined}
+                              reputation={(reply as unknown as { author_reputation?: number }).author_reputation}
+                            />
                           </div>
                           <CommentsSection replyId={reply.id} currentUserId={user?.id} />
                         </div>
