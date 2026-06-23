@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, BookOpen, CheckCircle2, Eye, HelpCircle, Lock, MessageSquare, Pencil, Tag, ThumbsUp,
+  ArrowLeft, BookOpen, CheckCircle2, Clock, Eye, HelpCircle, Lock, MessageSquare, Pencil, Tag, ThumbsUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -266,6 +266,23 @@ function DoubtsQuestionPage() {
                     <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide shrink-0", STATUS_CLASS[question.status])}>
                       {STATUS_LABELS[question.status]}
                     </span>
+                    {question.status === "OPEN" && (() => {
+                      const slaHours = 24;
+                      const deadline = new Date(new Date(question.created_at).getTime() + slaHours * 3600 * 1000);
+                      const now = new Date();
+                      const overdue = now > deadline;
+                      const diffMs = Math.abs(deadline.getTime() - now.getTime());
+                      const diffH = Math.floor(diffMs / 3600000);
+                      return (
+                        <span className={cn(
+                          "flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold shrink-0",
+                          overdue ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning",
+                        )}>
+                          <Clock className="h-3 w-3" />
+                          SLA {overdue ? `vencido há ${diffH}h` : `vence em ${diffH}h`}
+                        </span>
+                      );
+                    })()}
                     <h1 className="text-lg font-semibold leading-snug">{question.title}</h1>
                   </div>
                   {question.content && (

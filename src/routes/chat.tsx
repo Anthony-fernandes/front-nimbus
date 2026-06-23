@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  CheckCheck,
   MessageCircle,
   Paperclip,
   Pin,
@@ -41,6 +42,7 @@ import {
   createChatConversation,
   listChatConversations,
   listChatMessages,
+  markMessageRead,
   sendChatMessage,
   sendChatFile,
   updateChatMessage,
@@ -202,6 +204,17 @@ function ChatPage() {
       setMessages(messagesQuery.data);
     }
   }, [messagesQuery.data]);
+
+  // Mark incoming messages as read when conversation is open
+  useEffect(() => {
+    if (!user || !messages.length) return;
+    const unread = messages.filter(
+      (m) => m.author !== user.id && !(m.read_by_ids ?? []).includes(String(user.id)),
+    );
+    for (const msg of unread) {
+      markMessageRead(msg.id).catch(() => null);
+    }
+  }, [messages, user]);
 
   const appendMessage = useCallback((msg: ChatMessage) => {
     setMessages((prev) => {
@@ -910,13 +923,18 @@ function ChatPage() {
 
                             <p
                               className={cn(
-                                "text-[10px] mt-1",
-                                isOwn ? "text-primary-foreground/70 text-right" : "text-muted-foreground",
+                                "text-[10px] mt-1 flex items-center gap-1",
+                                isOwn ? "text-primary-foreground/70 justify-end" : "text-muted-foreground",
                               )}
                             >
                               {formatDate(msg.created_at)}
                               {msg.is_edited && (
-                                <span className="ml-1 opacity-70">· editado</span>
+                                <span className="opacity-70">· editado</span>
+                              )}
+                              {isOwn && (
+                                (msg.read_by_ids ?? []).some((id) => String(id) !== String(user?.id))
+                                  ? <CheckCheck className="h-3 w-3 text-blue-300" aria-label="Lido" />
+                                  : <Check className="h-3 w-3 opacity-60" aria-label="Enviado" />
                               )}
                             </p>
                           </div>

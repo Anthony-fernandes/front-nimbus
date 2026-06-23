@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Shield, UserPlus, Power } from "lucide-react";
+import { BookOpen, MessageCircle, MessageSquare, Plus, Shield, Ticket, TrendingUp, UserPlus, Power } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -19,6 +19,7 @@ import {
 import { getStoredUser } from "@/services/authService";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { api } from "@/services/api";
 import {
   listAllCompanies,
   createCompany,
@@ -28,6 +29,16 @@ import {
   type CreateCompanyData,
   type SetupAdminData,
 } from "@/services/superAdminService";
+
+async function fetchAdminStats() {
+  const r = await api.get("/admin-dashboard/stats/");
+  return r.data as {
+    forum: { topics: number; replies: number; active_users: number };
+    kb: { articles: number; avg_rating: number };
+    tickets: { open: number; closed: number };
+    chat: { active_conversations: number };
+  };
+}
 
 export const Route = createFileRoute("/superadmin")({
   head: () => ({ meta: [{ title: "Super Admin - Nimbus" }] }),
@@ -52,6 +63,14 @@ function SuperAdminPage() {
 
 function SuperAdminContent() {
   const queryClient = useQueryClient();
+
+  const statsQuery = useQuery({
+    queryKey: ["admin-dashboard-stats"],
+    queryFn: fetchAdminStats,
+    refetchInterval: 60_000,
+  });
+
+  const stats = statsQuery.data;
 
   // Create company dialog
   const [newCompanyOpen, setNewCompanyOpen] = useState(false);
@@ -121,6 +140,29 @@ function SuperAdminContent() {
             Nova empresa
           </Button>
         </div>
+
+        {/* Unified stats */}
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { icon: MessageSquare, label: "Tópicos do fórum", value: stats.forum.topics, sub: `${stats.forum.replies} respostas`, color: "bg-blue-400/10 text-blue-400" },
+              { icon: BookOpen, label: "Artigos KB", value: stats.kb.articles, sub: `Nota média ${stats.kb.avg_rating}`, color: "bg-green-500/10 text-green-500" },
+              { icon: Ticket, label: "Chamados abertos", value: stats.tickets.open, sub: `${stats.tickets.closed} fechados`, color: "bg-yellow-400/10 text-yellow-400" },
+              { icon: MessageCircle, label: "Conversas ativas", value: stats.chat.active_conversations, sub: "Chat interno", color: "bg-purple-400/10 text-purple-400" },
+            ].map(({ icon: Icon, label, value, sub, color }) => (
+              <div key={label} className="glass rounded-2xl p-4 flex items-center gap-3 shadow-card">
+                <div className={cn("h-10 w-10 rounded-xl grid place-items-center shrink-0", color)}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold leading-none">{value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+                  <p className="text-[10px] text-muted-foreground/70">{sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Companies table */}
         <div className="glass overflow-hidden rounded-2xl shadow-card">

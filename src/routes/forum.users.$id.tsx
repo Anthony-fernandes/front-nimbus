@@ -4,7 +4,7 @@ import { ArrowLeft, Award, CheckCircle2, MessageSquare, Star, TrendingUp } from 
 
 import { AppShell } from "@/components/app/AppShell";
 import { cn } from "@/lib/utils";
-import { getForumUserProfile } from "@/services/knowledgeService";
+import { getForumUserProfile, listUserBadges } from "@/services/knowledgeService";
 
 export const Route = createFileRoute("/forum/users/$id")({
   head: () => ({ meta: [{ title: "Perfil · Fórum · Nimbus" }] }),
@@ -54,7 +54,13 @@ function ForumUserProfilePage() {
     queryFn: () => getForumUserProfile(id),
   });
 
+  const badgesQ = useQuery({
+    queryKey: ["user-badges", id],
+    queryFn: () => listUserBadges(id),
+  });
+
   const profile = profileQ.data;
+  const badges = badgesQ.data ?? [];
 
   return (
     <AppShell>
@@ -113,6 +119,28 @@ function ForumUserProfilePage() {
                         <span>{fmtDate(topic.created_at)}</span>
                       </div>
                     </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Badges */}
+            {badges.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Conquistas</h2>
+                <div className="flex flex-wrap gap-2">
+                  {badges.map((ub) => (
+                    <div
+                      key={ub.id}
+                      className="glass rounded-xl px-3 py-2 flex items-center gap-2"
+                      title={ub.badge_description}
+                    >
+                      <Award className="h-4 w-4 text-yellow-400 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold">{ub.badge_name}</p>
+                        <p className="text-[10px] text-muted-foreground">{ub.badge_description}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
