@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, MessageCircle, Plus, Send } from "lucide-react";
+import { Check, MessageCircle, Paperclip, Plus, Reply, Search, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -24,6 +24,7 @@ import {
   listChatConversations,
   listChatMessages,
   sendChatMessage,
+  sendChatFile,
 } from "@/services/knowledgeService";
 import { getAccessToken, getStoredUser } from "@/services/session";
 import { listUsers } from "@/services/userService";
@@ -48,6 +49,26 @@ function formatDate(value?: string | null) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function isRecentlyActive(lastMessageAt?: string | null): boolean {
+  if (!lastMessageAt) return false;
+  const d = new Date(lastMessageAt);
+  if (Number.isNaN(d.getTime())) return false;
+  return Date.now() - d.getTime() < 5 * 60 * 1000;
+}
+
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query.trim()) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
 function ChatPage() {
   const queryClient = useQueryClient();
   const user = getStoredUser();
@@ -58,6 +79,24 @@ function ChatPage() {
   const [participantInput, setParticipantInput] = useState("");
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [participantSearch, setParticipantSearch] = useState("");
+
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+
+  // File attachment state
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Typing indicator
+  const [peerTyping, setPeerTyping] = useState<string | null>(null);
+  const peerTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Message search
+  const [messageSearchVisible, setMessageSearchVisible] = useState(false);
+  const [messageSearch, setMessageSearch] = useState("");
+
   const wsRef = useRef<WebSocket | null>(null);
   const notifWsRef = useRef<WebSocket | null>(null);
   const wsConnected = useRef(false);
@@ -82,7 +121,6 @@ function ChatPage() {
     queryKey: ["chat-messages", selectedConversationId],
     queryFn: () => (selectedConversationId ? listChatMessages(selectedConversationId) : Promise.resolve([])),
     enabled: !!selectedConversationId,
-    // Always poll as fallback — WS deduplicates via appendMessage
     refetchInterval: 4_000,
   });
 
@@ -95,7 +133,6 @@ function ChatPage() {
 
   const appendMessage = useCallback((msg: ChatMessage) => {
     setMessages((prev) => {
-      // Replace optimistic placeholder if content + author match
       const optIdx = prev.findIndex(
         (m) => m.id.startsWith("opt-") && m.author === msg.author && m.content === msg.content,
       );
@@ -104,7 +141,6 @@ function ChatPage() {
         next[optIdx] = msg;
         return next;
       }
-      // Deduplicate by real id
       if (prev.some((m) => m.id === msg.id)) return prev;
       return [...prev, msg];
     });
@@ -128,7 +164,6 @@ function ChatPage() {
         try {
           const data = JSON.parse(event.data as string) as Partial<ChatMessage> & { event?: string };
           if (data.event === "chat.new_message") {
-            // New message in a different conversation — refresh list and show toast
             if (data.conversation && data.conversation !== selectedConvRef.current) {
               void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
               toast(`💬 ${data.author_name || "Alguém"}: ${(data.content ?? "").slice(0, 60)}`);
@@ -166,7 +201,15 @@ function ChatPage() {
 
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data as string) as Partial<ChatMessage>;
+          const data = JSON.parse(event.data as string) as Partial<ChatMessage> & { type?: string; author_name?: string };
+          // Handle typing indicator
+          if (data.type === "typing") {
+            const author = data.author_name ?? "Alguém";
+            setPeerTyping(author);
+            if (peerTypingTimerRef.current) clearTimeout(peerTypingTimerRef.current);
+            peerTypingTimerRef.current = setTimeout(() => setPeerTyping(null), 3000);
+            return;
+          }
           if (data.id && data.content) {
             appendMessage(data as ChatMessage);
             void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
@@ -186,6 +229,8 @@ function ChatPage() {
       ws?.close();
       wsRef.current = null;
       wsConnected.current = false;
+      if (peerTypingTimerRef.current) clearTimeout(peerTypingTimerRef.current);
+      setPeerTyping(null);
     };
   }, [selectedConversationId, appendMessage, queryClient]);
 
@@ -193,6 +238,17 @@ function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Send typing notification (debounced 1s)
+  function handleInputChange(value: string) {
+    setInputText(value);
+    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    typingDebounceRef.current = setTimeout(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "typing" }));
+      }
+    }, 1000);
+  }
 
   const createConvMutation = useMutation({
     mutationFn: (participantIds: string[]) => createChatConversation(participantIds),
@@ -208,14 +264,33 @@ function ChatPage() {
     onError: () => toast.error("Não foi possível criar a conversa."),
   });
 
+  const sendFileMutation = useMutation({
+    mutationFn: (file: File) => sendChatFile(selectedConversationId!, file),
+    onSuccess: (msg) => {
+      appendMessage(msg);
+      setPendingFile(null);
+      void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
+    },
+    onError: () => toast.error("Não foi possível enviar o arquivo."),
+  });
+
   function handleSend() {
-    if (!inputText.trim() || !selectedConversationId) return;
+    if (!selectedConversationId) return;
+
+    // If there's a pending file, send it first
+    if (pendingFile) {
+      sendFileMutation.mutate(pendingFile);
+      return;
+    }
+
+    if (!inputText.trim()) return;
 
     const content = inputText.trim();
+    const replyToId = replyingTo?.id;
     setInputText("");
+    setReplyingTo(null);
 
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      // Add optimistic message; it will be replaced when server echoes back with real id
       const optimistic: ChatMessage = {
         id: `opt-${Date.now()}`,
         conversation: selectedConversationId,
@@ -224,12 +299,14 @@ function ChatPage() {
         content,
         file: null,
         file_name: null,
+        reply_to: replyToId ?? null,
+        reply_to_preview: replyingTo?.content?.slice(0, 60) ?? null,
+        reply_to_author: replyingTo?.author_name ?? null,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, optimistic]);
-      wsRef.current.send(JSON.stringify({ type: "message", content }));
+      wsRef.current.send(JSON.stringify({ type: "message", content, reply_to: replyToId }));
     } else {
-      // REST fallback — add optimistic then replace with real message
       const optimistic: ChatMessage = {
         id: `opt-${Date.now()}`,
         conversation: selectedConversationId,
@@ -238,11 +315,14 @@ function ChatPage() {
         content,
         file: null,
         file_name: null,
+        reply_to: replyToId ?? null,
+        reply_to_preview: replyingTo?.content?.slice(0, 60) ?? null,
+        reply_to_author: replyingTo?.author_name ?? null,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, optimistic]);
 
-      sendChatMessage(selectedConversationId, content)
+      sendChatMessage(selectedConversationId, content, replyToId)
         .then((msg) => {
           setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? msg : m)));
           void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
@@ -264,6 +344,10 @@ function ChatPage() {
     }
     return `Conversa ${conv.id.slice(0, 8)}`;
   }
+
+  const displayedMessages = messageSearch.trim()
+    ? messages.filter((m) => m.content?.toLowerCase().includes(messageSearch.toLowerCase()))
+    : messages;
 
   return (
     <AppShell>
@@ -295,26 +379,34 @@ function ChatPage() {
                 Nenhuma conversa.
               </div>
             ) : (
-              conversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  type="button"
-                  onClick={() => setSelectedConversationId(conv.id)}
-                  className={cn(
-                    "glass w-full rounded-2xl p-3 text-left transition-colors shadow-card",
-                    selectedConversationId === conv.id
-                      ? "border-primary/50 bg-primary/5"
-                      : "hover:border-primary/20",
-                  )}
-                >
-                  <p className="truncate text-sm font-medium">{getConvLabel(conv)}</p>
-                  {conv.last_message_at ? (
-                    <p className="text-[11px] text-muted-foreground">
-                      {formatDate(conv.last_message_at)}
-                    </p>
-                  ) : null}
-                </button>
-              ))
+              conversations.map((conv) => {
+                const active = isRecentlyActive(conv.last_message_at);
+                return (
+                  <button
+                    key={conv.id}
+                    type="button"
+                    onClick={() => setSelectedConversationId(conv.id)}
+                    className={cn(
+                      "glass w-full rounded-2xl p-3 text-left transition-colors shadow-card",
+                      selectedConversationId === conv.id
+                        ? "border-primary/50 bg-primary/5"
+                        : "hover:border-primary/20",
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      {active && (
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-green-500" aria-label="Ativo recentemente" />
+                      )}
+                      <p className="truncate text-sm font-medium">{getConvLabel(conv)}</p>
+                    </div>
+                    {conv.last_message_at ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        {formatDate(conv.last_message_at)}
+                      </p>
+                    ) : null}
+                  </button>
+                );
+              })
             )}
           </aside>
 
@@ -326,14 +418,56 @@ function ChatPage() {
               </div>
             ) : (
               <>
+                {/* Search bar toggle */}
+                <div className="flex items-center justify-end border-b border-border/50 px-3 py-1.5 gap-2">
+                  {messageSearchVisible && (
+                    <div className="relative flex-1 max-w-xs">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      <Input
+                        className="pl-8 h-7 text-xs"
+                        placeholder="Buscar mensagens..."
+                        value={messageSearch}
+                        onChange={(e) => setMessageSearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0"
+                    onClick={() => {
+                      setMessageSearchVisible((v) => !v);
+                      setMessageSearch("");
+                    }}
+                    aria-label="Buscar mensagens"
+                  >
+                    {messageSearchVisible ? <X className="h-3.5 w-3.5" /> : <Search className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {messages.map((msg) => {
+                  {displayedMessages.map((msg) => {
                     const isOwn = msg.author === user?.id;
                     return (
                       <div
                         key={msg.id}
-                        className={cn("flex", isOwn ? "justify-end" : "justify-start")}
+                        className={cn("flex group", isOwn ? "justify-end" : "justify-start")}
+                        onMouseEnter={() => setHoveredMessageId(msg.id)}
+                        onMouseLeave={() => setHoveredMessageId(null)}
                       >
+                        {/* Reply button (shown on hover, for incoming messages on left) */}
+                        {!isOwn && hoveredMessageId === msg.id && (
+                          <button
+                            type="button"
+                            onClick={() => setReplyingTo(msg)}
+                            className="mr-1 self-center p-1 rounded-full hover:bg-muted transition-colors opacity-70 hover:opacity-100"
+                            aria-label="Responder"
+                          >
+                            <Reply className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+
                         <div
                           className={cn(
                             "max-w-[70%] rounded-2xl px-4 py-2.5 text-sm",
@@ -347,7 +481,53 @@ function ChatPage() {
                               {msg.author_name}
                             </p>
                           ) : null}
-                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+
+                          {/* Reply preview */}
+                          {msg.reply_to && (
+                            <div className={cn(
+                              "mb-1.5 rounded-lg border-l-2 pl-2 py-1 text-[10px]",
+                              isOwn
+                                ? "border-primary-foreground/40 bg-primary-foreground/10"
+                                : "border-primary/40 bg-primary/5",
+                            )}>
+                              {msg.reply_to_author && (
+                                <p className="font-semibold opacity-80">{msg.reply_to_author}</p>
+                              )}
+                              <p className="opacity-70 line-clamp-1">{msg.reply_to_preview}</p>
+                            </div>
+                          )}
+
+                          {/* File attachment display */}
+                          {msg.file ? (
+                            /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file_name ?? "") ? (
+                              <img
+                                src={msg.file}
+                                alt={msg.file_name ?? "imagem"}
+                                className="rounded-lg max-w-full max-h-48 object-contain mb-1"
+                              />
+                            ) : (
+                              <a
+                                href={msg.file}
+                                download={msg.file_name ?? undefined}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={cn(
+                                  "flex items-center gap-1.5 underline underline-offset-2 text-xs mb-1",
+                                  isOwn ? "text-primary-foreground/90" : "text-primary",
+                                )}
+                              >
+                                <Paperclip className="h-3 w-3 shrink-0" />
+                                {msg.file_name ?? "arquivo"}
+                              </a>
+                            )
+                          ) : null}
+
+                          {msg.content ? (
+                            <p className="whitespace-pre-wrap break-words">
+                              {highlightText(msg.content, messageSearch)}
+                            </p>
+                          ) : null}
+
                           <p
                             className={cn(
                               "text-[10px] mt-1",
@@ -357,27 +537,111 @@ function ChatPage() {
                             {formatDate(msg.created_at)}
                           </p>
                         </div>
+
+                        {/* Reply button for own messages on right */}
+                        {isOwn && hoveredMessageId === msg.id && (
+                          <button
+                            type="button"
+                            onClick={() => setReplyingTo(msg)}
+                            className="ml-1 self-center p-1 rounded-full hover:bg-muted transition-colors opacity-70 hover:opacity-100"
+                            aria-label="Responder"
+                          >
+                            <Reply className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
                   <div ref={messagesEndRef} />
                 </div>
-                <div className="border-t border-border p-3 flex gap-2">
-                  <Input
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder="Escreva uma mensagem..."
-                    className="flex-1 text-sm"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                      }
-                    }}
-                  />
-                  <Button size="sm" onClick={handleSend} disabled={!inputText.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+
+                {/* Typing indicator */}
+                {peerTyping && (
+                  <div className="px-4 pb-1 text-[11px] text-muted-foreground italic">
+                    {peerTyping} está digitando...
+                  </div>
+                )}
+
+                {/* Input area */}
+                <div className="border-t border-border p-3 space-y-2">
+                  {/* Reply preview bar */}
+                  {replyingTo && (
+                    <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5 text-xs">
+                      <Reply className="h-3 w-3 shrink-0 text-primary" />
+                      <span className="flex-1 truncate text-muted-foreground">
+                        <span className="font-medium text-foreground">{replyingTo.author_name}: </span>
+                        {replyingTo.content?.slice(0, 60)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setReplyingTo(null)}
+                        className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                        aria-label="Cancelar resposta"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Pending file preview */}
+                  {pendingFile && (
+                    <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5 text-xs">
+                      <Paperclip className="h-3 w-3 shrink-0 text-primary" />
+                      <span className="flex-1 truncate text-muted-foreground">{pendingFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPendingFile(null)}
+                        className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                        aria-label="Cancelar arquivo"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setPendingFile(file);
+                        // Reset so same file can be re-selected
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-9 w-9 shrink-0 p-0"
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label="Anexar arquivo"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      value={inputText}
+                      onChange={(e) => handleInputChange(e.target.value)}
+                      placeholder={pendingFile ? "Adicionar mensagem (opcional)..." : "Escreva uma mensagem..."}
+                      className="flex-1 text-sm"
+                      disabled={!!pendingFile}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSend}
+                      disabled={!inputText.trim() && !pendingFile}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </>
             )}

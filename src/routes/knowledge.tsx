@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Plus, Search } from "lucide-react";
+import { BookOpen, Eye, Plus, Search, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { MarkdownEditor } from "@/components/app/MarkdownEditor";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { hasPermission } from "@/lib/permissions";
 import type { KnowledgeArticle } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,34 @@ const STATUS_CLASS: Record<string, string> = {
   ARCHIVED: "bg-muted text-muted-foreground",
 };
 
+const VISIBILITY_LABELS: Record<string, string> = {
+  PUBLIC: "Público",
+  INTERNAL: "Interno",
+  RESTRICTED: "Restrito",
+};
+
+const VISIBILITY_CLASS: Record<string, string> = {
+  PUBLIC: "bg-blue-500/15 text-blue-600",
+  INTERNAL: "bg-purple-500/15 text-purple-600",
+  RESTRICTED: "bg-orange-500/15 text-orange-600",
+};
+
+const TEMPLATES: Record<string, { label: string; content: string }> = {
+  procedure: {
+    label: "Procedimento passo a passo",
+    content:
+      "## Objetivo\n\n## Pré-requisitos\n\n## Passo a passo\n\n1. \n2. \n3. \n\n## Resultado esperado\n",
+  },
+  faq: {
+    label: "FAQ",
+    content: "## Pergunta\n\n## Resposta\n\n## Ver também\n",
+  },
+  troubleshooting: {
+    label: "Troubleshooting",
+    content: "## Problema\n\n## Causa\n\n## Solução\n\n## Prevenção\n",
+  },
+};
+
 function formatDate(value?: string | null) {
   if (!value) return "";
   const d = new Date(value);
@@ -67,8 +95,10 @@ function KnowledgePage() {
   const canCreate = hasPermission(user, "activities.create");
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("PUBLISHED");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const [form, setForm] = useState({
@@ -78,7 +108,18 @@ function KnowledgePage() {
     category: "",
     status: "DRAFT" as KnowledgeArticle["status"],
     visibility: "INTERNAL" as KnowledgeArticle["visibility"],
+    tags: [] as string[],
   });
+
+  const [tagsInput, setTagsInput] = useState("");
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const categoriesQuery = useQuery({
     queryKey: ["knowledge-categories"],
@@ -86,36 +127,43 @@ function KnowledgePage() {
   });
 
   const articlesQuery = useQuery({
-    queryKey: ["knowledge-articles", { status: statusFilter, category: categoryFilter }],
+    queryKey: [
+      "knowledge-articles",
+      { status: statusFilter, category: categoryFilter, search: debouncedSearch, visibility: visibilityFilter },
+    ],
     queryFn: () =>
       listKnowledgeArticles({
         status: statusFilter !== "all" ? statusFilter : undefined,
         category: categoryFilter !== "all" ? categoryFilter : undefined,
+        search: debouncedSearch || undefined,
+        visibility: visibilityFilter !== "all" ? visibilityFilter : undefined,
       }),
   });
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      createKnowledgeArticle({
+    mutationFn: () => {
+      const parsedTags = tagsInput
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      return createKnowledgeArticle({
         ...form,
         category: form.category || null,
-      }),
+        tags: parsedTags.length > 0 ? parsedTags : undefined,
+      });
+    },
     onSuccess: () => {
       toast.success("Artigo criado com sucesso.");
       setDialogOpen(false);
-      setForm({ title: "", summary: "", content: "", category: "", status: "DRAFT", visibility: "INTERNAL" });
+      setForm({ title: "", summary: "", content: "", category: "", status: "DRAFT", visibility: "INTERNAL", tags: [] });
+      setTagsInput("");
       void queryClient.invalidateQueries({ queryKey: ["knowledge-articles"] });
     },
     onError: () => toast.error("Não foi possível criar o artigo."),
   });
 
   const categories = categoriesQuery.data ?? [];
-  const articles = (articlesQuery.data ?? []).filter(
-    (a) =>
-      !search ||
-      a.title.toLowerCase().includes(search.toLowerCase()) ||
-      a.summary.toLowerCase().includes(search.toLowerCase()),
-  );
+  const articles = articlesQuery.data ?? [];
 
   return (
     <AppShell>
@@ -172,6 +220,17 @@ function KnowledgePage() {
               <SelectItem value="ARCHIVED">Arquivados</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+            <SelectTrigger className="w-36 text-sm">
+              <SelectValue placeholder="Visibilidade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="PUBLIC">Público</SelectItem>
+              <SelectItem value="INTERNAL">Interno</SelectItem>
+              <SelectItem value="RESTRICTED">Restrito</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Article grid */}
@@ -222,6 +281,14 @@ function KnowledgePage() {
                         {article.category_name}
                       </span>
                     ) : null}
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                        VISIBILITY_CLASS[article.visibility] ?? "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {VISIBILITY_LABELS[article.visibility] ?? article.visibility}
+                    </span>
                   </div>
 
                   {/* Title */}
@@ -238,12 +305,32 @@ function KnowledgePage() {
                     <div className="flex-1" />
                   )}
 
+                  {/* Tag badges */}
+                  {article.tag_names && article.tag_names.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {article.tag_names.map((tag) => (
+                        <span
+                          key={tag}
+                          className="flex items-center gap-0.5 rounded-full bg-muted/70 px-2 py-0.5 text-[10px] text-muted-foreground"
+                        >
+                          <Tag className="h-2.5 w-2.5" />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
                   {/* Meta */}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground border-t border-border/50 pt-2.5">
                     {article.author_name ? <span className="font-medium">{article.author_name}</span> : null}
                     <span>{formatDate(article.created_at)}</span>
-                    <span className="ml-auto">{article.views_count} vis.</span>
-                    {helpfulPct !== null ? <span>{helpfulPct}% útil</span> : null}
+                    <span className="ml-auto flex items-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      {article.views_count}
+                    </span>
+                    {helpfulPct !== null ? (
+                      <span className="text-success font-medium">{helpfulPct}% útil</span>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -254,7 +341,7 @@ function KnowledgePage() {
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Novo artigo</DialogTitle>
           </DialogHeader>
@@ -291,12 +378,39 @@ function KnowledgePage() {
               />
             </div>
             <div className="space-y-1">
-              <Label>Conteúdo</Label>
-              <Textarea
+              <Label>Tags</Label>
+              <Input
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="Ex: suporte, acesso, VPN (separadas por vírgula)"
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label>Conteúdo</Label>
+                <Select
+                  onValueChange={(v) => {
+                    const tpl = TEMPLATES[v];
+                    if (tpl) setForm((f) => ({ ...f, content: tpl.content }));
+                  }}
+                >
+                  <SelectTrigger className="h-7 w-48 text-xs">
+                    <SelectValue placeholder="Usar template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TEMPLATES).map(([key, tpl]) => (
+                      <SelectItem key={key} value={key}>
+                        {tpl.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <MarkdownEditor
                 value={form.content}
-                onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+                onChange={(v) => setForm((f) => ({ ...f, content: v }))}
                 placeholder="Conteúdo do artigo..."
-                className="min-h-[120px]"
+                rows={10}
               />
             </div>
             <div className="flex gap-3">

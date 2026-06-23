@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, HelpCircle, MessageSquare, Plus, Search } from "lucide-react";
+import { CheckCircle2, HelpCircle, MessageSquare, Plus, Search, Tag, ThumbsUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
@@ -18,7 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { createDoubtsQuestion, listDoubtsQuestions } from "@/services/knowledgeService";
+import {
+  createDoubtsQuestion,
+  listDoubtsQuestions,
+  listKnowledgeArticles,
+} from "@/services/knowledgeService";
 import type { DoubtsQuestion } from "@/lib/types";
 
 export const Route = createFileRoute("/doubts")({
@@ -52,8 +56,30 @@ function DoubtsPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", content: "" });
+  const [form, setForm] = useState({ title: "", content: "", tags: "" });
+
+  // KB suggestions state
+  const [kbSearch, setKbSearch] = useState("");
+  const kbDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const kbSuggestionsQuery = useQuery({
+    queryKey: ["kb-suggestions", kbSearch],
+    queryFn: () => listKnowledgeArticles({ search: kbSearch }),
+    enabled: kbSearch.length >= 3,
+  });
+
+  // Debounce title → kbSearch
+  useEffect(() => {
+    if (kbDebounceRef.current) clearTimeout(kbDebounceRef.current);
+    kbDebounceRef.current = setTimeout(() => {
+      setKbSearch(form.title.length >= 3 ? form.title : "");
+    }, 300);
+    return () => {
+      if (kbDebounceRef.current) clearTimeout(kbDebounceRef.current);
+    };
+  }, [form.title]);
 
   const questionsQuery = useQuery({
     queryKey: ["doubts-questions", statusFilter],
@@ -62,11 +88,15 @@ function DoubtsPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => createDoubtsQuestion(form),
+    mutationFn: () =>
+      createDoubtsQuestion({
+        ...form,
+        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      }),
     onSuccess: () => {
       toast.success("Pergunta enviada.");
       setDialogOpen(false);
-      setForm({ title: "", content: "" });
+      setForm({ title: "", content: "", tags: "" });
       void queryClient.invalidateQueries({ queryKey: ["doubts-questions"] });
     },
     onError: () => toast.error("Não foi possível enviar a pergunta."),
@@ -75,7 +105,7 @@ function DoubtsPage() {
   if (pathname !== "/doubts") return <Outlet />;
 
   const rawQuestions = questionsQuery.data ?? [];
-  const questions = search.trim()
+  const filtered = search.trim()
     ? rawQuestions.filter(
         (q) =>
           q.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -83,12 +113,18 @@ function DoubtsPage() {
       )
     : rawQuestions;
 
+  const questions = selectedTag
+    ? filtered.filter((q) => q.tags?.includes(selectedTag))
+    : filtered;
+
   const TABS: { label: string; value: StatusFilter }[] = [
     { label: "Todas", value: "all" },
     { label: "Abertas", value: "OPEN" },
     { label: "Respondidas", value: "ANSWERED" },
     { label: "Fechadas", value: "CLOSED" },
   ];
+
+  const kbSuggestions = (kbSuggestionsQuery.data ?? []).slice(0, 3);
 
   return (
     <AppShell>
@@ -138,6 +174,24 @@ function DoubtsPage() {
           </div>
         </div>
 
+        {/* Active tag filter chip */}
+        {selectedTag && (
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium">
+              <Tag className="h-3 w-3" />
+              Filtrando por tag: {selectedTag}
+              <button
+                type="button"
+                onClick={() => setSelectedTag(null)}
+                className="ml-1 opacity-60 hover:opacity-100 transition-opacity"
+                aria-label="Remover filtro de tag"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+        )}
+
         {/* Question list */}
         {questionsQuery.isLoading ? (
           <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
@@ -180,6 +234,10 @@ function DoubtsPage() {
                     </span>
                     <span className="text-[10px] text-muted-foreground">visitas</span>
                   </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <ThumbsUp className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">{q.likes_count}</span>
+                  </div>
                 </div>
 
                 {/* Content column */}
@@ -206,6 +264,27 @@ function DoubtsPage() {
                     <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                       {q.content}
                     </p>
+                  ) : null}
+
+                  {/* Tags */}
+                  {q.tags && q.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {q.tags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedTag(tag);
+                          }}
+                          className="flex items-center gap-0.5 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium hover:bg-primary/20 transition-colors"
+                        >
+                          <Tag className="h-2.5 w-2.5" />
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
                   ) : null}
 
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -242,6 +321,30 @@ function DoubtsPage() {
                 placeholder="Resuma sua dúvida"
               />
             </div>
+
+            {/* KB suggestions */}
+            {kbSearch.length >= 3 && kbSuggestions.length > 0 && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
+                <p className="text-xs font-medium text-primary">
+                  Artigos relacionados na KB — confira antes de perguntar:
+                </p>
+                <ul className="space-y-1">
+                  {kbSuggestions.map((article) => (
+                    <li key={article.id}>
+                      <a
+                        href={`/knowledge/${article.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+                      >
+                        {article.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="space-y-1">
               <Label>Detalhes</Label>
               <Textarea
@@ -249,6 +352,14 @@ function DoubtsPage() {
                 onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
                 placeholder="Descreva sua dúvida com mais detalhes..."
                 className="min-h-[120px]"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Tags</Label>
+              <Input
+                value={form.tags}
+                onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                placeholder="Ex: react, typescript, api (separadas por vírgula)"
               />
             </div>
           </div>
