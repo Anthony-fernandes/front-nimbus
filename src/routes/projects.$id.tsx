@@ -54,6 +54,8 @@ import {
 import { listTickets } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
 import { formatCurrency, formatDateSafe, toNumber } from "@/services/utils";
+import { listProjectCustomFields, listProjectCustomValues, upsertProjectCustomValue } from "@/services/customFieldService";
+import { CustomFieldsSection } from "@/components/app/CustomFieldsSection";
 
 export const Route = createFileRoute("/projects/$id")({
   head: () => ({ meta: [{ title: "Detalhes do projeto - NimbusDesk" }] }),
@@ -94,6 +96,16 @@ function ProjectDetail() {
     queryKey: ["project-cost-tickets"],
     queryFn: () => listTickets(),
     enabled: costDialogOpen,
+  });
+
+  const customFieldsQuery = useQuery({
+    queryKey: ["project-custom-fields"],
+    queryFn: listProjectCustomFields,
+  });
+
+  const customValuesQuery = useQuery({
+    queryKey: ["project-custom-values", id],
+    queryFn: () => listProjectCustomValues(id),
   });
 
   const project = projectQuery.data;
@@ -515,6 +527,7 @@ function ProjectDetail() {
               <TabsTrigger value="team">Equipe</TabsTrigger>
               <TabsTrigger value="activities">Atividades</TabsTrigger>
               <TabsTrigger value="costs">Custos</TabsTrigger>
+              <TabsTrigger value="custom-fields">Campos extras</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -866,6 +879,20 @@ function ProjectDetail() {
                     </div>
                   )}
                 </div>
+            </TabsContent>
+
+            <TabsContent value="custom-fields" className="space-y-4">
+              <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+                <h3 className="text-sm font-semibold">Campos personalizados</h3>
+                <CustomFieldsSection
+                  entityId={id}
+                  entityType="project"
+                  fieldsQuery={customFieldsQuery}
+                  valuesQuery={customValuesQuery}
+                  onUpsert={(fieldId, value, existingId) => upsertProjectCustomValue(id, fieldId, value, existingId)}
+                  onRefresh={() => queryClient.invalidateQueries({ queryKey: ["project-custom-values", id] })}
+                />
+              </div>
             </TabsContent>
           </Tabs>
         </div>

@@ -56,6 +56,8 @@ import {
 import { listSprints } from "@/services/sprintService";
 import { formatCurrency, formatDate, formatDateTime, toNumber } from "@/services/utils";
 import { listUsers } from "@/services/userService";
+import { listActivityCustomFields, listActivityCustomValues, upsertActivityCustomValue } from "@/services/customFieldService";
+import { CustomFieldsSection } from "@/components/app/CustomFieldsSection";
 
 export const Route = createFileRoute("/activities/$id")({
   head: () => ({ meta: [{ title: "Detalhes da atividade - NimbusDesk" }] }),
@@ -98,6 +100,16 @@ function ActivityDetail() {
   const depsQuery = useQuery({
     queryKey: ["activity-dependencies", id],
     queryFn: () => listActivityDependencies(id),
+  });
+
+  const customFieldsQuery = useQuery({
+    queryKey: ["activity-custom-fields"],
+    queryFn: listActivityCustomFields,
+  });
+
+  const customValuesQuery = useQuery({
+    queryKey: ["activity-custom-values", id],
+    queryFn: () => listActivityCustomValues(id),
   });
   const generatedCostsQuery = useQuery({
     queryKey: ["activity-generated-costs", id, activityQuery.data?.project],
@@ -357,6 +369,7 @@ function ActivityDetail() {
                 <TabsTrigger value="planning">Planejamento</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
                 <TabsTrigger value="dependencies">Dependências</TabsTrigger>
+                <TabsTrigger value="custom-fields">Campos extras</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
@@ -637,6 +650,20 @@ function ActivityDetail() {
                       {addingDep ? "..." : "Adicionar"}
                     </button>
                   </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="custom-fields" className="space-y-4">
+                <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+                  <h3 className="text-sm font-semibold">Campos personalizados</h3>
+                  <CustomFieldsSection
+                    entityId={id}
+                    entityType="activity"
+                    fieldsQuery={customFieldsQuery}
+                    valuesQuery={customValuesQuery}
+                    onUpsert={(fieldId, value, existingId) => upsertActivityCustomValue(id, fieldId, value, existingId)}
+                    onRefresh={() => queryClient.invalidateQueries({ queryKey: ["activity-custom-values", id] })}
+                  />
                 </div>
               </TabsContent>
             </Tabs>
