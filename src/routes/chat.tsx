@@ -859,16 +859,16 @@ function ChatPage() {
                             )}
 
                             {/* File attachment display */}
-                            {msg.file ? (
+                            {(msg.file_url || msg.file) ? (
                               /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file_name ?? "") ? (
                                 <img
-                                  src={msg.file}
+                                  src={msg.file_url || msg.file}
                                   alt={msg.file_name ?? "imagem"}
                                   className="rounded-lg max-w-full max-h-48 object-contain mb-1"
                                 />
                               ) : (
                                 <a
-                                  href={msg.file}
+                                  href={msg.file_url || msg.file}
                                   download={msg.file_name ?? undefined}
                                   target="_blank"
                                   rel="noopener noreferrer"

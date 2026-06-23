@@ -1,4 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import {
   BarChart3,
   Blocks,
@@ -237,6 +239,17 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const clientName = getUserClientName(user);
   const isActive = (url: string) => (url === "/" ? path === "/" : path.startsWith(url));
 
+  const chatConvsQ = useQuery({
+    queryKey: ["chat-conversations-unread"],
+    queryFn: () => api.get("/communication/conversations/").then((r) => r.data),
+    refetchInterval: 30000,
+    enabled: !clientUser,
+  });
+  const unreadChatCount: number = (chatConvsQ.data?.results ?? chatConvsQ.data ?? []).reduce(
+    (sum: number, c: { unread_count?: number }) => sum + (c.unread_count ?? 0),
+    0,
+  );
+
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
@@ -264,16 +277,24 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
           ) : null}
           <SidebarGroupContent>
             <SidebarMenu>
-              {(clientUser ? clientMenu : internalMenu.workspace).map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url} className="group">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {(clientUser ? clientMenu : internalMenu.workspace).map((item) => {
+                const badge = item.url === "/chat" && unreadChatCount > 0 ? unreadChatCount : null;
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                      <Link to={item.url} className="group">
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span className="flex-1">{item.title}</span>
+                        {badge ? (
+                          <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                            {badge > 99 ? "99+" : badge}
+                          </span>
+                        ) : null}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
