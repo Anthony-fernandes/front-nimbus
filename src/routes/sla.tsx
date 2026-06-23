@@ -33,6 +33,16 @@ import {
   type SLAAlert,
   type SLAPolicy,
 } from "@/services/reportService";
+import {
+  listBusinessHours,
+  createBusinessHours,
+  updateBusinessHours,
+  deleteBusinessHours,
+  listCompanyHolidays,
+  createCompanyHoliday,
+  deleteCompanyHoliday,
+} from "@/services/businessHoursService";
+import type { BusinessHours, CompanyHoliday } from "@/lib/types";
 
 export const Route = createFileRoute("/sla")({
   head: () => ({ meta: [{ title: "SLA · NimbusDesk" }] }),
@@ -97,6 +107,11 @@ function SLAPage() {
   const alertsQuery = useQuery({ queryKey: ["sla-alerts"], queryFn: getSLAAlerts, refetchInterval: 120000 });
   const policiesQuery = useQuery({ queryKey: ["sla-policies"], queryFn: listSLAPolicies });
   const reportQuery = useQuery({ queryKey: ["sla-report"], queryFn: () => getSLAReport() });
+  const businessHoursQuery = useQuery({ queryKey: ["business-hours"], queryFn: listBusinessHours });
+  const holidaysQuery = useQuery({ queryKey: ["company-holidays"], queryFn: listCompanyHolidays });
+  const [newHolidayDate, setNewHolidayDate] = useState("");
+  const [newHolidayName, setNewHolidayName] = useState("");
+  const [addingHoliday, setAddingHoliday] = useState(false);
 
   const breached = alertsQuery.data?.breached ?? [];
   const warning = alertsQuery.data?.warning ?? [];
@@ -267,6 +282,116 @@ function SLAPage() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Business Hours */}
+      <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold">Horário de funcionamento</p>
+          <span className="text-xs text-muted-foreground">Usado no cálculo de SLA</span>
+        </div>
+        {businessHoursQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        ) : (businessHoursQuery.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum horário configurado. O SLA será calculado em horas corridas.</p>
+        ) : (
+          <div className="space-y-2">
+            {(businessHoursQuery.data ?? []).map((bh) => {
+              const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+              return (
+                <div key={bh.id} className="flex items-center justify-between rounded-xl border border-border bg-muted/10 px-4 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium", bh.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>
+                      {DAYS[bh.weekday]}
+                    </span>
+                    <span className="text-sm font-mono">{bh.start_time} – {bh.end_time}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      await deleteBusinessHours(bh.id);
+                      void queryClient.invalidateQueries({ queryKey: ["business-hours"] });
+                      toast.success("Horário removido.");
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Company Holidays */}
+      <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+        <p className="text-sm font-semibold">Feriados / Dias bloqueados</p>
+        {holidaysQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        ) : (holidaysQuery.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum feriado cadastrado.</p>
+        ) : (
+          <div className="space-y-2">
+            {(holidaysQuery.data ?? []).map((h) => (
+              <div key={h.id} className="flex items-center justify-between rounded-xl border border-border bg-muted/10 px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-sm text-muted-foreground">{h.date}</span>
+                  <span className="text-sm">{h.name}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-destructive hover:text-destructive"
+                  onClick={async () => {
+                    await deleteCompanyHoliday(h.id);
+                    void queryClient.invalidateQueries({ queryKey: ["company-holidays"] });
+                    toast.success("Feriado removido.");
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <input
+            type="date"
+            className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+            value={newHolidayDate}
+            onChange={(e) => setNewHolidayDate(e.target.value)}
+          />
+          <input
+            className="h-8 flex-1 rounded-md border border-border bg-background px-3 text-xs"
+            placeholder="Nome do feriado..."
+            value={newHolidayName}
+            onChange={(e) => setNewHolidayName(e.target.value)}
+          />
+          <Button
+            size="sm"
+            className="h-8"
+            disabled={addingHoliday || !newHolidayDate || !newHolidayName.trim()}
+            onClick={async () => {
+              if (!newHolidayDate || !newHolidayName.trim()) return;
+              setAddingHoliday(true);
+              try {
+                await createCompanyHoliday({ date: newHolidayDate, name: newHolidayName.trim(), active: true });
+                setNewHolidayDate("");
+                setNewHolidayName("");
+                void queryClient.invalidateQueries({ queryKey: ["company-holidays"] });
+                toast.success("Feriado cadastrado.");
+              } catch {
+                toast.error("Não foi possível cadastrar o feriado.");
+              } finally {
+                setAddingHoliday(false);
+              }
+            }}
+          >
+            {addingHoliday ? "..." : <><Plus className="h-3.5 w-3.5" /> Adicionar</>}
+          </Button>
         </div>
       </div>
 

@@ -3,11 +3,14 @@ import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tan
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  AlertTriangle,
+  ArrowRightLeft,
   Ban,
   BookOpen,
   Check,
   CheckCheck,
   Clock,
+  Clock2,
   Download,
   Eye,
   File,
@@ -18,12 +21,14 @@ import {
   Pause,
   Pencil,
   Play,
+  RefreshCw,
   ShieldCheck,
   Tags,
   TicketCheck,
   Upload,
   UserRoundCheck,
   Workflow,
+  Wrench,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -74,12 +79,16 @@ import {
   type TicketWorkflowActionId,
 } from "@/lib/ticketWorkflow";
 import type { Ticket, TicketAttachment, User } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { getStoredUser } from "@/services/authService";
 import { listActivities } from "@/services/activityService";
 import { listSprints } from "@/services/sprintService";
 import { listTicketCategories } from "@/services/ticketCategoryService";
 import { listTicketTimeline, createTicketTimelineComment } from "@/services/ticketTimelineService";
+import { listTicketRelations, createTicketRelation, deleteTicketRelation, listTicketStatusHistory, reopenTicket } from "@/services/ticketRelationService";
+import type { TicketRelation, TicketStatusHistoryEntry } from "@/lib/types";
 import { convertTicketToKb, listKnowledgeCategories } from "@/services/knowledgeService";
 import { deleteTicket, getTicket, listTicketAttachments, transitionTicket, uploadTicketAttachment } from "@/services/ticketService";
 import { listTicketWorkflowStatuses } from "@/services/ticketWorkflowService";
@@ -118,6 +127,11 @@ function TicketDetail() {
   const [viewerAttachment, setViewerAttachment] = useState<TicketAttachment | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [relationsOpen, setRelationsOpen] = useState(false);
+  const [newRelationType, setNewRelationType] = useState("relacionado");
+  const [newRelatedTicketCode, setNewRelatedTicketCode] = useState("");
+  const [addingRelation, setAddingRelation] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const canViewTickets = hasAnyPermission(currentUser, [
     "tickets.viewAll",
     "tickets.viewAssigned",
@@ -179,6 +193,18 @@ function TicketDetail() {
   const attachmentsQuery = useQuery({
     queryKey: ["ticket-attachments", id],
     queryFn: () => listTicketAttachments(id),
+    enabled: canViewTickets,
+  });
+
+  const relationsQuery = useQuery({
+    queryKey: ["ticket-relations", id],
+    queryFn: () => listTicketRelations(id),
+    enabled: canViewTickets,
+  });
+
+  const statusHistoryQuery = useQuery({
+    queryKey: ["ticket-status-history", id],
+    queryFn: () => listTicketStatusHistory(id),
     enabled: canViewTickets,
   });
 
@@ -390,6 +416,20 @@ function TicketDetail() {
     openGenerateActivityForm();
   };
 
+  const handleReopen = async () => {
+    try {
+      setReopening(true);
+      await reopenTicket(id);
+      await queryClient.invalidateQueries({ queryKey: ["ticket", id] });
+      toast.success("Chamado reaberto com sucesso.");
+    } catch (error) {
+      const msg = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg || "Não foi possível reabrir o chamado.");
+    } finally {
+      setReopening(false);
+    }
+  };
+
   const workflowContext =
     ticket.pause_reason
     || ticket.waiting_reason
@@ -493,6 +533,19 @@ function TicketDetail() {
                   <BookOpen className="h-3.5 w-3.5" /> Converter para KB
                 </Button>
               ) : null}
+              {(ticket.status === "Finalizado" || ticket.status === "Cancelado") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-warning/40 text-warning hover:bg-warning/10"
+                  disabled={reopening}
+                  onClick={handleReopen}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {reopening ? "Reabrindo..." : "Reabrir"}
+                </Button>
+              )}
               <ConfirmDelete
                 onConfirm={async () => {
                   await deleteTicket(id);
@@ -617,9 +670,19 @@ function TicketDetail() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <DataRow label="Categoria" value={ticket.category_name || ticket.category || "-"} />
                 <DataRow label="Subcategoria" value={ticket.subcategory || "-"} />
-                <DataRow label="Tipo" value={ticket.type || "-"} />
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Tipo ITIL</div>
+                  <div className="flex items-center gap-1.5 text-sm font-medium">
+                    {ticket.type === "Incidente" && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
+                    {ticket.type === "Problema" && <Wrench className="h-3.5 w-3.5 text-warning" />}
+                    {ticket.type === "Mudanca" && <ArrowRightLeft className="h-3.5 w-3.5 text-primary" />}
+                    {(!ticket.type || ticket.type === "Requisicao" || ticket.type === "Solicitação") && <Clock2 className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {ticket.type || "Solicitação"}
+                  </div>
+                </div>
                 <DataRow label="Prioridade" value={ticket.priority || "Pendente"} />
                 <DataRow label="Impacto" value={ticket.impact || "Pendente"} />
+                <DataRow label="Urgência" value={ticket.urgency || "-"} />
                 <DataRow label="SLA" value={ticket.sla || "8h"} />
                 <DataRow label="Exige aprovação" value={ticket.approval_required ? "Sim" : "Não"} />
                 <DataRow
@@ -720,6 +783,89 @@ function TicketDetail() {
               </SectionCard>
             ) : null}
 
+            <SectionCard
+              title="Chamados relacionados"
+              description="Vínculos entre chamados (duplicado, bloqueador, relacionado)."
+            >
+              <div className="space-y-2">
+                {relationsQuery.isLoading ? (
+                  <div className="text-xs text-muted-foreground">Carregando...</div>
+                ) : (relationsQuery.data || []).length === 0 ? (
+                  <div className="rounded-xl border border-border bg-muted/10 px-4 py-4 text-sm text-muted-foreground">
+                    Nenhum chamado relacionado.
+                  </div>
+                ) : (
+                  (relationsQuery.data || []).map((rel) => (
+                    <div key={rel.id} className="flex items-center justify-between rounded-xl border border-border bg-muted/10 px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                          {rel.relation_type === "duplicado" ? "Duplicado" :
+                           rel.relation_type === "bloqueia" ? "Bloqueia" :
+                           rel.relation_type === "bloqueado_por" ? "Bloqueado por" : "Relacionado"}
+                        </span>
+                        <span className="text-sm">{rel.related_ticket_code || rel.related_ticket}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={async () => {
+                          await deleteTicketRelation(rel.id);
+                          queryClient.invalidateQueries({ queryKey: ["ticket-relations", id] });
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+                <div className="flex gap-2">
+                  <Select value={newRelationType} onValueChange={setNewRelationType}>
+                    <SelectTrigger className="h-8 w-36 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="relacionado">Relacionado a</SelectItem>
+                      <SelectItem value="duplicado">Duplicado de</SelectItem>
+                      <SelectItem value="bloqueia">Bloqueia</SelectItem>
+                      <SelectItem value="bloqueado_por">Bloqueado por</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <input
+                    className="h-8 flex-1 rounded-md border border-border bg-background px-3 text-xs"
+                    placeholder="ID do chamado relacionado..."
+                    value={newRelatedTicketCode}
+                    onChange={(e) => setNewRelatedTicketCode(e.target.value)}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8"
+                    disabled={addingRelation || !newRelatedTicketCode.trim()}
+                    onClick={async () => {
+                      if (!newRelatedTicketCode.trim()) return;
+                      setAddingRelation(true);
+                      try {
+                        await createTicketRelation({
+                          ticket: id,
+                          related_ticket: newRelatedTicketCode.trim(),
+                          relation_type: newRelationType,
+                        });
+                        setNewRelatedTicketCode("");
+                        queryClient.invalidateQueries({ queryKey: ["ticket-relations", id] });
+                        toast.success("Relação adicionada.");
+                      } catch {
+                        toast.error("Não foi possível adicionar a relação.");
+                      } finally {
+                        setAddingRelation(false);
+                      }
+                    }}
+                  >
+                    {addingRelation ? "..." : "Vincular"}
+                  </Button>
+                </div>
+              </div>
+            </SectionCard>
+
             <TicketTimeline events={timeline} allowComposer onCommentSubmit={publishComment} />
 
             <SectionCard
@@ -749,6 +895,44 @@ function TicketDetail() {
                         {sprint.status || "Planejada"}
                       </span>
                     </Link>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+
+            <SectionCard
+              title="Histórico de status"
+              description="Registro de todas as mudanças de status deste chamado."
+            >
+              {statusHistoryQuery.isLoading ? (
+                <div className="text-xs text-muted-foreground">Carregando...</div>
+              ) : (statusHistoryQuery.data || []).length === 0 ? (
+                <div className="rounded-xl border border-border bg-muted/10 px-4 py-4 text-sm text-muted-foreground">
+                  Nenhuma mudança de status registrada ainda.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(statusHistoryQuery.data || []).map((entry) => (
+                    <div key={entry.id} className="flex items-start gap-3 rounded-xl border border-border bg-muted/10 px-4 py-3">
+                      <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          {entry.status_from && (
+                            <>
+                              <span className="text-muted-foreground">{entry.status_from}</span>
+                              <span className="text-muted-foreground">→</span>
+                            </>
+                          )}
+                          <span className="font-medium">{entry.status_to}</span>
+                        </div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {entry.changed_by_name || "Sistema"} · {formatDateTime(entry.created_at)}
+                        </div>
+                        {entry.reason && (
+                          <div className="mt-1 text-xs text-muted-foreground">{entry.reason}</div>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -819,6 +1003,22 @@ function TicketDetail() {
                 <DataRow label="Atualizado em" value={formatDateTime(ticket.updated_at)} />
               </div>
             </SectionCard>
+
+            {(ticket.reopen_count || ticket.last_reopened_at || ticket.reopen_deadline) && (
+              <SectionCard title="Reabertura">
+                <div className="space-y-2 text-sm">
+                  {ticket.reopen_count ? (
+                    <DataRow label="Reaberturas" value={String(ticket.reopen_count)} />
+                  ) : null}
+                  {ticket.last_reopened_at ? (
+                    <DataRow label="Última reabertura" value={formatDateTime(ticket.last_reopened_at)} />
+                  ) : null}
+                  {ticket.reopen_deadline ? (
+                    <DataRow label="Prazo para reabrir" value={formatDateTime(ticket.reopen_deadline)} />
+                  ) : null}
+                </div>
+              </SectionCard>
+            )}
 
             <SectionCard title="Histórico técnico">
               <div className="space-y-2 text-sm text-muted-foreground">

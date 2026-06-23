@@ -4,8 +4,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Activity,
+  AlertTriangle,
   Calendar,
+  CheckCircle2,
   DollarSign,
+  Heart,
   Pencil,
   Plus,
   Trash2,
@@ -447,10 +450,23 @@ function ProjectDetail() {
           title={project.name}
           subtitle={`${project.organization_name || project.client_name || "Nao informado"} - ${project.owner_name || project.leader_name || "Nao informado"}`}
           badges={
-            <span
-              className={`rounded px-2 py-1 text-[11px] ${getProjectStatusBadgeClass(project.status || "Não informado")}`}
-            >
-              {project.status || "Não informado"}
+            <span className="flex items-center gap-2">
+              <span
+                className={`rounded px-2 py-1 text-[11px] ${getProjectStatusBadgeClass(project.status || "Não informado")}`}
+              >
+                {project.status || "Não informado"}
+              </span>
+              {project.health && (
+                <span className={`rounded-md px-2 py-1 text-[11px] font-medium ${
+                  project.health === "on_track" ? "bg-success/15 text-success" :
+                  project.health === "at_risk" ? "bg-warning/15 text-warning" :
+                  "bg-destructive/15 text-destructive"
+                }`}>
+                  {project.health === "on_track" ? "No prazo" :
+                   project.health === "at_risk" ? "Em risco" :
+                   "Atrasado"}
+                </span>
+              )}
             </span>
           }
           actions={
@@ -554,6 +570,7 @@ function ProjectDetail() {
                   startAt={project.start_at}
                   dueAt={project.due_at}
                   status={project.status || "Não informado"}
+                  health={project.health}
                 />
               </div>
               <div className="glass rounded-2xl p-5 shadow-card">
@@ -1052,11 +1069,13 @@ function ProjectDetailPanel({
   startAt,
   dueAt,
   status,
+  health,
 }: {
   clientName: string;
   startAt?: string | null;
   dueAt?: string | null;
   status: string;
+  health?: string | null;
 }) {
   const details = [
     { label: "Organização atendida", value: clientName },
@@ -1087,6 +1106,17 @@ function ProjectDetailPanel({
             </dd>
           </div>
         ))}
+
+        <div className="flex flex-col gap-1 border-b border-border/60 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <dt className="text-sm text-muted-foreground">
+            Saúde do projeto
+          </dt>
+          <dd className="text-sm font-medium text-foreground sm:text-right">
+            {health === "on_track" ? "No prazo" :
+             health === "at_risk" ? "Em risco" :
+             health === "delayed" ? "Atrasado" : "-"}
+          </dd>
+        </div>
 
         <div className="flex flex-col gap-2 pt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <dt className="text-sm text-muted-foreground">

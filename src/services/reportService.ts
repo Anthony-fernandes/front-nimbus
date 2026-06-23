@@ -6,6 +6,8 @@ export interface TicketsReport {
   open: number;
   avg_resolution_time_hours?: number | null;
   sla_met_rate?: number | null;
+  reopen_count?: number;
+  reopen_rate?: number;
   by_status: { status: string; count: number }[];
   by_priority: { priority: string; count: number }[];
   by_category: { category: string; count: number }[];

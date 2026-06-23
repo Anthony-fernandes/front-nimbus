@@ -1,8 +1,9 @@
-import type { Sprint } from "@/lib/types";
+import type { Sprint, SprintRetrospective, SprintReview, SprintVelocityEntry } from "@/lib/types";
 import type { SprintFormData } from "@/components/forms/SprintForm";
 
 import { createResource, deleteResource, getResource, listResource, updateResource } from "./crud";
 import { requireId, toDateOrNull, toNumber } from "./utils";
+import { api } from "./api";
 
 const ENDPOINT = "/sprints";
 
@@ -54,4 +55,38 @@ export function toSprintFormData(sprint: Sprint): Partial<SprintFormData> {
     status: sprint.status || "Planejada",
     capacity: String(sprint.capacity ?? 0),
   };
+}
+
+export function getSprintRetrospective(sprintId: string) {
+  return api.get<SprintRetrospective[]>(`/sprints/retrospectives/?sprint=${sprintId}`).then((r) => {
+    const data = r.data;
+    if (Array.isArray(data)) return data[0] || null;
+    return null;
+  });
+}
+
+export function saveSprintRetrospective(
+  payload: { sprint: string; went_well: string; to_improve: string; action_items: unknown[] },
+  existingId?: string,
+) {
+  if (existingId) {
+    return api.patch<SprintRetrospective>(`/sprints/retrospectives/${existingId}/`, payload).then((r) => r.data);
+  }
+  return api.post<SprintRetrospective>("/sprints/retrospectives/", payload).then((r) => r.data);
+}
+
+export function getSprintReview(sprintId: string) {
+  return api.get<SprintReview[]>(`/sprints/reviews/?sprint=${sprintId}`).then((r) => {
+    const data = r.data;
+    if (Array.isArray(data)) return data[0] || null;
+    return null;
+  });
+}
+
+export function closeSprint(sprintId: string, payload: { notes?: string }) {
+  return api.post<SprintReview>(`/sprints/${sprintId}/close/`, payload).then((r) => r.data);
+}
+
+export function getSprintVelocity() {
+  return api.get<{ sprints: SprintVelocityEntry[]; avg_velocity: number }>("/sprints/velocity/").then((r) => r.data);
 }

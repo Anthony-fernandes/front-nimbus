@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, TimerReset, Trash2, TrendingUp } from "lucide-react";
+import { CheckCircle, Pencil, Plus, TimerReset, Trash2, TrendingUp } from "lucide-react";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -27,6 +30,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -49,7 +53,15 @@ import {
   listSprintPlansBySprint,
   saveSprintActivityPlan,
 } from "@/services/sprintActivityPlanService";
-import { deleteSprint, getSprint } from "@/services/sprintService";
+import {
+  closeSprint,
+  deleteSprint,
+  getSprint,
+  getSprintRetrospective,
+  getSprintReview,
+  getSprintVelocity,
+  saveSprintRetrospective,
+} from "@/services/sprintService";
 import { formatDate, toNumber } from "@/services/utils";
 import { listUsers } from "@/services/userService";
 import { api } from "@/services/api";
@@ -69,6 +81,12 @@ function SprintDetail() {
   const [editingPlan, setEditingPlan] = useState<SprintActivityPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [closeSprintOpen, setCloseSprintOpen] = useState(false);
+  const [closeNotes, setCloseNotes] = useState("");
+  const [closingSprintPending, setClosingSprintPending] = useState(false);
+  const [retroWentWell, setRetroWentWell] = useState("");
+  const [retroToImprove, setRetroToImprove] = useState("");
+  const [retroSaving, setRetroSaving] = useState(false);
 
   const sprintQuery = useQuery({ queryKey: ["sprint", id], queryFn: () => getSprint(id) });
   const activitiesQuery = useQuery({ queryKey: ["activities"], queryFn: () => listActivities() });
@@ -111,6 +129,21 @@ function SprintDetail() {
       }));
     },
     enabled: activeTab === "burndown",
+  });
+
+  const retroQuery = useQuery({
+    queryKey: ["sprint-retrospective", id],
+    queryFn: () => getSprintRetrospective(id),
+  });
+
+  const reviewQuery = useQuery({
+    queryKey: ["sprint-review", id],
+    queryFn: () => getSprintReview(id),
+  });
+
+  const velocityQuery = useQuery({
+    queryKey: ["sprint-velocity"],
+    queryFn: () => getSprintVelocity(),
   });
 
   const sprint = sprintQuery.data;
@@ -249,6 +282,37 @@ function SprintDetail() {
     }
   };
 
+  const handleCloseSprint = async () => {
+    try {
+      setClosingSprintPending(true);
+      await closeSprint(id, { notes: closeNotes });
+      await queryClient.invalidateQueries({ queryKey: ["sprint", id] });
+      await queryClient.invalidateQueries({ queryKey: ["sprint-review", id] });
+      setCloseSprintOpen(false);
+      toast.success("Sprint encerrada com sucesso!");
+    } catch {
+      toast.error("Não foi possível encerrar a sprint.");
+    } finally {
+      setClosingSprintPending(false);
+    }
+  };
+
+  const handleSaveRetro = async () => {
+    try {
+      setRetroSaving(true);
+      await saveSprintRetrospective(
+        { sprint: id, went_well: retroWentWell, to_improve: retroToImprove, action_items: [] },
+        retroQuery.data?.id,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["sprint-retrospective", id] });
+      toast.success("Retrospectiva salva!");
+    } catch {
+      toast.error("Não foi possível salvar a retrospectiva.");
+    } finally {
+      setRetroSaving(false);
+    }
+  };
+
   if (pathname !== `/sprints/${id}`) {
     return <Outlet />;
   }
@@ -291,6 +355,18 @@ function SprintDetail() {
                 <Plus className="h-4 w-4" />
                 Planejar atividade
               </Button>
+              {sprint.status !== "Concluída" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-success/40 text-success hover:bg-success/10"
+                  onClick={() => setCloseSprintOpen(true)}
+                >
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Fechar Sprint
+                </Button>
+              )}
               <Button variant="outline" size="sm" className="gap-1.5" asChild>
                 <Link to="/sprints/$id/edit" params={{ id }}>
                   <Pencil className="h-3.5 w-3.5" /> Editar
@@ -322,6 +398,9 @@ function SprintDetail() {
                 <TabsTrigger value="overview">Visão geral</TabsTrigger>
                 <TabsTrigger value="planning">Planejamento</TabsTrigger>
                 <TabsTrigger value="burndown">Burndown</TabsTrigger>
+                <TabsTrigger value="retrospective">Retrospectiva</TabsTrigger>
+                <TabsTrigger value="review">Review</TabsTrigger>
+                <TabsTrigger value="velocity">Velocidade</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
@@ -458,6 +537,103 @@ function SprintDetail() {
                   )}
                 </div>
               </TabsContent>
+
+              <TabsContent value="retrospective" className="space-y-4">
+                <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+                  <h3 className="text-sm font-semibold">Retrospectiva da Sprint</h3>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">O que foi bem?</label>
+                    <textarea
+                      className="w-full min-h-[80px] rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none"
+                      placeholder="Liste os pontos positivos da sprint..."
+                      value={retroQuery.data?.went_well || retroWentWell}
+                      onChange={(e) => setRetroWentWell(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">O que pode melhorar?</label>
+                    <textarea
+                      className="w-full min-h-[80px] rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none"
+                      placeholder="Liste pontos de melhoria..."
+                      value={retroQuery.data?.to_improve || retroToImprove}
+                      onChange={(e) => setRetroToImprove(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      disabled={retroSaving}
+                      onClick={handleSaveRetro}
+                    >
+                      {retroSaving ? "Salvando..." : "Salvar retrospectiva"}
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="review" className="space-y-4">
+                <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+                  <h3 className="text-sm font-semibold">Review da Sprint</h3>
+                  {reviewQuery.data ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-xl border border-border bg-muted/10 p-4 text-center">
+                        <div className="text-2xl font-bold">{reviewQuery.data.delivered_points}</div>
+                        <div className="text-xs text-muted-foreground">Pontos entregues</div>
+                        <div className="mt-1 text-xs text-muted-foreground">de {reviewQuery.data.planned_points} planejados</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-muted/10 p-4 text-center">
+                        <div className="text-2xl font-bold">{reviewQuery.data.delivered_items}</div>
+                        <div className="text-xs text-muted-foreground">Itens entregues</div>
+                        <div className="mt-1 text-xs text-muted-foreground">de {reviewQuery.data.planned_items} planejados</div>
+                      </div>
+                      {reviewQuery.data.notes && (
+                        <div className="col-span-2 rounded-xl border border-border bg-muted/10 p-4 text-sm">
+                          {reviewQuery.data.notes}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-border bg-muted/10 px-4 py-6 text-center text-sm text-muted-foreground">
+                      Review ainda não gerado. Feche a sprint para gerar automaticamente.
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="velocity" className="space-y-4">
+                <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Velocidade histórica</h3>
+                    {velocityQuery.data && (
+                      <span className="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">
+                        Média: {velocityQuery.data.avg_velocity} pts/sprint
+                      </span>
+                    )}
+                  </div>
+                  {velocityQuery.isLoading ? (
+                    <div className="text-xs text-muted-foreground">Carregando velocidade...</div>
+                  ) : !velocityQuery.data?.sprints?.length ? (
+                    <div className="rounded-xl border border-border bg-muted/10 px-4 py-6 text-center text-sm text-muted-foreground">
+                      Nenhum dado de velocidade disponível ainda.
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={velocityQuery.data.sprints} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="sprint_name" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }}
+                        />
+                        <Bar dataKey="delivered_points" name="Pontos entregues" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        {velocityQuery.data.avg_velocity > 0 && (
+                          <ReferenceLine y={velocityQuery.data.avg_velocity} stroke="hsl(var(--warning))" strokeDasharray="4 4" label={{ value: "Média", fontSize: 10 }} />
+                        )}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -539,6 +715,32 @@ function SprintDetail() {
             submitLabel={editingPlan ? "Salvar planejamento" : "Adicionar à sprint"}
             onSubmit={handleSavePlan}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={closeSprintOpen} onOpenChange={setCloseSprintOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Fechar Sprint</DialogTitle>
+            <DialogDescription>
+              Ao fechar a sprint, as atividades incompletas serão movidas para o backlog e o review será gerado automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="text-xs font-medium text-muted-foreground">Observações finais (opcional)</label>
+            <textarea
+              className="w-full min-h-[80px] rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none"
+              placeholder="Adicione observações sobre o encerramento..."
+              value={closeNotes}
+              onChange={(e) => setCloseNotes(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCloseSprintOpen(false)}>Cancelar</Button>
+            <Button disabled={closingSprintPending} onClick={handleCloseSprint}>
+              {closingSprintPending ? "Encerrando..." : "Confirmar encerramento"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppShell>

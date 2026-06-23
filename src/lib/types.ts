@@ -299,6 +299,7 @@ export type Project = {
   cost_entries?: ProjectCost[];
   costs?: ProjectCost[];
   project_costs?: ProjectCost[];
+  health?: "on_track" | "at_risk" | "delayed" | string;
   created_at?: string;
   updated_at?: string;
 };
@@ -407,6 +408,48 @@ export type Ticket = {
   rated_at?: string | null;
   custom_values?: { id: string; field_id: string; field_label: string; value: string }[];
   sla_due_at?: string | null;
+  reopen_count?: number;
+  last_reopened_at?: string | null;
+  reopen_deadline?: string | null;
+  csat_sent_at?: string | null;
+};
+
+export type TicketStatusHistoryEntry = {
+  id: string;
+  ticket: string;
+  changed_by?: string | null;
+  changed_by_name?: string;
+  status_from?: string;
+  status_to: string;
+  reason?: string;
+  created_at?: string;
+};
+
+export type TicketRelation = {
+  id: string;
+  ticket: string;
+  related_ticket: string;
+  related_ticket_title?: string;
+  related_ticket_code?: string;
+  related_ticket_status?: string;
+  relation_type: "duplicado" | "relacionado" | "bloqueia" | "bloqueado_por";
+  created_by?: string | null;
+  created_at?: string;
+};
+
+export type BusinessHours = {
+  id: string;
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  active: boolean;
+};
+
+export type CompanyHoliday = {
+  id: string;
+  date: string;
+  name: string;
+  active: boolean;
 };
 
 export type User = {
@@ -554,8 +597,55 @@ export type Sprint = {
   backlog?: Array<string | SprintBacklogItem>;
   tasks?: Array<string | SprintBacklogItem>;
   movement_log?: SprintMovementLog[];
+  retrospective?: SprintRetrospective | null;
+  review?: SprintReview | null;
   created_at?: string;
   updated_at?: string;
+};
+
+export type SprintRetrospective = {
+  id: string;
+  sprint: string;
+  went_well: string;
+  to_improve: string;
+  action_items: Array<{ text: string; owner?: string; done: boolean }>;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type SprintReview = {
+  id: string;
+  sprint: string;
+  planned_points: number;
+  delivered_points: number;
+  planned_items: number;
+  delivered_items: number;
+  incomplete_activity_ids: string[];
+  notes: string;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type SprintVelocityEntry = {
+  sprint_id: string;
+  sprint_name: string;
+  delivered_points: number;
+  start_at?: string;
+  end_at?: string;
+};
+
+export type ActivityDependency = {
+  id: string;
+  activity: string;
+  depends_on: string;
+  depends_on_title?: string;
+  depends_on_status?: string;
+  activity_title?: string;
+  dependency_type: "bloqueia" | "bloqueado_por" | "relacionado";
+  created_by?: string | null;
+  created_at?: string;
 };
 
 export type Activity = {
@@ -569,6 +659,8 @@ export type Activity = {
   calculate_hourly_cost?: boolean;
   assignee?: string | null;
   assignee_name?: string;
+  assignees?: string[];
+  assignee_names?: string[];
   project?: string | null;
   project_name?: string;
   sprint?: string | null;

@@ -2,12 +2,15 @@ import { useMemo, useState } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  GitBranch,
   History,
   Link2,
   Pencil,
   Plus,
   TimerReset,
+  UserCheck,
   Wallet,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,6 +35,8 @@ import {
 import { formatActivityStatusLabel, formatPriorityLabel } from "@/lib/labels";
 import type { ActivityTimeEntry } from "@/lib/types";
 import { deleteActivity, getActivity } from "@/services/activityService";
+import { listActivityDependencies, createActivityDependency, deleteActivityDependency } from "@/services/activityDependencyService";
+import type { ActivityDependency } from "@/lib/types";
 import {
   deleteActivityTimeEntry,
   listActivityTimeEntries,
@@ -65,6 +70,9 @@ function ActivityDetail() {
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<ActivityTimeEntry | null>(null);
   const [savingEntry, setSavingEntry] = useState(false);
+  const [newDepId, setNewDepId] = useState("");
+  const [newDepType, setNewDepType] = useState("bloqueia");
+  const [addingDep, setAddingDep] = useState(false);
 
   const activityQuery = useQuery({ queryKey: ["activity", id], queryFn: () => getActivity(id) });
   const timeEntriesQuery = useQuery({
@@ -86,6 +94,10 @@ function ActivityDetail() {
   const activityTagsQuery = useQuery({
     queryKey: ["activity-tag-configs"],
     queryFn: () => listActivityTags(),
+  });
+  const depsQuery = useQuery({
+    queryKey: ["activity-dependencies", id],
+    queryFn: () => listActivityDependencies(id),
   });
   const generatedCostsQuery = useQuery({
     queryKey: ["activity-generated-costs", id, activityQuery.data?.project],
@@ -344,6 +356,7 @@ function ActivityDetail() {
                 <TabsTrigger value="time-entries">Apontamentos</TabsTrigger>
                 <TabsTrigger value="planning">Planejamento</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
+                <TabsTrigger value="dependencies">Dependências</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
@@ -545,6 +558,87 @@ function ActivityDetail() {
                   </ol>
                 </div>
               </TabsContent>
+
+              <TabsContent value="dependencies" className="space-y-4">
+                <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+                  <h3 className="text-sm font-semibold">Dependências</h3>
+                  {depsQuery.isLoading ? (
+                    <div className="text-xs text-muted-foreground">Carregando...</div>
+                  ) : (depsQuery.data || []).length === 0 ? (
+                    <div className="rounded-xl border border-border bg-muted/10 px-4 py-4 text-sm text-muted-foreground">
+                      Nenhuma dependência registrada.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(depsQuery.data || []).map((dep) => (
+                        <div key={dep.id} className="flex items-center justify-between rounded-xl border border-border bg-muted/10 px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                              {dep.dependency_type === "bloqueia" ? "Bloqueia" :
+                               dep.dependency_type === "bloqueado_por" ? "Bloqueado por" : "Relacionado"}
+                            </span>
+                            <span className="text-sm">{dep.depends_on_title || dep.depends_on}</span>
+                            {dep.depends_on_status && (
+                              <span className="text-xs text-muted-foreground">({dep.depends_on_status})</span>
+                            )}
+                          </div>
+                          <button
+                            className="rounded p-1 text-muted-foreground hover:text-destructive"
+                            onClick={async () => {
+                              await deleteActivityDependency(dep.id);
+                              queryClient.invalidateQueries({ queryKey: ["activity-dependencies", id] });
+                              toast.success("Dependência removida.");
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <select
+                      className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+                      value={newDepType}
+                      onChange={(e) => setNewDepType(e.target.value)}
+                    >
+                      <option value="bloqueia">Bloqueia</option>
+                      <option value="bloqueado_por">Bloqueado por</option>
+                      <option value="relacionado">Relacionado a</option>
+                    </select>
+                    <input
+                      className="h-8 flex-1 rounded-md border border-border bg-background px-3 text-xs"
+                      placeholder="ID da atividade dependente..."
+                      value={newDepId}
+                      onChange={(e) => setNewDepId(e.target.value)}
+                    />
+                    <button
+                      className="h-8 rounded-md bg-primary px-3 text-xs text-primary-foreground disabled:opacity-50"
+                      disabled={addingDep || !newDepId.trim()}
+                      onClick={async () => {
+                        if (!newDepId.trim()) return;
+                        setAddingDep(true);
+                        try {
+                          await createActivityDependency({
+                            activity: id,
+                            depends_on: newDepId.trim(),
+                            dependency_type: newDepType,
+                          });
+                          setNewDepId("");
+                          queryClient.invalidateQueries({ queryKey: ["activity-dependencies", id] });
+                          toast.success("Dependência adicionada.");
+                        } catch {
+                          toast.error("Não foi possível adicionar a dependência.");
+                        } finally {
+                          setAddingDep(false);
+                        }
+                      }}
+                    >
+                      {addingDep ? "..." : "Adicionar"}
+                    </button>
+                  </div>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -570,6 +664,18 @@ function ActivityDetail() {
                   </div>
                 ))}
               </dl>
+              {(activity.assignee_names?.length || activity.assignees?.length) && (
+                <div className="mt-3">
+                  <div className="text-xs text-muted-foreground">Responsáveis</div>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {(activity.assignee_names || []).map((name) => (
+                      <span key={name} className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="glass rounded-2xl p-5 shadow-card">
