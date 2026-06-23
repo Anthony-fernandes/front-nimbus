@@ -4,10 +4,12 @@ import type {
   DoubtsAnswer,
   DoubtsQuestion,
   ForumCategory,
+  ForumComment,
   ForumReply,
   ForumTopic,
   KnowledgeArticle,
   KnowledgeCategory,
+  KnowledgeInternalComment,
   KnowledgeTag,
 } from "@/lib/types";
 
@@ -237,6 +239,89 @@ export async function sendChatFile(conversationId: string, file: File, content?:
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
+}
+
+// ─── Forum Comments ───────────────────────────────────────────────────────────
+
+export function listForumComments(params?: Record<string, unknown>) {
+  return listResource<ForumComment>("/communication/forum-comments", params);
+}
+
+export function createForumComment(data: Partial<ForumComment>) {
+  return createResource<ForumComment>("/communication/forum-comments", data);
+}
+
+export function deleteForumComment(id: string) {
+  return deleteResource("/communication/forum-comments", id);
+}
+
+// ─── Flag Content ─────────────────────────────────────────────────────────────
+
+export async function flagContent(contentType: string, objectId: string, reason: string) {
+  await api.post("/communication/flags/", { content_type: contentType, object_id: objectId, reason });
+}
+
+// ─── Forum Downvote ───────────────────────────────────────────────────────────
+
+export async function toggleTopicDownvote(topicId: string) {
+  await api.post(`/communication/forum-topics/${topicId}/toggle-downvote/`);
+}
+
+export async function toggleReplyDownvote(replyId: string) {
+  await api.post(`/communication/forum-replies/${replyId}/toggle-downvote/`);
+}
+
+// ─── Chat Advanced ────────────────────────────────────────────────────────────
+
+export async function updateChatMessage(id: string, content: string) {
+  const r = await api.patch<ChatMessage>(`/communication/chat-messages/${id}/`, { content });
+  return r.data;
+}
+
+export async function deleteChatMessage(id: string) {
+  await api.delete(`/communication/chat-messages/${id}/`);
+}
+
+export async function pinChatMessage(id: string) {
+  const r = await api.post<ChatMessage>(`/communication/chat-messages/${id}/pin/`);
+  return r.data;
+}
+
+export async function reactToMessage(id: string, emoji: string) {
+  const r = await api.post<ChatMessage>(`/communication/chat-messages/${id}/react/`, { emoji });
+  return r.data;
+}
+
+export async function forwardChatMessage(messageId: string, conversationId: string) {
+  const r = await api.post<ChatMessage>(`/communication/chat-messages/${messageId}/forward/`, { conversation: conversationId });
+  return r.data;
+}
+
+export async function archiveConversation(id: string) {
+  await api.post(`/communication/chat-conversations/${id}/archive/`);
+}
+
+export async function markConversationUnread(id: string) {
+  await api.post(`/communication/chat-conversations/${id}/mark-unread/`);
+}
+
+// ─── KB Internal Comments ─────────────────────────────────────────────────────
+
+export function listKnowledgeInternalComments(articleId: string) {
+  return listResource<KnowledgeInternalComment>("/knowledge/internal-comments", { article: articleId });
+}
+
+export function createKnowledgeInternalComment(data: Partial<KnowledgeInternalComment>) {
+  return createResource<KnowledgeInternalComment>("/knowledge/internal-comments", data);
+}
+
+export function deleteKnowledgeInternalComment(id: string) {
+  return deleteResource("/knowledge/internal-comments", id);
+}
+
+export async function requestKnowledgeReview(id: string) {
+  const r = await api.post<KnowledgeArticle>(`/knowledge/articles/${id}/request-review/`);
+  return r.data;
 }
 
 // ─── Convert to KB ────────────────────────────────────────────────────────────
