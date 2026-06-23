@@ -156,13 +156,13 @@ function AuthorCard({ name, date, label, authorId, reputation }: { name?: string
 
 function EditHistoryButton({ topicId, replyId, editCount }: { topicId?: string; replyId?: string; editCount?: number }) {
   const [open, setOpen] = useState(false);
-  if (!editCount || editCount === 0) return null;
-
   const historyQ = useQuery({
     queryKey: ["forum-edit-history", topicId ?? "", replyId ?? ""],
     queryFn: () => topicId ? listForumTopicEdits(topicId) : listForumReplyEdits(replyId!),
     enabled: open,
   });
+
+  if (!editCount || editCount === 0) return null;
 
   return (
     <>

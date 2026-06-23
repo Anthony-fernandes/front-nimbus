@@ -88,7 +88,6 @@ function formatDate(value?: string | null) {
 
 function KnowledgePage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (pathname !== "/knowledge") return <Outlet />;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = getStoredUser();
@@ -167,6 +166,8 @@ function KnowledgePage() {
     },
     onError: () => toast.error("Não foi possível criar o artigo."),
   });
+
+  if (pathname !== "/knowledge") return <Outlet />;
 
   const categories = categoriesQuery.data ?? [];
   const rawArticles = articlesQuery.data ?? [];
