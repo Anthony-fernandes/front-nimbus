@@ -58,7 +58,7 @@ function HelpPage() {
 
   return (
     <AppShell>
-      <div className="max-w-4xl space-y-8">
+      <div className="space-y-8">
         <PageHeader
           title="Central de Ajuda"
           subtitle="Encontre respostas, artigos e documentação."
