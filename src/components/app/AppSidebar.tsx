@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { listChatConversations } from "@/services/knowledgeService";
 import {
   BarChart3,
   Blocks,
@@ -240,12 +240,12 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const isActive = (url: string) => (url === "/" ? path === "/" : path.startsWith(url));
 
   const chatConvsQ = useQuery({
-    queryKey: ["chat-conversations-unread"],
-    queryFn: () => api.get("/communication/conversations/").then((r) => r.data),
+    queryKey: ["chat-conversations"],
+    queryFn: listChatConversations,
     refetchInterval: 30000,
     enabled: !clientUser,
   });
-  const unreadChatCount: number = (chatConvsQ.data?.results ?? chatConvsQ.data ?? []).reduce(
+  const unreadChatCount: number = (chatConvsQ.data ?? []).reduce(
     (sum: number, c: { unread_count?: number }) => sum + (c.unread_count ?? 0),
     0,
   );
