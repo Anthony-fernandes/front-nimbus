@@ -112,38 +112,40 @@ function UserHoursBreakdown({ users, responsible, userHours, totalHours, onChang
 }) {
   const sum = responsible.reduce((s, uid) => s + (Number(userHours[uid]) || 0), 0);
   const diff = totalHours - sum;
+  const getName = (uid: string) => {
+    const u = users.find(x => String(x.id) === String(uid));
+    if (!u) return "Carregando...";
+    return u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || u.email || "Usuário";
+  };
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">Distribuição de horas</span>
-        {responsible.length > 0 && (
-          <span className={`text-xs font-medium ${Math.abs(diff) < 0.01 ? "text-success" : "text-destructive"}`}>
+        <span className="text-xs font-medium text-muted-foreground">Distribuição de horas por técnico</span>
+        {responsible.length > 0 && totalHours > 0 && (
+          <span className={`text-xs font-medium ${Math.abs(diff) < 0.01 ? "text-success" : "text-warning"}`}>
             {Math.abs(diff) < 0.01 ? "✓ Balanceado" : diff > 0 ? `Faltam ${diff.toFixed(1)}h` : `Excedente ${Math.abs(diff).toFixed(1)}h`}
           </span>
         )}
       </div>
       {responsible.length === 0 && <p className="text-xs text-muted-foreground">Adicione responsáveis para distribuir as horas.</p>}
       {responsible.map(uid => {
-        const u = users.find(x => x.id === uid);
-        const name = u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || u.email || "Usuário") : uid;
+        const name = getName(uid);
         const h = Number(userHours[uid]) || 0;
         const pct = totalHours > 0 ? Math.min(100, (h / totalHours) * 100) : 0;
         return (
-          <div key={uid} className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-28 truncate text-xs">{name}</span>
-              <input
-                type="number" min="0" step="0.5"
-                value={userHours[uid] ?? ""}
-                onChange={e => onChange({ ...userHours, [uid]: e.target.value })}
-                className="w-20 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs outline-none focus:border-primary"
-              />
-              <span className="text-xs text-muted-foreground">h</span>
-              <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${pct}%` }} />
-              </div>
-              <span className="w-10 text-right text-xs text-muted-foreground">{pct.toFixed(0)}%</span>
+          <div key={uid} className="flex items-center gap-3">
+            <span className="w-32 truncate text-xs font-medium">{name}</span>
+            <input
+              type="number" min="0" step="0.5"
+              value={userHours[uid] ?? ""}
+              onChange={e => onChange({ ...userHours, [uid]: e.target.value })}
+              className="w-20 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs outline-none focus:border-primary"
+            />
+            <span className="text-xs text-muted-foreground">h</span>
+            <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-gradient-primary transition-all" style={{ width: `${pct}%` }} />
             </div>
+            <span className="w-10 text-right text-xs text-muted-foreground">{pct.toFixed(0)}%</span>
           </div>
         );
       })}
@@ -1123,10 +1125,10 @@ function SprintDetail() {
                                             totalHours={Number(row.plannedHours) || 0}
                                             onChange={(uh) => updateTicketRow(row.ticketId, { userHours: uh })}
                                           />
-                                          <div className="flex gap-4">
+                                          <div className="flex items-start gap-6">
                                             <div className="space-y-1">
                                               <label className="text-xs font-medium text-muted-foreground">Prioridade</label>
-                                              <div className="flex gap-1.5 flex-wrap">
+                                              <div className="flex gap-1.5">
                                                 {PRIORITY_OPTIONS.map(p => (
                                                   <button key={p} type="button"
                                                     onClick={() => updateTicketRow(row.ticketId, { priority: p })}
@@ -1135,23 +1137,14 @@ function SprintDetail() {
                                                 ))}
                                               </div>
                                             </div>
-                                            <div className="space-y-1">
-                                              <label className="text-xs font-medium text-muted-foreground">Complexidade (1-10)</label>
-                                              <input
-                                                type="number" min="1" max="10"
-                                                value={row.complexity}
-                                                onChange={e => updateTicketRow(row.ticketId, { complexity: e.target.value })}
-                                                className="w-20 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
-                                              />
-                                            </div>
                                             <div className="flex-1 space-y-1">
                                               <label className="text-xs font-medium text-muted-foreground">Observações</label>
-                                              <input
-                                                type="text"
+                                              <textarea
+                                                rows={2}
                                                 value={row.notes}
                                                 onChange={e => updateTicketRow(row.ticketId, { notes: e.target.value })}
-                                                placeholder="Observações..."
-                                                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                                placeholder="Adicione observações sobre este chamado na sprint..."
+                                                className="w-full resize-none rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs outline-none focus:border-primary"
                                               />
                                             </div>
                                           </div>
@@ -1342,10 +1335,10 @@ function SprintDetail() {
                                             totalHours={Number(row.plannedHours) || 0}
                                             onChange={(uh) => updateActivityRow(row.activityId, { userHours: uh })}
                                           />
-                                          <div className="flex gap-4">
+                                          <div className="flex items-start gap-6">
                                             <div className="space-y-1">
                                               <label className="text-xs font-medium text-muted-foreground">Prioridade</label>
-                                              <div className="flex gap-1.5 flex-wrap">
+                                              <div className="flex gap-1.5">
                                                 {PRIORITY_OPTIONS.map(p => (
                                                   <button key={p} type="button"
                                                     onClick={() => updateActivityRow(row.activityId, { priority: p })}
@@ -1354,23 +1347,14 @@ function SprintDetail() {
                                                 ))}
                                               </div>
                                             </div>
-                                            <div className="space-y-1">
-                                              <label className="text-xs font-medium text-muted-foreground">Complexidade (1-10)</label>
-                                              <input
-                                                type="number" min="1" max="10"
-                                                value={row.complexity}
-                                                onChange={e => updateActivityRow(row.activityId, { complexity: e.target.value })}
-                                                className="w-20 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
-                                              />
-                                            </div>
                                             <div className="flex-1 space-y-1">
                                               <label className="text-xs font-medium text-muted-foreground">Observações</label>
-                                              <input
-                                                type="text"
+                                              <textarea
+                                                rows={2}
                                                 value={row.notes}
                                                 onChange={e => updateActivityRow(row.activityId, { notes: e.target.value })}
-                                                placeholder="Observações..."
-                                                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                                placeholder="Adicione observações sobre esta atividade na sprint..."
+                                                className="w-full resize-none rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs outline-none focus:border-primary"
                                               />
                                             </div>
                                           </div>
