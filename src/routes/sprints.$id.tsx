@@ -592,7 +592,7 @@ function SprintDetail() {
 
   return (
     <AppShell>
-      <div className="max-w-7xl space-y-5">
+      <div className="space-y-5">
         <PageHeader
           crumbs={[{ label: "Sprints", to: "/sprints" }, { label: sprint.name }]}
           title={sprint.name}
@@ -654,203 +654,289 @@ function SprintDetail() {
         />
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Atividades planejadas" value={String(sprintPlans.length)} />
+          <Stat label="Itens planejados" value={String(sprintPlans.length + (ticketPlansQuery.data?.length ?? 0))} />
           <Stat label="Horas planejadas" value={formatHoursLabel(totalPlannedHours)} />
           <Stat label="Horas realizadas" value={formatHoursLabel(totalRealizedHours)} />
           <Stat label="Uso da capacidade" value={`${capacityUtilization}%`} />
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="border border-border bg-muted/40">
-                <TabsTrigger value="overview">Visão geral</TabsTrigger>
-                <TabsTrigger value="planning">Planejamento</TabsTrigger>
-                <TabsTrigger value="burndown">Burndown</TabsTrigger>
-                <TabsTrigger value="retrospective">Retrospectiva</TabsTrigger>
-                <TabsTrigger value="review">Review</TabsTrigger>
-                <TabsTrigger value="velocity">Velocidade</TabsTrigger>
-              </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="border border-border bg-muted/40">
+            <TabsTrigger value="overview">Visão geral</TabsTrigger>
+            <TabsTrigger value="planning">Planejamento</TabsTrigger>
+            <TabsTrigger value="kanban">Kanban</TabsTrigger>
+            <TabsTrigger value="burndown">Burndown</TabsTrigger>
+            <TabsTrigger value="retrospective">Retrospectiva</TabsTrigger>
+            <TabsTrigger value="review">Review</TabsTrigger>
+            <TabsTrigger value="velocity">Velocidade</TabsTrigger>
+          </TabsList>
 
-              <TabsContent value="overview" className="space-y-4">
+          <TabsContent value="overview" className="space-y-5">
+            {/* Sprint goal */}
+            <div className="glass rounded-2xl p-5 shadow-card">
+              <h3 className="mb-2 text-sm font-semibold">Objetivo da sprint</h3>
+              <p className="text-sm text-muted-foreground">{sprint.goal || "Nenhum objetivo informado."}</p>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-3">
+              {/* Left: capacity + indicators */}
+              <div className="lg:col-span-2 space-y-4">
+                {/* Capacity bar */}
+                <div className="glass rounded-2xl p-5 shadow-card space-y-3">
+                  <h3 className="text-sm font-semibold">Capacidade x planejamento</h3>
+                  <div className="space-y-2 text-sm">
+                    <SummaryLine label="Capacidade da sprint" value={formatHoursLabel(toNumber(sprint.capacity, 0))} />
+                    <SummaryLine label="Total planejado" value={formatHoursLabel(totalPlannedHours)} />
+                    <SummaryLine label="Saldo de capacidade" value={formatHoursLabel(Math.max(0, toNumber(sprint.capacity, 0) - totalPlannedHours))} />
+                  </div>
+                  {toNumber(sprint.capacity, 0) > 0 && (
+                    <div className="space-y-1">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full transition-all ${capacityUtilization > 100 ? "bg-destructive" : "bg-gradient-primary"}`}
+                          style={{ width: `${Math.min(100, capacityUtilization)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground text-right">{capacityUtilization}% utilizado</p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="glass rounded-2xl p-5 shadow-card">
-                  <h3 className="mb-2 text-sm font-semibold">Objetivo da sprint</h3>
-                  <p className="text-sm text-muted-foreground">{sprint.goal || "Nenhum objetivo informado."}</p>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="glass rounded-2xl p-5 shadow-card">
-                    <h3 className="mb-3 text-sm font-semibold">Capacidade x planejamento</h3>
-                    <div className="space-y-2 text-sm">
-                      <SummaryLine label="Capacidade da sprint" value={formatHoursLabel(toNumber(sprint.capacity, 0))} />
-                      <SummaryLine label="Total planejado" value={formatHoursLabel(totalPlannedHours)} />
-                      <SummaryLine
-                        label="Saldo de capacidade"
-                        value={formatHoursLabel(Math.max(0, toNumber(sprint.capacity, 0) - totalPlannedHours))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="glass rounded-2xl p-5 shadow-card">
-                    <h3 className="mb-3 text-sm font-semibold">Indicadores da sprint</h3>
-                    <div className="space-y-2 text-sm">
-                      <SummaryLine label="Atividades estouradas" value={String(overrunPlans)} />
-                      <SummaryLine label="Apontamentos nesta sprint" value={String(sprintTimeEntries.length)} />
-                      <SummaryLine
-                        label="Tags ativas no catálogo"
-                        value={String(tagNameSet.size)}
-                      />
-                    </div>
+                  <h3 className="mb-3 text-sm font-semibold">Indicadores da sprint</h3>
+                  <div className="space-y-2 text-sm">
+                    <SummaryLine label="Chamados planejados" value={String(ticketPlansQuery.data?.length ?? 0)} />
+                    <SummaryLine label="Atividades planejadas" value={String(sprintPlans.length)} />
+                    <SummaryLine label="Atividades estouradas" value={String(overrunPlans)} />
+                    <SummaryLine label="Apontamentos nesta sprint" value={String(sprintTimeEntries.length)} />
+                    <SummaryLine label="Total realizado" value={formatHoursLabel(totalRealizedHours)} />
                   </div>
                 </div>
-              </TabsContent>
+              </div>
 
-              <TabsContent value="planning" className="space-y-4">
-                {/* Chamados planejados */}
-                {(ticketPlansQuery.data?.length ?? 0) > 0 && (() => {
-                  const allTicketsForPlanning = (Array.isArray(ticketsQuery.data)
-                    ? ticketsQuery.data
-                    : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as { id: string; code?: string; title?: string }[];
-                  return (
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-muted-foreground">Chamados ({ticketPlansQuery.data!.length})</h3>
-                      {ticketPlansQuery.data!.map((tPlan) => {
-                        const ticket = allTicketsForPlanning.find((t) => t.id === tPlan.ticketId);
-                        const respNames = (tPlan.responsibleIds || [])
-                          .map((uid) => userMap.get(String(uid)) || "Usuário")
-                          .join(", ");
-                        return (
-                          <div key={tPlan.id} className="glass rounded-2xl p-5 shadow-card">
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <Badge className={`text-[10px] border ${PRIORITY_COLORS[tPlan.priority ?? ""] || ""}`}>{tPlan.priority}</Badge>
-                                  <span className="font-mono text-xs text-muted-foreground">{ticket?.code}</span>
-                                  <span className="text-sm font-semibold">{ticket?.title ?? tPlan.ticketId}</span>
+              {/* Right: details */}
+              <div className="space-y-4">
+                <div className="glass rounded-2xl p-5 shadow-card">
+                  <h3 className="mb-3 text-sm font-semibold">Detalhes</h3>
+                  <dl className="space-y-2 text-sm">
+                    {([
+                      ["Responsável", sprint.lead_name || "-"],
+                      ["Status", formatSprintStatusLabel(sprint.status || "Planejada")],
+                      ["Início", formatDate(sprint.start_at)],
+                      ["Fim", formatDate(sprint.end_at)],
+                      ["Capacidade", formatHoursLabel(toNumber(sprint.capacity, 0))],
+                      ["Horas planejadas", formatHoursLabel(totalPlannedHours)],
+                    ] as [string, string][]).map(([label, value]) => (
+                      <div key={label} className="flex items-center justify-between gap-3">
+                        <dt className="text-xs text-muted-foreground">{label}</dt>
+                        <dd className="text-right font-medium">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+                <InfoPanel icon={TrendingUp} text={`Total realizado nesta sprint: ${formatHoursLabel(totalRealizedHours)}.`} />
+                <InfoPanel icon={TimerReset} text={overrunPlans > 0 ? `${overrunPlans} atividade(s) estouraram o planejado nesta sprint.` : "Nenhuma atividade estourou o planejado nesta sprint."} />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="planning" className="space-y-4">
+            {(() => {
+              const allTicketsForPlan = (Array.isArray(ticketsQuery.data)
+                ? ticketsQuery.data
+                : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as { id: string; code?: string; title?: string }[];
+
+              const totalRows = (ticketPlansQuery.data?.length ?? 0) + sprintPlans.length;
+
+              if (totalRows === 0) {
+                return (
+                  <div className="glass rounded-2xl p-5 text-sm text-muted-foreground shadow-card">
+                    Nenhum item foi planejado para esta sprint ainda.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="glass rounded-2xl shadow-card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
+                          <th className="px-4 py-3 text-left font-medium w-20">Tipo</th>
+                          <th className="px-4 py-3 text-left font-medium">Item</th>
+                          <th className="px-4 py-3 text-left font-medium w-52">Responsáveis</th>
+                          <th className="px-4 py-3 text-left font-medium w-16">SP</th>
+                          <th className="px-4 py-3 text-left font-medium w-24">Planejado</th>
+                          <th className="px-4 py-3 text-left font-medium w-24">Realizado</th>
+                          <th className="px-4 py-3 text-left font-medium w-32">Fim previsto</th>
+                          <th className="px-4 py-3 w-24" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Ticket rows */}
+                        {(ticketPlansQuery.data ?? []).map((tPlan) => {
+                          const ticket = allTicketsForPlan.find((t) => t.id === tPlan.ticketId);
+                          const respNames = (tPlan.responsibleIds || []).map((uid) => userMap.get(String(uid)) || "Usuário").join(", ");
+                          return (
+                            <tr key={`ticket-${tPlan.id}`} className="border-b border-border last:border-0 hover:bg-muted/10 transition">
+                              <td className="px-4 py-3">
+                                <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-400">Chamado</span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[tPlan.priority ?? ""] || ""}`}>{tPlan.priority}</Badge>
+                                  <span className="font-mono text-xs text-muted-foreground shrink-0">{ticket?.code}</span>
+                                  <span className="font-medium">{ticket?.title ?? tPlan.ticketId}</span>
                                 </div>
-                                <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                                  <span>Planejado: {formatHoursLabel(tPlan.plannedHours ?? 0)}</span>
-                                  <span>Story points: {tPlan.storyPoints ?? 0}</span>
-                                  <span>Responsáveis: {respNames || "Não definidos"}</span>
-                                  <span>Fim previsto: {formatDate(tPlan.plannedEndDate)}</span>
-                                </div>
-                                {tPlan.notes && <p className="mt-3 text-sm text-muted-foreground">{tPlan.notes}</p>}
-                              </div>
-                              <div className="flex gap-2 lg:flex-col lg:items-end">
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{respNames || "—"}</td>
+                              <td className="px-4 py-3 text-xs font-medium">{tPlan.storyPoints ?? "—"}</td>
+                              <td className="px-4 py-3 text-xs font-semibold">{formatHoursLabel(tPlan.plannedHours ?? 0)}</td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">—</td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(tPlan.plannedEndDate)}</td>
+                              <td className="px-4 py-3">
                                 <ConfirmDelete
                                   trigger={
-                                    <Button type="button" variant="outline" size="sm" className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                      Remover
+                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive text-xs">
+                                      <Trash2 className="h-3 w-3" /> Remover
                                     </Button>
                                   }
                                   title="Remover planejamento?"
                                   description="Este chamado sairá do planejamento desta sprint."
-                                  onConfirm={async () => {
-                                    await deleteSprintTicketPlan(tPlan.id);
-                                    ticketPlansQuery.refetch();
-                                  }}
+                                  onConfirm={async () => { await deleteSprintTicketPlan(tPlan.id); ticketPlansQuery.refetch(); }}
                                 />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                              </td>
+                            </tr>
+                          );
+                        })}
 
-                {/* Atividades planejadas */}
-                {sprintPlans.length > 0 && (
-                  <h3 className="text-sm font-semibold text-muted-foreground">Atividades ({sprintPlans.length})</h3>
-                )}
-                {sprintPlans.length === 0 && (ticketPlansQuery.data?.length ?? 0) === 0 ? (
-                  <div className="glass rounded-2xl p-5 text-sm text-muted-foreground shadow-card">
-                    Nenhuma atividade foi planejada para esta sprint ainda.
-                  </div>
-                ) : (
-                  sprintPlans.map((plan) => {
-                    const activity = activityMap.get(plan.activityId);
-                    const relatedEntries = allTimeEntries.filter((entry) => entry.activityId === plan.activityId);
-                    const planSummary = getSprintPlanExecutionSummary(plan, relatedEntries);
-                    const responsibleNames = (plan.responsibleIds || [])
-                      .map((responsibleId) => userMap.get(responsibleId) || "Usuário")
-                      .join(", ");
-
-                    return (
-                      <div key={plan.id} className="glass rounded-2xl p-5 shadow-card">
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-semibold">{activity?.title || plan.activityId}</span>
-                              {activity ? (
-                                <Link
-                                  to="/activities/$id"
-                                  params={{ id: activity.id }}
-                                  className="text-xs text-primary underline underline-offset-4"
-                                >
-                                  Abrir atividade
-                                </Link>
-                              ) : null}
-                            </div>
-                            <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
-                              <span>Estimativa total: {formatHoursLabel(toNumber(activity?.est_hours, 0))}</span>
-                              <span>Planejado na sprint: {formatHoursLabel(planSummary.plannedHours)}</span>
-                              <span>Realizado na sprint: {formatHoursLabel(planSummary.realizedHours)}</span>
-                              <span>Diferença: {planSummary.differenceHours > 0 ? `+${formatHoursLabel(planSummary.differenceHours)}` : planSummary.differenceHours < 0 ? `-${formatHoursLabel(Math.abs(planSummary.differenceHours))}` : "0h"}</span>
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                              <span>Responsáveis: {responsibleNames || "Não definidos"}</span>
-                              <span>Story points: {plan.storyPoints || 0}</span>
-                              <span>Início previsto: {formatDate(plan.plannedStartDate)}</span>
-                              <span>Fim previsto: {formatDate(plan.plannedEndDate)}</span>
-                            </div>
-                            <p className="mt-3 text-sm text-muted-foreground">
-                              {plan.notes || "Sem observação de planejamento."}
-                            </p>
-                          </div>
-
-                          <div className="flex flex-col items-start gap-2 lg:items-end">
-                            <span className={getPlanStatusClass(planSummary.status as "over" | "under" | "balanced")}>
-                              {planSummary.label}
-                            </span>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="gap-1.5"
-                                onClick={() => handleOpenEditPlan(plan)}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                                Editar
-                              </Button>
-                              <ConfirmDelete
-                                trigger={
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    Remover
+                        {/* Activity rows */}
+                        {sprintPlans.map((plan) => {
+                          const activity = activityMap.get(plan.activityId);
+                          const relatedEntries = allTimeEntries.filter((e) => e.activityId === plan.activityId);
+                          const planSummary = getSprintPlanExecutionSummary(plan, relatedEntries);
+                          const respNames = (plan.responsibleIds || []).map((uid) => userMap.get(uid) || "Usuário").join(", ");
+                          return (
+                            <tr key={`activity-${plan.id}`} className="border-b border-border last:border-0 hover:bg-muted/10 transition">
+                              <td className="px-4 py-3">
+                                <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">Atividade</span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[plan.priority ?? ""] || ""}`}>{plan.priority}</Badge>
+                                  <div className="min-w-0">
+                                    <span className="font-medium">{activity?.title ?? plan.activityId}</span>
+                                    {activity && (
+                                      <Link to="/activities/$id" params={{ id: activity.id }} className="ml-2 text-[10px] text-primary underline underline-offset-2">
+                                        abrir
+                                      </Link>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{respNames || "—"}</td>
+                              <td className="px-4 py-3 text-xs font-medium">{plan.storyPoints ?? "—"}</td>
+                              <td className="px-4 py-3 text-xs font-semibold">{formatHoursLabel(planSummary.plannedHours)}</td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatHoursLabel(planSummary.realizedHours)}</td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(plan.plannedEndDate)}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex gap-1">
+                                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => handleOpenEditPlan(plan)}>
+                                    <Pencil className="h-3 w-3" /> Editar
                                   </Button>
-                                }
-                                title="Remover planejamento?"
-                                description="Esta atividade sairá do planejamento desta sprint, mas a atividade em si continuará existindo."
-                                onConfirm={() => handleDeletePlan(plan)}
-                              />
-                            </div>
+                                  <ConfirmDelete
+                                    trigger={
+                                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive text-xs">
+                                        <Trash2 className="h-3 w-3" /> Remover
+                                      </Button>
+                                    }
+                                    title="Remover planejamento?"
+                                    description="Esta atividade sairá do planejamento desta sprint."
+                                    onConfirm={() => handleDeletePlan(plan)}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </TabsContent>
+
+          <TabsContent value="kanban" className="space-y-4">
+            {(() => {
+              const allTicketsForKanban = (Array.isArray(ticketsQuery.data)
+                ? ticketsQuery.data
+                : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as { id: string; code?: string; title?: string; status?: string }[];
+
+              type KanbanCard = { key: string; type: "Chamado" | "Atividade"; title: string; subtitle?: string; priority?: string; status: string };
+
+              const cards: KanbanCard[] = [
+                ...(ticketPlansQuery.data ?? []).map((tPlan): KanbanCard => {
+                  const ticket = allTicketsForKanban.find((t) => t.id === tPlan.ticketId);
+                  return { key: `t-${tPlan.id}`, type: "Chamado", title: ticket?.title ?? tPlan.ticketId, subtitle: ticket?.code, priority: tPlan.priority ?? undefined, status: ticket?.status ?? "Aberto" };
+                }),
+                ...sprintPlans.map((plan): KanbanCard => {
+                  const activity = activityMap.get(plan.activityId);
+                  return { key: `a-${plan.id}`, type: "Atividade", title: activity?.title ?? plan.activityId, subtitle: (activity as { project_name?: string } | undefined)?.project_name, priority: plan.priority ?? undefined, status: (activity as { status?: string } | undefined)?.status ?? "Backlog" };
+                }),
+              ];
+
+              const DONE_STATUSES = new Set(["Finalizado", "Concluído", "Concluida", "Resolvido", "Fechado", "Convertido em Atividade de Projeto", "Cancelado"]);
+              const IN_PROGRESS_STATUSES = new Set(["Em atendimento", "Em andamento", "Em Andamento", "Validacao", "Aguardando cliente"]);
+
+              const columns: { label: string; filter: (c: KanbanCard) => boolean; color: string }[] = [
+                { label: "A Fazer", filter: (c) => !DONE_STATUSES.has(c.status) && !IN_PROGRESS_STATUSES.has(c.status), color: "bg-muted/40" },
+                { label: "Em Andamento", filter: (c) => IN_PROGRESS_STATUSES.has(c.status), color: "bg-blue-500/10" },
+                { label: "Concluído", filter: (c) => DONE_STATUSES.has(c.status), color: "bg-success/10" },
+              ];
+
+              if (cards.length === 0) {
+                return <div className="glass rounded-2xl p-5 text-sm text-muted-foreground shadow-card">Nenhum item planejado para o kanban.</div>;
+              }
+
+              return (
+                <div className="flex gap-4 overflow-x-auto pb-4">
+                  {columns.map((col) => {
+                    const colCards = cards.filter(col.filter);
+                    return (
+                      <div key={col.label} className="flex-1 min-w-[280px]">
+                        <div className={`rounded-xl border border-border ${col.color} p-3 space-y-3`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{col.label}</span>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{colCards.length}</span>
                           </div>
+                          {colCards.length === 0 ? (
+                            <p className="py-4 text-center text-xs text-muted-foreground">Vazio</p>
+                          ) : (
+                            colCards.map((card) => (
+                              <div key={card.key} className="glass rounded-xl border border-border p-3 shadow-sm space-y-1.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 ${card.type === "Chamado" ? "bg-blue-500/15 text-blue-400" : "bg-violet-500/15 text-violet-400"}`}>{card.type}</span>
+                                  {card.priority && (
+                                    <Badge className={`text-[10px] border shrink-0 ${PRIORITY_COLORS[card.priority] || ""}`}>{card.priority}</Badge>
+                                  )}
+                                </div>
+                                {card.subtitle && <p className="text-[10px] text-muted-foreground font-mono">{card.subtitle}</p>}
+                                <p className="text-xs font-medium leading-snug">{card.title}</p>
+                                <p className="text-[10px] text-muted-foreground">{card.status}</p>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     );
-                  })
-                )}
-              </TabsContent>
+                  })}
+                </div>
+              );
+            })()}
+          </TabsContent>
 
-              <TabsContent value="burndown" className="space-y-4">
+          <TabsContent value="burndown" className="space-y-4">
                 <div className="glass rounded-2xl p-5 shadow-card">
                   <h3 className="mb-4 text-sm font-semibold">Burndown da sprint</h3>
                   {burndownQuery.isLoading ? (
@@ -961,43 +1047,7 @@ function SprintDetail() {
                   )}
                 </div>
               </TabsContent>
-            </Tabs>
-          </div>
-
-          <aside className="space-y-4">
-            <div className="glass rounded-2xl p-5 shadow-card">
-              <h3 className="mb-3 text-sm font-semibold">Detalhes</h3>
-              <dl className="space-y-2 text-sm">
-                {[
-                  ["Responsável", sprint.lead_name || "-"],
-                  ["Status", formatSprintStatusLabel(sprint.status || "Planejada")],
-                  ["Início", formatDate(sprint.start_at)],
-                  ["Fim", formatDate(sprint.end_at)],
-                  ["Capacidade", formatHoursLabel(toNumber(sprint.capacity, 0))],
-                  ["Horas planejadas", formatHoursLabel(totalPlannedHours)],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex items-center justify-between gap-3">
-                    <dt className="text-xs text-muted-foreground">{label}</dt>
-                    <dd className="text-right">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-
-            <InfoPanel
-              icon={TrendingUp}
-              text={`Total realizado nesta sprint: ${formatHoursLabel(totalRealizedHours)}.`}
-            />
-            <InfoPanel
-              icon={TimerReset}
-              text={
-                overrunPlans > 0
-                  ? `${overrunPlans} atividade(s) estouraram o planejado nesta sprint.`
-                  : "Nenhuma atividade estourou o planejado nesta sprint."
-              }
-            />
-          </aside>
-        </div>
+          </Tabs>
       </div>
 
 
