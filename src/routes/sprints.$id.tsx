@@ -380,6 +380,13 @@ function SprintDetail() {
   const handleWizardNext = async () => {
     if (wizardStep === 1) {
       if (wizardTicketRows.length === 0) { setWizardStep(2); return; }
+      for (const row of wizardTicketRows) {
+        const t = (Array.isArray(ticketsQuery.data) ? ticketsQuery.data : (ticketsQuery.data as { results?: { code?: string }[] } | undefined)?.results ?? []) as { id: string; code?: string }[];
+        const code = t.find(x => x.id === row.ticketId)?.code ?? row.ticketId;
+        if (!row.responsibleIds.length) { toast.error(`Chamado ${code}: adicione ao menos um responsável.`); return; }
+        if (!Number(row.plannedHours)) { toast.error(`Chamado ${code}: informe as horas planejadas.`); return; }
+        if (!row.plannedEndDate) { toast.error(`Chamado ${code}: informe a previsão de término.`); return; }
+      }
       setWizardSaving(true);
       try {
         const updatedRows = [...wizardTicketRows];
@@ -415,6 +422,13 @@ function SprintDetail() {
       }
     } else if (wizardStep === 2) {
       if (wizardActivityRows.length === 0) { setWizardStep(3); return; }
+      for (const row of wizardActivityRows) {
+        const activity = activities.find(a => a.id === row.activityId);
+        const label = activity?.title ?? row.activityId;
+        if (!row.responsibleIds.length) { toast.error(`Atividade "${label}": adicione ao menos um responsável.`); return; }
+        if (!Number(row.plannedHours)) { toast.error(`Atividade "${label}": informe as horas planejadas.`); return; }
+        if (!row.plannedEndDate) { toast.error(`Atividade "${label}": informe a previsão de término.`); return; }
+      }
       setWizardSaving(true);
       try {
         const updatedRows = [...wizardActivityRows];
@@ -1423,56 +1437,67 @@ function SprintDetail() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {wizardTicketRows.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Chamados ({wizardTicketRows.length})
                       </p>
-                      {wizardTicketRows.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Nenhum chamado.</p>
-                      ) : (
-                        <div className="space-y-1">
-                          {wizardTicketRows.map((row) => {
-                            const ticket = allTickets3.find((t) => t.id === row.ticketId);
-                            return (
-                              <div key={row.ticketId} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
-                                <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
-                                <span className="font-mono text-xs text-muted-foreground">{ticket?.code}</span>
-                                <span className="min-w-0 flex-1 truncate">{ticket?.title ?? row.ticketId}</span>
-                                <span className="shrink-0 text-xs font-medium">{row.plannedHours ? `${row.plannedHours}h` : "—"}</span>
-                                {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
-                                {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {wizardTicketRows.map((row) => {
+                        const ticket = allTickets3.find((t) => t.id === row.ticketId);
+                        const respNames = row.responsibleIds.map(uid => {
+                          const u = users.find(x => String(x.id) === String(uid));
+                          return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
+                        });
+                        return (
+                          <div key={row.ticketId} className="glass rounded-xl px-4 py-3 shadow-card">
+                            <div className="flex items-center gap-3">
+                              <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                              <span className="font-mono text-xs text-muted-foreground shrink-0">{ticket?.code}</span>
+                              <span className="min-w-0 flex-1 truncate font-medium text-sm">{ticket?.title ?? row.ticketId}</span>
+                              <span className="shrink-0 text-sm font-semibold">{row.plannedHours}h</span>
+                              {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
+                              {row.savedId && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                            </div>
+                            {respNames.length > 0 && (
+                              <p className="mt-1.5 text-xs text-muted-foreground pl-1">{respNames.join(", ")}</p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
+                  )}
 
-                    <div>
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {wizardActivityRows.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Atividades ({wizardActivityRows.length})
                       </p>
-                      {wizardActivityRows.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Nenhuma atividade.</p>
-                      ) : (
-                        <div className="space-y-1">
-                          {wizardActivityRows.map((row) => {
-                            const activity = activities.find((a) => a.id === row.activityId);
-                            return (
-                              <div key={row.activityId} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
-                                <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
-                                <span className="min-w-0 flex-1 truncate">{activity?.title ?? row.activityId}</span>
-                                <span className="shrink-0 text-xs font-medium">{row.plannedHours ? `${row.plannedHours}h` : "—"}</span>
-                                {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
-                                {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
+                      {wizardActivityRows.map((row) => {
+                        const activity = activities.find((a) => a.id === row.activityId);
+                        const respNames = row.responsibleIds.map(uid => {
+                          const u = users.find(x => String(x.id) === String(uid));
+                          return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
+                        });
+                        return (
+                          <div key={row.activityId} className="glass rounded-xl px-4 py-3 shadow-card">
+                            <div className="flex items-center gap-3">
+                              <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-medium text-sm">{activity?.title ?? row.activityId}</p>
+                                {activity?.project_name && <p className="text-[10px] text-muted-foreground truncate">{activity.project_name}</p>}
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                              <span className="shrink-0 text-sm font-semibold">{row.plannedHours}h</span>
+                              {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
+                              {row.savedId && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                            </div>
+                            {respNames.length > 0 && (
+                              <p className="mt-1.5 text-xs text-muted-foreground pl-1">{respNames.join(", ")}</p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  )}
 
                 </div>
               );
