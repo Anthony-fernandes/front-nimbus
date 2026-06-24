@@ -80,13 +80,6 @@ function LoginPage() {
           )}
 
           <LoginForm />
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Backend local pronto?{" "}
-            <Link to="/" className="text-primary hover:underline">
-              Abrir dashboard
-            </Link>
-          </p>
         </div>
       </div>
     </div>
@@ -120,12 +113,18 @@ function Field({
   );
 }
 
+const REMEMBER_KEY = "nimbus_remembered_user";
+
 function LoginForm() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"credentials" | "mfa">("credentials");
+  const [step, setStep] = useState<"credentials" | "mfa" | "forgot">("credentials");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [totpCode, setTotpCode] = useState("");
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem(REMEMBER_KEY));
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const {
     register,
@@ -133,7 +132,7 @@ function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: "admin", password: "admin123" },
+    defaultValues: { username: localStorage.getItem(REMEMBER_KEY) || "", password: "" },
   });
   if (step === "mfa") {
     return (
@@ -211,6 +210,73 @@ function LoginForm() {
     );
   }
 
+  // ── Tela de recuperação de senha ──────────────────────────────────────────
+  if (step === "forgot") {
+    return (
+      <div className="mt-6 space-y-4">
+        <div className="flex flex-col items-center gap-1 pb-1">
+          <h3 className="text-base font-semibold">Recuperar senha</h3>
+          <p className="text-xs text-muted-foreground text-center">
+            Informe seu e-mail cadastrado para receber o link de redefinição.
+          </p>
+        </div>
+
+        {forgotSent ? (
+          <div className="rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success text-center">
+            E-mail enviado! Verifique sua caixa de entrada.
+          </div>
+        ) : (
+          <form
+            className="space-y-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!forgotEmail.trim()) return;
+              setForgotLoading(true);
+              try {
+                await api.post("/auth/password-reset/", { email: forgotEmail.trim() });
+                setForgotSent(true);
+              } catch {
+                toast.error("Não foi possível enviar o e-mail. Verifique o endereço informado.");
+              } finally {
+                setForgotLoading(false);
+              }
+            }}
+          >
+            <label className="block">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">E-mail</span>
+              <input
+                type="email"
+                autoFocus
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={forgotLoading || !forgotEmail.trim()}
+              className="w-full h-10 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 hover:opacity-95 transition disabled:opacity-60"
+            >
+              {forgotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar link de recuperação"}
+            </button>
+          </form>
+        )}
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => { setStep("credentials"); setForgotSent(false); setForgotEmail(""); }}
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition"
+          >
+            Voltar ao login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Formulário principal ───────────────────────────────────────────────────
   return (
     <form
       className="mt-6 space-y-3"
@@ -233,6 +299,13 @@ function LoginForm() {
           const data = response.data as { access: string; refresh: string; user?: User | null };
           setSession({ access: data.access, refresh: data.refresh, user: null });
 
+          // Lembrar usuário
+          if (rememberMe) {
+            localStorage.setItem(REMEMBER_KEY, username);
+          } else {
+            localStorage.removeItem(REMEMBER_KEY);
+          }
+
           try {
             const user =
               normalizeUser(data.user) ||
@@ -247,7 +320,7 @@ function LoginForm() {
             throw error;
           }
         } catch (error) {
-          toast.error(error instanceof Error ? error.message : "Não foi possível entrar");
+          toast.error(error instanceof Error ? error.message : "Credenciais inválidas. Tente novamente.");
         } finally {
           setLoading(false);
         }
@@ -259,7 +332,8 @@ function LoginForm() {
           <input
             {...register("username")}
             type="text"
-            placeholder="admin"
+            autoComplete="username"
+            placeholder="usuario ou email@empresa.com"
             className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
           />
         </label>
@@ -267,20 +341,40 @@ function LoginForm() {
           <p className="mt-1 text-xs text-destructive">{errors.username.message}</p>
         )}
       </div>
+
       <div>
-        <label className="block">
+        <div className="flex items-center justify-between mb-1">
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Senha</span>
-          <input
-            {...register("password")}
-            type="password"
-            placeholder="••••••••"
-            className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
-          />
-        </label>
+          <button
+            type="button"
+            onClick={() => setStep("forgot")}
+            className="text-[11px] text-primary hover:underline"
+          >
+            Esqueci minha senha
+          </button>
+        </div>
+        <input
+          {...register("password")}
+          type="password"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          className="w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
+        />
         {errors.password && (
           <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
         )}
       </div>
+
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+          className="h-4 w-4 rounded border-border accent-primary"
+        />
+        <span className="text-xs text-muted-foreground">Lembrar usuário neste dispositivo</span>
+      </label>
+
       <button
         type="submit"
         disabled={loading}
@@ -288,7 +382,6 @@ function LoginForm() {
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}
       </button>
-      <p className="text-[11px] text-muted-foreground text-center">Demo local do backend: admin / admin123</p>
     </form>
   );
 }
