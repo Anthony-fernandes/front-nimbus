@@ -162,51 +162,6 @@ function UserHoursBreakdown({ users, responsible, userHours, totalHours, onChang
   );
 }
 
-function TechnicianCapacityPanel({ users, ticketRows, activityRows, sprintDays }: {
-  users: import("@/lib/types").User[]; ticketRows: WizardTicketRow[]; activityRows: WizardActivityRow[]; sprintDays: number;
-}) {
-  const allResponsible = new Set([
-    ...ticketRows.flatMap(r => r.responsibleIds),
-    ...activityRows.flatMap(r => r.responsibleIds),
-  ]);
-  if (allResponsible.size === 0) return (
-    <div className="rounded-xl border border-border bg-muted/20 p-4">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Capacidade dos técnicos</p>
-      <p className="text-xs text-muted-foreground">Adicione responsáveis para ver a capacidade.</p>
-    </div>
-  );
-  const capacityPerUser = sprintDays * 8;
-  return (
-    <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Capacidade dos técnicos</p>
-      {Array.from(allResponsible).map(uid => {
-        const u = users.find(x => x.id === uid);
-        const name = u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
-        const allocated = [
-          ...ticketRows.map(r => Number(r.userHours[uid]) || 0),
-          ...activityRows.map(r => Number(r.userHours[uid]) || 0),
-        ].reduce((a, b) => a + b, 0);
-        const pct = capacityPerUser > 0 ? (allocated / capacityPerUser) * 100 : 0;
-        const barColor = pct > 100 ? "bg-destructive" : pct > 80 ? "bg-warning" : "bg-gradient-primary";
-        const textColor = pct > 100 ? "text-destructive" : pct > 80 ? "text-warning" : "text-success";
-        return (
-          <div key={uid} className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="truncate font-medium max-w-[120px]">{name}</span>
-              <span className={`font-semibold ${textColor}`}>{allocated.toFixed(1)}h / {capacityPerUser}h</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
-            </div>
-            {pct > 100 && (
-              <p className="text-[10px] text-destructive">Excedeu em {(allocated - capacityPerUser).toFixed(1)}h</p>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function SprintDetail() {
   const { id } = Route.useParams();
@@ -1062,9 +1017,8 @@ function SprintDetail() {
                     </PopoverContent>
                   </Popover>
 
-                  {/* inline table + capacity sidebar */}
-                  <div className="flex gap-4">
-                    <div className="flex-1 min-w-0">
+                  {/* inline table */}
+                  <div>
                       {wizardTicketRows.length > 0 && (
                         <div className="overflow-x-auto rounded-xl border border-border">
                           <table className="w-full text-sm">
@@ -1205,10 +1159,6 @@ function SprintDetail() {
                       {wizardTicketRows.length === 0 && (
                         <p className="py-4 text-center text-sm text-muted-foreground">Nenhum chamado adicionado ainda.</p>
                       )}
-                    </div>
-                    <div className="w-64 shrink-0">
-                      <TechnicianCapacityPanel users={users} ticketRows={wizardTicketRows} activityRows={wizardActivityRows} sprintDays={sprintDays} />
-                    </div>
                   </div>
                 </div>
               );
@@ -1277,9 +1227,8 @@ function SprintDetail() {
                     </PopoverContent>
                   </Popover>
 
-                  {/* inline table + capacity sidebar */}
-                  <div className="flex gap-4">
-                    <div className="flex-1 min-w-0">
+                  {/* inline table */}
+                  <div>
                       {wizardActivityRows.length > 0 && (
                         <div className="overflow-x-auto rounded-xl border border-border">
                           <table className="w-full text-sm">
@@ -1438,10 +1387,6 @@ function SprintDetail() {
                       {wizardActivityRows.length === 0 && (
                         <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma atividade adicionada ainda.</p>
                       )}
-                    </div>
-                    <div className="w-64 shrink-0">
-                      <TechnicianCapacityPanel users={users} ticketRows={wizardTicketRows} activityRows={wizardActivityRows} sprintDays={sprintDays} />
-                    </div>
                   </div>
                 </div>
               );
