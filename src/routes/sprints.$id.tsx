@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, Pencil, Plus, TimerReset, Trash2, TrendingUp } from "lucide-react";
+import { AlertCircle, Check, CheckCircle, ChevronRight, Pencil, Plus, Search, TimerReset, Trash2, TrendingUp } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -46,6 +46,7 @@ import { formatSprintStatusLabel } from "@/lib/labels";
 import type { SprintActivityPlan } from "@/lib/types";
 import { listActivities } from "@/services/activityService";
 import { listActivityTimeEntries } from "@/services/activityTimeEntryService";
+import { listTickets, updateTicket } from "@/services/ticketService";
 import { listActivityTags } from "@/services/activityTagService";
 import {
   deleteSprintActivityPlan,
@@ -80,6 +81,15 @@ function SprintDetail() {
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<SprintActivityPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
+
+  // 3-step planning wizard state
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [wizardTicketIds, setWizardTicketIds] = useState<string[]>([]);
+  const [wizardTicketSearch, setWizardTicketSearch] = useState("");
+  const [wizardPendingPlans, setWizardPendingPlans] = useState<ReturnType<typeof toSprintActivityPlanFormData>[]>([]);
+  const [wizardActivityForm, setWizardActivityForm] = useState(false);
+  const [wizardSaving, setWizardSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [closeSprintOpen, setCloseSprintOpen] = useState(false);
   const [closeNotes, setCloseNotes] = useState("");
@@ -91,6 +101,11 @@ function SprintDetail() {
   const sprintQuery = useQuery({ queryKey: ["sprint", id], queryFn: () => getSprint(id) });
   const activitiesQuery = useQuery({ queryKey: ["activities"], queryFn: () => listActivities() });
   const usersQuery = useQuery({ queryKey: ["form-users"], queryFn: () => listUsers() });
+  const ticketsQuery = useQuery({
+    queryKey: ["tickets-for-sprint-wizard"],
+    queryFn: () => listTickets({ page_size: 200 }),
+    enabled: wizardOpen && wizardStep === 1,
+  });
   const plansQuery = useQuery({
     queryKey: ["sprint-activity-plans", id],
     queryFn: () => listSprintPlansBySprint(id),
@@ -217,6 +232,58 @@ function SprintDetail() {
   const handleOpenCreatePlan = () => {
     setEditingPlan(null);
     setPlanDialogOpen(true);
+  };
+
+  const openWizard = () => {
+    setWizardStep(1);
+    setWizardTicketIds([]);
+    setWizardTicketSearch("");
+    setWizardPendingPlans([]);
+    setWizardActivityForm(false);
+    setWizardOpen(true);
+  };
+
+  const handleWizardFinish = async () => {
+    setWizardSaving(true);
+    try {
+      // Assign selected tickets to this sprint
+      await Promise.all(wizardTicketIds.map((tid) => updateTicket(tid, { sprint: id })));
+
+      // Save all pending activity plans
+      for (const planData of wizardPendingPlans) {
+        const selectedActivity = activities.find((a) => a.id === planData.activityId);
+        if (!selectedActivity) continue;
+        await saveSprintActivityPlan(
+          {
+            sprintId: id,
+            activityId: planData.activityId,
+            projectId: selectedActivity.project || "",
+            responsibleIds: planData.responsibleIds,
+            plannedHours: Number(planData.plannedHours || 0),
+            storyPoints: planData.storyPoints ? Number(planData.storyPoints) : undefined,
+            plannedStartDate: planData.plannedStartDate || "",
+            plannedEndDate: planData.plannedEndDate || "",
+            order: planData.order ? Number(planData.order) : undefined,
+            notes: planData.notes || "",
+          },
+          "create",
+        );
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] }),
+        queryClient.invalidateQueries({ queryKey: ["all-sprint-activity-plans"] }),
+        queryClient.invalidateQueries({ queryKey: ["tickets-for-sprint-wizard"] }),
+        queryClient.invalidateQueries({ queryKey: ["sprint", id] }),
+      ]);
+
+      toast.success("Sprint planejada com sucesso!");
+      setWizardOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao finalizar planejamento.");
+    } finally {
+      setWizardSaving(false);
+    }
   };
 
   const handleOpenEditPlan = (plan: SprintActivityPlan) => {
@@ -350,10 +417,10 @@ function SprintDetail() {
               <Button
                 type="button"
                 className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-                onClick={handleOpenCreatePlan}
+                onClick={openWizard}
               >
                 <Plus className="h-4 w-4" />
-                Planejar atividade
+                Planejar sprint
               </Button>
               {sprint.status !== "Concluída" && (
                 <Button
@@ -673,6 +740,356 @@ function SprintDetail() {
         </div>
       </div>
 
+
+      {/* ─── 3-step planning wizard ─── */}
+      <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) setWizardOpen(false); }}>
+        <DialogContent className="max-w-3xl glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
+          {/* wizard header + step indicators */}
+          <div className="flex-shrink-0 border-b border-border px-6 pt-5 pb-4">
+            <DialogTitle className="text-lg font-semibold">Planejamento da sprint</DialogTitle>
+            <DialogDescription className="sr-only">Planejamento em 3 etapas</DialogDescription>
+            <div className="mt-4 flex items-center gap-2">
+              {(["Chamados", "Atividades", "Finalização"] as const).map((label, idx) => {
+                const step = (idx + 1) as 1 | 2 | 3;
+                const done = wizardStep > step;
+                const active = wizardStep === step;
+                return (
+                  <div key={label} className="flex items-center gap-2">
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                      done ? "bg-primary text-primary-foreground" :
+                      active ? "bg-gradient-primary text-white shadow-glow" :
+                      "bg-muted text-muted-foreground"
+                    }`}>
+                      {done ? <Check className="h-3.5 w-3.5" /> : step}
+                    </div>
+                    <span className={`text-sm font-medium ${active ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
+                    {idx < 2 && <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* step content */}
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+
+            {/* ── STEP 1: Chamados ── */}
+            {wizardStep === 1 && (() => {
+              const allTickets = Array.isArray(ticketsQuery.data)
+                ? ticketsQuery.data
+                : (ticketsQuery.data as { results?: typeof ticketsQuery.data } | undefined)?.results ?? [];
+              const openTickets = (allTickets as { id: string; code?: string; title?: string; status?: string; sprint?: string | null; priority?: string; requester_name?: string }[]).filter(
+                (t) => t.status !== "Resolvido" && t.status !== "Fechado" && t.status !== "Cancelado",
+              );
+              const alreadyInSprint = openTickets.filter((t) => t.sprint === id);
+              const available = openTickets.filter((t) => t.sprint !== id);
+              const filtered = wizardTicketSearch.trim()
+                ? available.filter((t) =>
+                    (t.title ?? "").toLowerCase().includes(wizardTicketSearch.toLowerCase()) ||
+                    (t.code ?? "").toLowerCase().includes(wizardTicketSearch.toLowerCase()),
+                  )
+                : available;
+
+              return (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Selecione os chamados que serão trabalhados nesta sprint. Chamados já associados à sprint aparecem abaixo.</p>
+                  </div>
+
+                  {alreadyInSprint.length > 0 && (
+                    <div className="rounded-xl border border-border bg-primary/5 p-3">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Já nesta sprint ({alreadyInSprint.length})</p>
+                      <div className="space-y-1">
+                        {alreadyInSprint.map((t) => (
+                          <div key={t.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm">
+                            <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                            <span className="font-mono text-xs text-muted-foreground">{t.code}</span>
+                            <span className="truncate">{t.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      value={wizardTicketSearch}
+                      onChange={(e) => setWizardTicketSearch(e.target.value)}
+                      placeholder="Buscar chamados por código ou título..."
+                      className="w-full rounded-xl border border-border bg-muted/50 py-2 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground"
+                    />
+                  </div>
+
+                  {ticketsQuery.isLoading ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">Carregando chamados...</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {filtered.length === 0 && (
+                        <p className="py-6 text-center text-sm text-muted-foreground">Nenhum chamado disponível.</p>
+                      )}
+                      {filtered.map((t) => {
+                        const selected = wizardTicketIds.includes(t.id);
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() =>
+                              setWizardTicketIds((prev) =>
+                                selected ? prev.filter((x) => x !== t.id) : [...prev, t.id],
+                              )
+                            }
+                            className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                              selected
+                                ? "border-primary bg-primary/8 font-medium"
+                                : "border-border bg-card/40 hover:border-primary/30 hover:bg-muted/30"
+                            }`}
+                          >
+                            <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition ${
+                              selected ? "border-primary bg-primary" : "border-border bg-transparent"
+                            }`}>
+                              {selected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            </div>
+                            <span className="w-20 shrink-0 font-mono text-xs text-muted-foreground">{t.code}</span>
+                            <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                            {t.priority && (
+                              <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">{t.priority}</span>
+                            )}
+                            {t.status && (
+                              <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">{t.status}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {wizardTicketIds.length > 0 && (
+                    <p className="text-xs text-primary font-medium">{wizardTicketIds.length} chamado(s) selecionado(s)</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* ── STEP 2: Atividades de projetos ── */}
+            {wizardStep === 2 && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Adicione atividades de projetos que serão executadas nesta sprint, definindo responsáveis e horas planejadas.
+                </p>
+
+                {/* already-saved sprint plans */}
+                {sprintPlans.length > 0 && (
+                  <div className="rounded-xl border border-border bg-muted/20 p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Já planejadas nesta sprint ({sprintPlans.length})
+                    </p>
+                    <div className="space-y-1">
+                      {sprintPlans.map((plan) => {
+                        const activity = activityMap.get(plan.activityId);
+                        return (
+                          <div key={plan.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm">
+                            <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                            <span className="min-w-0 flex-1 truncate">{activity?.title ?? plan.activityId}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{plan.plannedHours}h</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* pending new plans */}
+                {wizardPendingPlans.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Adicionadas neste planejamento ({wizardPendingPlans.length})
+                    </p>
+                    {wizardPendingPlans.map((plan, idx) => {
+                      const activity = activities.find((a) => a.id === plan.activityId);
+                      return (
+                        <div key={idx} className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                          <span className="min-w-0 flex-1 truncate font-medium">{activity?.title ?? plan.activityId}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">{plan.plannedHours}h</span>
+                          <button
+                            type="button"
+                            onClick={() => setWizardPendingPlans((prev) => prev.filter((_, i) => i !== idx))}
+                            className="shrink-0 text-destructive/60 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {!wizardActivityForm ? (
+                  <button
+                    type="button"
+                    onClick={() => setWizardActivityForm(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 py-3 text-sm text-primary transition hover:border-primary hover:bg-primary/5"
+                  >
+                    <Plus className="h-4 w-4" /> Adicionar atividade
+                  </button>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card/60 p-4">
+                    <p className="mb-3 text-sm font-semibold">Nova atividade na sprint</p>
+                    <SprintActivityPlanForm
+                      key={`wizard-plan-${wizardPendingPlans.length}`}
+                      initial={toSprintActivityPlanFormData(null)}
+                      activities={planningOptions}
+                      users={users}
+                      saving={false}
+                      submitLabel="Adicionar à lista"
+                      onSubmit={(data) => {
+                        setWizardPendingPlans((prev) => [...prev, data]);
+                        setWizardActivityForm(false);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setWizardActivityForm(false)}
+                      className="mt-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── STEP 3: Finalização ── */}
+            {wizardStep === 3 && (() => {
+              const allTickets = Array.isArray(ticketsQuery.data)
+                ? ticketsQuery.data
+                : (ticketsQuery.data as { results?: typeof ticketsQuery.data } | undefined)?.results ?? [];
+              const selectedTickets = (allTickets as { id: string; code?: string; title?: string; priority?: string; status?: string }[]).filter((t) =>
+                wizardTicketIds.includes(t.id),
+              );
+              const totalNewHours = wizardPendingPlans.reduce((s, p) => s + Number(p.plannedHours || 0), 0);
+              const totalPlannedAfter = totalPlannedHours + totalNewHours;
+              const capacity = sprint?.capacity ?? 0;
+              const capacityPct = capacity > 0 ? Math.min(100, Math.round((totalPlannedAfter / capacity) * 100)) : 0;
+
+              return (
+                <div className="space-y-5">
+                  <div className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
+                    <h3 className="text-sm font-semibold">Resumo da sprint</h3>
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Capacidade</p>
+                        <p className="font-semibold">{formatHoursLabel(capacity)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total planejado</p>
+                        <p className="font-semibold">{formatHoursLabel(totalPlannedAfter)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Utilização</p>
+                        <p className={`font-semibold ${capacityPct > 100 ? "text-destructive" : "text-primary"}`}>{capacityPct}%</p>
+                      </div>
+                    </div>
+                    {capacity > 0 && (
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full transition-all ${capacityPct > 100 ? "bg-destructive" : "bg-gradient-primary"}`}
+                          style={{ width: `${Math.min(100, capacityPct)}%` }}
+                        />
+                      </div>
+                    )}
+                    {capacityPct > 100 && (
+                      <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        Planejamento excede a capacidade da sprint.
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Chamados ({wizardTicketIds.length})
+                    </p>
+                    {wizardTicketIds.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nenhum chamado selecionado.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {selectedTickets.map((t) => (
+                          <div key={t.id} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
+                            <span className="font-mono text-xs text-muted-foreground">{t.code}</span>
+                            <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                            {t.priority && <span className="shrink-0 text-xs text-muted-foreground">{t.priority}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Atividades planejadas ({wizardPendingPlans.length})
+                    </p>
+                    {wizardPendingPlans.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nenhuma atividade adicionada neste planejamento.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {wizardPendingPlans.map((plan, idx) => {
+                          const activity = activities.find((a) => a.id === plan.activityId);
+                          return (
+                            <div key={idx} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
+                              <span className="min-w-0 flex-1 truncate">{activity?.title ?? plan.activityId}</span>
+                              <span className="shrink-0 font-medium">{plan.plannedHours}h</span>
+                              {plan.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{plan.storyPoints} pts</span>}
+                            </div>
+                          );
+                        })}
+                        <div className="flex justify-end pt-1 text-xs text-muted-foreground">
+                          Total: <span className="ml-1 font-medium text-foreground">{formatHoursLabel(totalNewHours)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* wizard footer */}
+          <div className="flex-shrink-0 flex items-center justify-between border-t border-border px-6 py-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (wizardStep === 1) setWizardOpen(false);
+                else setWizardStep((s) => (s - 1) as 1 | 2 | 3);
+              }}
+            >
+              {wizardStep === 1 ? "Cancelar" : "← Voltar"}
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Etapa {wizardStep} de 3</span>
+              {wizardStep < 3 ? (
+                <Button
+                  onClick={() => setWizardStep((s) => (s + 1) as 1 | 2 | 3)}
+                  disabled={wizardStep === 2 && wizardActivityForm}
+                  className="gap-1.5 bg-gradient-primary text-white shadow-glow hover:opacity-90"
+                >
+                  Próximo <ChevronRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleWizardFinish}
+                  disabled={wizardSaving}
+                  className="gap-1.5 bg-gradient-primary text-white shadow-glow hover:opacity-90"
+                >
+                  {wizardSaving ? "Salvando..." : "Concluir planejamento"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── edit single plan dialog (kept for inline edits) ─── */}
       <Dialog
         open={planDialogOpen}
         onOpenChange={(open) => {
