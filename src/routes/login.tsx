@@ -121,7 +121,7 @@ function LoginForm() {
   const [step, setStep] = useState<"credentials" | "mfa" | "forgot">("credentials");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [totpCode, setTotpCode] = useState("");
-  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem(REMEMBER_KEY));
+  const [rememberMe, setRememberMe] = useState(() => typeof window !== "undefined" && !!localStorage.getItem(REMEMBER_KEY));
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -132,7 +132,7 @@ function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: localStorage.getItem(REMEMBER_KEY) || "", password: "" },
+    defaultValues: { username: (typeof window !== "undefined" ? localStorage.getItem(REMEMBER_KEY) : null) || "", password: "" },
   });
   if (step === "mfa") {
     return (
