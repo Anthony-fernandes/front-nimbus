@@ -80,8 +80,8 @@ export const Route = createFileRoute("/sprints/$id")({
   component: SprintDetail,
 });
 
-type WizardTicketRow = { ticketId: string; responsibleIds: string[]; userHours: Record<string,string>; plannedHours: string; storyPoints: string; priority: string; complexity: string; notes: string; savedId?: string };
-type WizardActivityRow = { activityId: string; responsibleIds: string[]; userHours: Record<string,string>; plannedHours: string; storyPoints: string; priority: string; complexity: string; plannedStartDate: string; plannedEndDate: string; notes: string; savedId?: string };
+type WizardTicketRow = { ticketId: string; responsibleIds: string[]; userHours: Record<string,string>; plannedHours: string; storyPoints: string; priority: string; complexity: string; plannedEndDate: string; notes: string; savedId?: string };
+type WizardActivityRow = { activityId: string; responsibleIds: string[]; userHours: Record<string,string>; plannedHours: string; storyPoints: string; priority: string; complexity: string; plannedEndDate: string; notes: string; savedId?: string };
 
 const FIBONACCI_SP = [1, 2, 3, 5, 8, 13, 21] as const;
 const SP_HOUR_THRESHOLDS: Record<number, number> = { 1: 2, 2: 4, 3: 8, 5: 16, 8: 24, 13: 40, 21: Infinity };
@@ -355,6 +355,7 @@ function SprintDetail() {
       storyPoints: p.storyPoints != null ? String(p.storyPoints) : "",
       priority: p.priority || "Média",
       complexity: p.complexity ? String(p.complexity) : "",
+      plannedEndDate: p.plannedEndDate || "",
       notes: p.notes || "",
       savedId: p.id,
     })));
@@ -367,7 +368,6 @@ function SprintDetail() {
       storyPoints: p.storyPoints != null ? String(p.storyPoints) : "",
       priority: p.priority || "Média",
       complexity: p.complexity ? String(p.complexity) : "",
-      plannedStartDate: p.plannedStartDate || "",
       plannedEndDate: p.plannedEndDate || "",
       notes: p.notes || "",
       savedId: p.id,
@@ -393,6 +393,7 @@ function SprintDetail() {
             userHours: Object.fromEntries(Object.entries(row.userHours).map(([k,v]) => [k, Number(v) || 0])),
             priority: row.priority || "Média",
             complexity: row.complexity ? Number(row.complexity) : undefined,
+            plannedEndDate: row.plannedEndDate || "",
           };
           if (row.savedId) {
             await saveSprintTicketPlan({ ...payload, id: row.savedId }, "edit", row.savedId);
@@ -426,7 +427,6 @@ function SprintDetail() {
             responsibleIds: row.responsibleIds,
             plannedHours: Number(row.plannedHours || 0),
             storyPoints: row.storyPoints ? Number(row.storyPoints) : undefined,
-            plannedStartDate: row.plannedStartDate || "",
             plannedEndDate: row.plannedEndDate || "",
             notes: row.notes,
             userHours: Object.fromEntries(Object.entries(row.userHours).map(([k,v]) => [k, Number(v) || 0])),
@@ -1003,7 +1003,7 @@ function SprintDetail() {
                               type="button"
                               className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
                               onClick={() => {
-                                setWizardTicketRows((prev) => [...prev, { ticketId: t.id, responsibleIds: [], userHours: {}, plannedHours: "", storyPoints: "", priority: "Média", complexity: "", notes: "" }]);
+                                setWizardTicketRows((prev) => [...prev, { ticketId: t.id, responsibleIds: [], userHours: {}, plannedHours: "", storyPoints: "", priority: "Média", complexity: "", plannedEndDate: "", notes: "" }]);
                                 setWizardTicketSearch("");
                               }}
                             >
@@ -1028,6 +1028,7 @@ function SprintDetail() {
                                 <th className="px-3 py-2 text-left font-medium w-44">Responsáveis</th>
                                 <th className="px-3 py-2 text-left font-medium w-20">SP</th>
                                 <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                                <th className="px-3 py-2 text-left font-medium w-28">Previsão término</th>
                                 <th className="px-3 py-2 w-8" />
                                 <th className="px-3 py-2 w-8" />
                               </tr>
@@ -1085,6 +1086,14 @@ function SprintDetail() {
                                         />
                                       </td>
                                       <td className="px-3 py-2">
+                                        <input
+                                          type="date"
+                                          value={row.plannedEndDate}
+                                          onChange={(e) => updateTicketRow(row.ticketId, { plannedEndDate: e.target.value })}
+                                          className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">
                                         <button type="button" onClick={() => setExpandedRows(prev => { const n = new Set(prev); n.has(rowKey) ? n.delete(rowKey) : n.add(rowKey); return n; })} className="text-muted-foreground hover:text-foreground transition text-xs">
                                           {isExpanded ? "▲" : "▼"}
                                         </button>
@@ -1106,7 +1115,7 @@ function SprintDetail() {
                                     </tr>
                                     {isExpanded && (
                                       <tr key={`${row.ticketId}-expanded`} className="border-b border-border bg-muted/10">
-                                        <td colSpan={6} className="px-4 py-3 space-y-3">
+                                        <td colSpan={7} className="px-4 py-3 space-y-3">
                                           <UserHoursBreakdown
                                             users={users}
                                             responsible={row.responsibleIds}
@@ -1212,7 +1221,7 @@ function SprintDetail() {
                               type="button"
                               className="flex w-full items-start gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
                               onClick={() => {
-                                setWizardActivityRows((prev) => [...prev, { activityId: a.id, responsibleIds: [], userHours: {}, plannedHours: String(a.estimatedBalanceHours > 0 ? a.estimatedBalanceHours : ""), storyPoints: "", priority: "Média", complexity: "", plannedStartDate: "", plannedEndDate: "", notes: "" }]);
+                                setWizardActivityRows((prev) => [...prev, { activityId: a.id, responsibleIds: [], userHours: {}, plannedHours: String(a.estimatedBalanceHours > 0 ? a.estimatedBalanceHours : ""), storyPoints: "", priority: "Média", complexity: "", plannedEndDate: "", notes: "" }]);
                                 setWizardActivitySearch("");
                               }}
                             >
@@ -1238,8 +1247,7 @@ function SprintDetail() {
                                 <th className="px-3 py-2 text-left font-medium w-44">Responsáveis</th>
                                 <th className="px-3 py-2 text-left font-medium w-20">SP</th>
                                 <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
-                                <th className="px-3 py-2 text-left font-medium w-24">Início</th>
-                                <th className="px-3 py-2 text-left font-medium w-24">Fim</th>
+                                <th className="px-3 py-2 text-left font-medium w-28">Previsão término</th>
                                 <th className="px-3 py-2 w-8" />
                                 <th className="px-3 py-2 w-8" />
                               </tr>
@@ -1299,14 +1307,6 @@ function SprintDetail() {
                                       <td className="px-3 py-2">
                                         <input
                                           type="date"
-                                          value={row.plannedStartDate}
-                                          onChange={(e) => updateActivityRow(row.activityId, { plannedStartDate: e.target.value })}
-                                          className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
-                                        />
-                                      </td>
-                                      <td className="px-3 py-2">
-                                        <input
-                                          type="date"
                                           value={row.plannedEndDate}
                                           onChange={(e) => updateActivityRow(row.activityId, { plannedEndDate: e.target.value })}
                                           className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
@@ -1334,7 +1334,7 @@ function SprintDetail() {
                                     </tr>
                                     {isExpanded && (
                                       <tr key={`${row.activityId}-expanded`} className="border-b border-border bg-muted/10">
-                                        <td colSpan={8} className="px-4 py-3 space-y-3">
+                                        <td colSpan={7} className="px-4 py-3 space-y-3">
                                           <UserHoursBreakdown
                                             users={users}
                                             responsible={row.responsibleIds}
@@ -1490,7 +1490,6 @@ function SprintDetail() {
                     </div>
                   </div>
 
-                  <TechnicianCapacityPanel users={users} ticketRows={wizardTicketRows} activityRows={wizardActivityRows} sprintDays={sprintDays} />
                 </div>
               );
             })()}

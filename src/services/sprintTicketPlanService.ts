@@ -33,6 +33,12 @@ function normalizeSprintTicketPlan(
     userHours,
     priority: typeof payload.priority === "string" ? payload.priority : "Média",
     complexity: payload.complexity != null ? Number(payload.complexity) : undefined,
+    plannedEndDate:
+      typeof payload.plannedEndDate === "string"
+        ? payload.plannedEndDate
+        : typeof (payload as Record<string, unknown>).planned_end_date === "string"
+          ? (payload as Record<string, unknown>).planned_end_date as string
+          : "",
     plannedHours: Math.max(0, toNumber((payload.plannedHours ?? payload.planned_hours) as string | number | null | undefined, 0)),
     storyPoints:
       payload.storyPoints == null && payload.story_points == null
@@ -64,6 +70,7 @@ function buildPayload(payload: Partial<SprintTicketPlan>) {
     story_points: payload.storyPoints == null ? null : Math.max(0, toNumber(payload.storyPoints, 0)),
     priority: payload.priority || "Média",
     complexity: payload.complexity ?? null,
+    planned_end_date: payload.plannedEndDate || null,
     notes: payload.notes || "",
   };
 }

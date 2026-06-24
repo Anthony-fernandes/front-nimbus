@@ -708,6 +708,7 @@ export type SprintTicketPlan = {
   storyPoints?: number;
   priority?: string;
   complexity?: number;
+  plannedEndDate?: string;
   notes?: string;
   createdAt: string;
   updatedAt?: string;
