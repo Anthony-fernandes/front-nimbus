@@ -934,7 +934,7 @@ function SprintDetail() {
 
       {/* ─── 3-step planning wizard ─── */}
       <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) setWizardOpen(false); }}>
-        <DialogContent className="max-w-6xl glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <DialogContent className="max-w-[95vw] w-[1200px] glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
           {/* wizard header + step indicators */}
           <div className="flex-shrink-0 border-b border-border px-6 pt-5 pb-4">
             <DialogTitle className="text-lg font-semibold">Planejamento da sprint</DialogTitle>
@@ -1437,21 +1437,23 @@ function SprintDetail() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     {/* Tabela Chamados */}
-                    <div>
-                      <table className="w-full text-sm rounded-xl overflow-hidden border border-border">
+                    <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
-                            <th className="px-3 py-2 text-left font-medium" colSpan={2}>Chamados ({wizardTicketRows.length})</th>
-                            <th className="px-3 py-2 text-right font-medium">Horas</th>
-                            <th className="px-3 py-2 text-right font-medium">SP</th>
-                            <th className="px-3 py-2 w-5" />
+                            <th className="px-3 py-2 text-left font-medium">Chamados ({wizardTicketRows.length})</th>
+                            <th className="px-3 py-2 text-left font-medium w-52">Responsáveis</th>
+                            <th className="px-3 py-2 text-left font-medium w-16">SP</th>
+                            <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                            <th className="px-3 py-2 text-left font-medium w-32">Previsão término</th>
+                            <th className="px-3 py-2 w-6" />
                           </tr>
                         </thead>
                         <tbody>
                           {wizardTicketRows.length === 0 ? (
-                            <tr><td colSpan={5} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhum chamado.</td></tr>
+                            <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhum chamado.</td></tr>
                           ) : wizardTicketRows.map((row) => {
                             const ticket = allTickets3.find((t) => t.id === row.ticketId);
                             const respNames = row.responsibleIds.map(uid => {
@@ -1459,20 +1461,20 @@ function SprintDetail() {
                               return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
                             });
                             return (
-                              <tr key={row.ticketId} className="border-b border-border last:border-0">
-                                <td className="px-3 py-2 w-20">
-                                  <Badge className={`text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
-                                </td>
-                                <td className="px-2 py-2">
-                                  <div className="flex items-center gap-1">
+                              <tr key={row.ticketId} className="border-b border-border last:border-0 hover:bg-muted/10">
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
                                     <span className="font-mono text-xs text-muted-foreground shrink-0">{ticket?.code}</span>
-                                    <span className="font-medium truncate max-w-[120px]">{ticket?.title ?? row.ticketId}</span>
+                                    <span className="font-medium truncate">{ticket?.title ?? row.ticketId}</span>
+                                    {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
                                   </div>
-                                  <p className="text-[10px] text-muted-foreground mt-0.5">{respNames.join(", ")}</p>
                                 </td>
-                                <td className="px-3 py-2 text-right font-semibold text-xs whitespace-nowrap">{row.plannedHours}h</td>
-                                <td className="px-3 py-2 text-right text-xs text-muted-foreground whitespace-nowrap">{row.storyPoints || "—"}</td>
-                                <td className="px-2 py-2 text-center">{row.savedId && <Check className="h-3 w-3 text-primary inline" />}</td>
+                                <td className="px-3 py-2 text-xs text-muted-foreground">{respNames.join(", ")}</td>
+                                <td className="px-3 py-2 text-xs font-medium">{row.storyPoints || "—"}</td>
+                                <td className="px-3 py-2 text-xs font-semibold">{row.plannedHours}h</td>
+                                <td className="px-3 py-2 text-xs text-muted-foreground">{row.plannedEndDate || "—"}</td>
+                                <td />
                               </tr>
                             );
                           })}
@@ -1481,19 +1483,21 @@ function SprintDetail() {
                     </div>
 
                     {/* Tabela Atividades */}
-                    <div>
-                      <table className="w-full text-sm rounded-xl overflow-hidden border border-border">
+                    <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
-                            <th className="px-3 py-2 text-left font-medium" colSpan={2}>Atividades ({wizardActivityRows.length})</th>
-                            <th className="px-3 py-2 text-right font-medium">Horas</th>
-                            <th className="px-3 py-2 text-right font-medium">SP</th>
-                            <th className="px-3 py-2 w-5" />
+                            <th className="px-3 py-2 text-left font-medium">Atividades ({wizardActivityRows.length})</th>
+                            <th className="px-3 py-2 text-left font-medium w-52">Responsáveis</th>
+                            <th className="px-3 py-2 text-left font-medium w-16">SP</th>
+                            <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                            <th className="px-3 py-2 text-left font-medium w-32">Previsão término</th>
+                            <th className="px-3 py-2 w-6" />
                           </tr>
                         </thead>
                         <tbody>
                           {wizardActivityRows.length === 0 ? (
-                            <tr><td colSpan={5} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhuma atividade.</td></tr>
+                            <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhuma atividade.</td></tr>
                           ) : wizardActivityRows.map((row) => {
                             const activity = activities.find((a) => a.id === row.activityId);
                             const respNames = row.responsibleIds.map(uid => {
@@ -1501,18 +1505,22 @@ function SprintDetail() {
                               return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
                             });
                             return (
-                              <tr key={row.activityId} className="border-b border-border last:border-0">
-                                <td className="px-3 py-2 w-20">
-                                  <Badge className={`text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                              <tr key={row.activityId} className="border-b border-border last:border-0 hover:bg-muted/10">
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                                    <div className="min-w-0">
+                                      <p className="font-medium truncate">{activity?.title ?? row.activityId}</p>
+                                      {activity?.project_name && <p className="text-[10px] text-muted-foreground truncate">{activity.project_name}</p>}
+                                    </div>
+                                    {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
+                                  </div>
                                 </td>
-                                <td className="px-2 py-2">
-                                  <p className="font-medium truncate max-w-[140px]">{activity?.title ?? row.activityId}</p>
-                                  {activity?.project_name && <p className="text-[10px] text-muted-foreground truncate max-w-[140px]">{activity.project_name}</p>}
-                                  <p className="text-[10px] text-muted-foreground mt-0.5">{respNames.join(", ")}</p>
-                                </td>
-                                <td className="px-3 py-2 text-right font-semibold text-xs whitespace-nowrap">{row.plannedHours}h</td>
-                                <td className="px-3 py-2 text-right text-xs text-muted-foreground whitespace-nowrap">{row.storyPoints || "—"}</td>
-                                <td className="px-2 py-2 text-center">{row.savedId && <Check className="h-3 w-3 text-primary inline" />}</td>
+                                <td className="px-3 py-2 text-xs text-muted-foreground">{respNames.join(", ")}</td>
+                                <td className="px-3 py-2 text-xs font-medium">{row.storyPoints || "—"}</td>
+                                <td className="px-3 py-2 text-xs font-semibold">{row.plannedHours}h</td>
+                                <td className="px-3 py-2 text-xs text-muted-foreground">{row.plannedEndDate || "—"}</td>
+                                <td />
                               </tr>
                             );
                           })}
