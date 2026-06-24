@@ -695,6 +695,18 @@ export type SprintActivityPlan = {
   updatedAt?: string;
 };
 
+export type SprintTicketPlan = {
+  id: string;
+  sprintId: string;
+  ticketId: string;
+  responsibleIds?: string[];
+  plannedHours: number;
+  storyPoints?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type ActivityTimeEntry = {
   id: string;
   activityId: string;

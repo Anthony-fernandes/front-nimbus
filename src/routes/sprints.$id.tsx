@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, CheckCircle, ChevronRight, Pencil, Plus, Search, TimerReset, Trash2, TrendingUp } from "lucide-react";
+import { AlertCircle, Check, CheckCircle, ChevronRight, Pencil, Plus, Search, TimerReset, Trash2, TrendingUp, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -46,7 +46,7 @@ import { formatSprintStatusLabel } from "@/lib/labels";
 import type { SprintActivityPlan } from "@/lib/types";
 import { listActivities } from "@/services/activityService";
 import { listActivityTimeEntries } from "@/services/activityTimeEntryService";
-import { listTickets, updateTicket } from "@/services/ticketService";
+import { listTickets } from "@/services/ticketService";
 import { listActivityTags } from "@/services/activityTagService";
 import {
   deleteSprintActivityPlan,
@@ -54,6 +54,12 @@ import {
   listSprintPlansBySprint,
   saveSprintActivityPlan,
 } from "@/services/sprintActivityPlanService";
+import {
+  listSprintTicketPlansBySprint,
+  saveSprintTicketPlan,
+  deleteSprintTicketPlan,
+} from "@/services/sprintTicketPlanService";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   closeSprint,
   deleteSprint,
@@ -73,6 +79,9 @@ export const Route = createFileRoute("/sprints/$id")({
   component: SprintDetail,
 });
 
+type WizardTicketRow = { ticketId: string; responsibleIds: string[]; plannedHours: string; storyPoints: string; notes: string; savedId?: string };
+type WizardActivityRow = { activityId: string; responsibleIds: string[]; plannedHours: string; storyPoints: string; plannedStartDate: string; plannedEndDate: string; notes: string; savedId?: string };
+
 function SprintDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -81,14 +90,12 @@ function SprintDetail() {
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<SprintActivityPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
-
-  // 3-step planning wizard state
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
-  const [wizardTicketIds, setWizardTicketIds] = useState<string[]>([]);
+  const [wizardTicketRows, setWizardTicketRows] = useState<WizardTicketRow[]>([]);
+  const [wizardActivityRows, setWizardActivityRows] = useState<WizardActivityRow[]>([]);
   const [wizardTicketSearch, setWizardTicketSearch] = useState("");
-  const [wizardPendingPlans, setWizardPendingPlans] = useState<ReturnType<typeof toSprintActivityPlanFormData>[]>([]);
-  const [wizardActivityForm, setWizardActivityForm] = useState(false);
+  const [wizardActivitySearch, setWizardActivitySearch] = useState("");
   const [wizardSaving, setWizardSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [closeSprintOpen, setCloseSprintOpen] = useState(false);
@@ -104,7 +111,11 @@ function SprintDetail() {
   const ticketsQuery = useQuery({
     queryKey: ["tickets-for-sprint-wizard"],
     queryFn: () => listTickets({ page_size: 200 }),
-    enabled: wizardOpen && wizardStep === 1,
+    enabled: wizardOpen,
+  });
+  const ticketPlansQuery = useQuery({
+    queryKey: ["sprint-ticket-plans", id],
+    queryFn: () => listSprintTicketPlansBySprint(id),
   });
   const plansQuery = useQuery({
     queryKey: ["sprint-activity-plans", id],
@@ -236,54 +247,110 @@ function SprintDetail() {
 
   const openWizard = () => {
     setWizardStep(1);
-    setWizardTicketIds([]);
     setWizardTicketSearch("");
-    setWizardPendingPlans([]);
-    setWizardActivityForm(false);
+    setWizardActivitySearch("");
+    // pre-populate from existing saved plans
+    const existingTicketPlans = ticketPlansQuery.data || [];
+    setWizardTicketRows(existingTicketPlans.map((p) => ({
+      ticketId: p.ticketId,
+      responsibleIds: p.responsibleIds || [],
+      plannedHours: String(p.plannedHours ?? ""),
+      storyPoints: p.storyPoints != null ? String(p.storyPoints) : "",
+      notes: p.notes || "",
+      savedId: p.id,
+    })));
+    const existingActivityPlans = plansQuery.data || [];
+    setWizardActivityRows(existingActivityPlans.map((p) => ({
+      activityId: p.activityId,
+      responsibleIds: p.responsibleIds || [],
+      plannedHours: String(p.plannedHours ?? ""),
+      storyPoints: p.storyPoints != null ? String(p.storyPoints) : "",
+      plannedStartDate: p.plannedStartDate || "",
+      plannedEndDate: p.plannedEndDate || "",
+      notes: p.notes || "",
+      savedId: p.id,
+    })));
     setWizardOpen(true);
   };
 
-  const handleWizardFinish = async () => {
-    setWizardSaving(true);
-    try {
-      // Assign selected tickets to this sprint
-      await Promise.all(wizardTicketIds.map((tid) => updateTicket(tid, { sprint: id })));
-
-      // Save all pending activity plans
-      for (const planData of wizardPendingPlans) {
-        const selectedActivity = activities.find((a) => a.id === planData.activityId);
-        if (!selectedActivity) continue;
-        await saveSprintActivityPlan(
-          {
+  const handleWizardNext = async () => {
+    if (wizardStep === 1) {
+      if (wizardTicketRows.length === 0) { setWizardStep(2); return; }
+      setWizardSaving(true);
+      try {
+        const updatedRows = [...wizardTicketRows];
+        for (let i = 0; i < updatedRows.length; i++) {
+          const row = updatedRows[i];
+          const payload = {
             sprintId: id,
-            activityId: planData.activityId,
-            projectId: selectedActivity.project || "",
-            responsibleIds: planData.responsibleIds,
-            plannedHours: Number(planData.plannedHours || 0),
-            storyPoints: planData.storyPoints ? Number(planData.storyPoints) : undefined,
-            plannedStartDate: planData.plannedStartDate || "",
-            plannedEndDate: planData.plannedEndDate || "",
-            order: planData.order ? Number(planData.order) : undefined,
-            notes: planData.notes || "",
-          },
-          "create",
-        );
+            ticketId: row.ticketId,
+            responsibleIds: row.responsibleIds,
+            plannedHours: Number(row.plannedHours || 0),
+            storyPoints: row.storyPoints ? Number(row.storyPoints) : undefined,
+            notes: row.notes,
+          };
+          if (row.savedId) {
+            await saveSprintTicketPlan({ ...payload, id: row.savedId }, "edit", row.savedId);
+          } else {
+            const saved = await saveSprintTicketPlan(payload, "create");
+            updatedRows[i] = { ...row, savedId: saved.id };
+          }
+        }
+        setWizardTicketRows(updatedRows);
+        await queryClient.invalidateQueries({ queryKey: ["sprint-ticket-plans", id] });
+        toast.success("Chamados salvos.");
+        setWizardStep(2);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao salvar chamados.");
+      } finally {
+        setWizardSaving(false);
       }
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] }),
-        queryClient.invalidateQueries({ queryKey: ["all-sprint-activity-plans"] }),
-        queryClient.invalidateQueries({ queryKey: ["tickets-for-sprint-wizard"] }),
-        queryClient.invalidateQueries({ queryKey: ["sprint", id] }),
-      ]);
-
-      toast.success("Sprint planejada com sucesso!");
-      setWizardOpen(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao finalizar planejamento.");
-    } finally {
-      setWizardSaving(false);
+    } else if (wizardStep === 2) {
+      if (wizardActivityRows.length === 0) { setWizardStep(3); return; }
+      setWizardSaving(true);
+      try {
+        const updatedRows = [...wizardActivityRows];
+        for (let i = 0; i < updatedRows.length; i++) {
+          const row = updatedRows[i];
+          const activity = activities.find((a) => a.id === row.activityId);
+          if (!activity) continue;
+          const payload = {
+            sprintId: id,
+            activityId: row.activityId,
+            projectId: activity.project || "",
+            responsibleIds: row.responsibleIds,
+            plannedHours: Number(row.plannedHours || 0),
+            storyPoints: row.storyPoints ? Number(row.storyPoints) : undefined,
+            plannedStartDate: row.plannedStartDate || "",
+            plannedEndDate: row.plannedEndDate || "",
+            notes: row.notes,
+          };
+          if (row.savedId) {
+            await saveSprintActivityPlan({ ...payload, id: row.savedId }, "edit", row.savedId);
+          } else {
+            const saved = await saveSprintActivityPlan(payload, "create");
+            updatedRows[i] = { ...row, savedId: saved.id };
+          }
+        }
+        setWizardActivityRows(updatedRows);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] }),
+          queryClient.invalidateQueries({ queryKey: ["all-sprint-activity-plans"] }),
+        ]);
+        toast.success("Atividades salvas.");
+        setWizardStep(3);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao salvar atividades.");
+      } finally {
+        setWizardSaving(false);
+      }
     }
+  };
+
+  const handleWizardFinish = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["sprint", id] });
+    toast.success("Planejamento concluído!");
+    setWizardOpen(false);
   };
 
   const handleOpenEditPlan = (plan: SprintActivityPlan) => {
@@ -743,7 +810,7 @@ function SprintDetail() {
 
       {/* ─── 3-step planning wizard ─── */}
       <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) setWizardOpen(false); }}>
-        <DialogContent className="max-w-3xl glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <DialogContent className="max-w-5xl glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
           {/* wizard header + step indicators */}
           <div className="flex-shrink-0 border-b border-border px-6 pt-5 pb-4">
             <DialogTitle className="text-lg font-semibold">Planejamento da sprint</DialogTitle>
@@ -775,215 +842,342 @@ function SprintDetail() {
 
             {/* ── STEP 1: Chamados ── */}
             {wizardStep === 1 && (() => {
-              const allTickets = Array.isArray(ticketsQuery.data)
+              type TicketItem = { id: string; code?: string; title?: string; status?: string; sprint?: string | null; priority?: string };
+              const allTickets = (Array.isArray(ticketsQuery.data)
                 ? ticketsQuery.data
-                : (ticketsQuery.data as { results?: typeof ticketsQuery.data } | undefined)?.results ?? [];
-              const openTickets = (allTickets as { id: string; code?: string; title?: string; status?: string; sprint?: string | null; priority?: string; requester_name?: string }[]).filter(
-                (t) => t.status !== "Resolvido" && t.status !== "Fechado" && t.status !== "Cancelado",
-              );
-              const alreadyInSprint = openTickets.filter((t) => t.sprint === id);
-              const available = openTickets.filter((t) => t.sprint !== id);
-              const filtered = wizardTicketSearch.trim()
-                ? available.filter((t) =>
-                    (t.title ?? "").toLowerCase().includes(wizardTicketSearch.toLowerCase()) ||
-                    (t.code ?? "").toLowerCase().includes(wizardTicketSearch.toLowerCase()),
-                  )
+                : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as TicketItem[];
+              const openTickets = allTickets.filter((t) => t.status !== "Resolvido" && t.status !== "Fechado" && t.status !== "Cancelado");
+              const addedIds = new Set(wizardTicketRows.map((r) => r.ticketId));
+              const available = openTickets.filter((t) => !addedIds.has(t.id));
+              const searchLower = wizardTicketSearch.toLowerCase();
+              const filteredAvailable = wizardTicketSearch.trim()
+                ? available.filter((t) => (t.title ?? "").toLowerCase().includes(searchLower) || (t.code ?? "").toLowerCase().includes(searchLower))
                 : available;
+
+              const updateTicketRow = (ticketId: string, patch: Partial<{ responsibleIds: string[]; plannedHours: string; storyPoints: string; notes: string }>) => {
+                setWizardTicketRows((prev) => prev.map((r) => r.ticketId === ticketId ? { ...r, ...patch } : r));
+              };
 
               return (
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Selecione os chamados que serão trabalhados nesta sprint. Chamados já associados à sprint aparecem abaixo.</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">Adicione chamados que serão trabalhados nesta sprint e defina responsáveis e horas planejadas para cada um.</p>
 
-                  {alreadyInSprint.length > 0 && (
-                    <div className="rounded-xl border border-border bg-primary/5 p-3">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Já nesta sprint ({alreadyInSprint.length})</p>
-                      <div className="space-y-1">
-                        {alreadyInSprint.map((t) => (
-                          <div key={t.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm">
-                            <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
-                            <span className="font-mono text-xs text-muted-foreground">{t.code}</span>
-                            <span className="truncate">{t.title}</span>
-                          </div>
-                        ))}
+                  {/* add ticket search */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button type="button" className="flex w-full items-center gap-2 rounded-xl border border-dashed border-primary/40 py-2.5 px-4 text-sm text-primary transition hover:border-primary hover:bg-primary/5">
+                        <Plus className="h-4 w-4" />
+                        Adicionar chamado
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[500px] p-0 glass" align="start">
+                      <div className="p-3 border-b border-border">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                          <input
+                            autoFocus
+                            value={wizardTicketSearch}
+                            onChange={(e) => setWizardTicketSearch(e.target.value)}
+                            placeholder="Buscar por código ou título..."
+                            className="w-full rounded-lg border border-border bg-muted/50 py-1.5 pl-9 pr-3 text-sm outline-none"
+                          />
+                        </div>
                       </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        {ticketsQuery.isLoading ? (
+                          <p className="py-4 text-center text-xs text-muted-foreground">Carregando...</p>
+                        ) : filteredAvailable.length === 0 ? (
+                          <p className="py-4 text-center text-xs text-muted-foreground">Nenhum chamado disponível.</p>
+                        ) : (
+                          filteredAvailable.map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
+                              onClick={() => {
+                                setWizardTicketRows((prev) => [...prev, { ticketId: t.id, responsibleIds: [], plannedHours: "", storyPoints: "", notes: "" }]);
+                                setWizardTicketSearch("");
+                              }}
+                            >
+                              <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{t.code}</span>
+                              <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                              {t.priority && <span className="shrink-0 text-[10px] text-muted-foreground">{t.priority}</span>}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* inline table */}
+                  {wizardTicketRows.length > 0 && (
+                    <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                            <th className="px-3 py-2 text-left font-medium">Chamado</th>
+                            <th className="px-3 py-2 text-left font-medium w-52">Responsáveis</th>
+                            <th className="px-3 py-2 text-left font-medium w-24">Horas pl.</th>
+                            <th className="px-3 py-2 text-left font-medium w-20">Story pts</th>
+                            <th className="px-3 py-2 w-8" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {wizardTicketRows.map((row) => {
+                            const ticket = (allTickets as TicketItem[]).find((t) => t.id === row.ticketId);
+                            return (
+                              <tr key={row.ticketId} className="border-b border-border last:border-0 hover:bg-muted/20 transition">
+                                <td className="px-3 py-2">
+                                  <div>
+                                    <span className="font-mono text-xs text-muted-foreground">{ticket?.code} </span>
+                                    <span className="truncate">{ticket?.title ?? row.ticketId}</span>
+                                    {row.savedId && <span className="ml-2 text-[10px] text-primary">✓ salvo</span>}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <WizardUserSelect
+                                    users={users}
+                                    selected={row.responsibleIds}
+                                    onChange={(ids) => updateTicketRow(row.ticketId, { responsibleIds: ids })}
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={row.plannedHours}
+                                    onChange={(e) => updateTicketRow(row.ticketId, { plannedHours: e.target.value })}
+                                    placeholder="0"
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={row.storyPoints}
+                                    onChange={(e) => updateTicketRow(row.ticketId, { storyPoints: e.target.value })}
+                                    placeholder="—"
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (row.savedId) {
+                                        try { await deleteSprintTicketPlan(row.savedId); } catch { /* ignore */ }
+                                      }
+                                      setWizardTicketRows((prev) => prev.filter((r) => r.ticketId !== row.ticketId));
+                                    }}
+                                    className="text-destructive/50 hover:text-destructive transition"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   )}
 
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                      value={wizardTicketSearch}
-                      onChange={(e) => setWizardTicketSearch(e.target.value)}
-                      placeholder="Buscar chamados por código ou título..."
-                      className="w-full rounded-xl border border-border bg-muted/50 py-2 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground"
-                    />
-                  </div>
-
-                  {ticketsQuery.isLoading ? (
-                    <p className="py-6 text-center text-sm text-muted-foreground">Carregando chamados...</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {filtered.length === 0 && (
-                        <p className="py-6 text-center text-sm text-muted-foreground">Nenhum chamado disponível.</p>
-                      )}
-                      {filtered.map((t) => {
-                        const selected = wizardTicketIds.includes(t.id);
-                        return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() =>
-                              setWizardTicketIds((prev) =>
-                                selected ? prev.filter((x) => x !== t.id) : [...prev, t.id],
-                              )
-                            }
-                            className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition ${
-                              selected
-                                ? "border-primary bg-primary/8 font-medium"
-                                : "border-border bg-card/40 hover:border-primary/30 hover:bg-muted/30"
-                            }`}
-                          >
-                            <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition ${
-                              selected ? "border-primary bg-primary" : "border-border bg-transparent"
-                            }`}>
-                              {selected && <Check className="h-3 w-3 text-primary-foreground" />}
-                            </div>
-                            <span className="w-20 shrink-0 font-mono text-xs text-muted-foreground">{t.code}</span>
-                            <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                            {t.priority && (
-                              <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">{t.priority}</span>
-                            )}
-                            {t.status && (
-                              <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">{t.status}</span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {wizardTicketIds.length > 0 && (
-                    <p className="text-xs text-primary font-medium">{wizardTicketIds.length} chamado(s) selecionado(s)</p>
+                  {wizardTicketRows.length === 0 && (
+                    <p className="py-4 text-center text-sm text-muted-foreground">Nenhum chamado adicionado ainda.</p>
                   )}
                 </div>
               );
             })()}
 
             {/* ── STEP 2: Atividades de projetos ── */}
-            {wizardStep === 2 && (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Adicione atividades de projetos que serão executadas nesta sprint, definindo responsáveis e horas planejadas.
-                </p>
+            {wizardStep === 2 && (() => {
+              const addedActivityIds = new Set(wizardActivityRows.map((r) => r.activityId));
+              const availableActivities = planningOptions.filter((a) => !addedActivityIds.has(a.id));
+              const actSearchLower = wizardActivitySearch.toLowerCase();
+              const filteredActivities = wizardActivitySearch.trim()
+                ? availableActivities.filter((a) => a.title.toLowerCase().includes(actSearchLower) || (a.projectName ?? "").toLowerCase().includes(actSearchLower))
+                : availableActivities;
 
-                {/* already-saved sprint plans */}
-                {sprintPlans.length > 0 && (
-                  <div className="rounded-xl border border-border bg-muted/20 p-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Já planejadas nesta sprint ({sprintPlans.length})
-                    </p>
-                    <div className="space-y-1">
-                      {sprintPlans.map((plan) => {
-                        const activity = activityMap.get(plan.activityId);
-                        return (
-                          <div key={plan.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm">
-                            <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
-                            <span className="min-w-0 flex-1 truncate">{activity?.title ?? plan.activityId}</span>
-                            <span className="shrink-0 text-xs text-muted-foreground">{plan.plannedHours}h</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+              const updateActivityRow = (activityId: string, patch: Partial<WizardActivityRow>) => {
+                setWizardActivityRows((prev) => prev.map((r) => r.activityId === activityId ? { ...r, ...patch } : r));
+              };
 
-                {/* pending new plans */}
-                {wizardPendingPlans.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Adicionadas neste planejamento ({wizardPendingPlans.length})
-                    </p>
-                    {wizardPendingPlans.map((plan, idx) => {
-                      const activity = activities.find((a) => a.id === plan.activityId);
-                      return (
-                        <div key={idx} className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-                          <span className="min-w-0 flex-1 truncate font-medium">{activity?.title ?? plan.activityId}</span>
-                          <span className="shrink-0 text-xs text-muted-foreground">{plan.plannedHours}h</span>
-                          <button
-                            type="button"
-                            onClick={() => setWizardPendingPlans((prev) => prev.filter((_, i) => i !== idx))}
-                            className="shrink-0 text-destructive/60 hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+              return (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Adicione atividades de projetos que serão executadas nesta sprint. Edite diretamente na tabela.</p>
+
+                  {/* add activity */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button type="button" className="flex w-full items-center gap-2 rounded-xl border border-dashed border-primary/40 py-2.5 px-4 text-sm text-primary transition hover:border-primary hover:bg-primary/5">
+                        <Plus className="h-4 w-4" />
+                        Adicionar atividade
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[540px] p-0 glass" align="start">
+                      <div className="p-3 border-b border-border">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                          <input
+                            autoFocus
+                            value={wizardActivitySearch}
+                            onChange={(e) => setWizardActivitySearch(e.target.value)}
+                            placeholder="Buscar por título ou projeto..."
+                            className="w-full rounded-lg border border-border bg-muted/50 py-1.5 pl-9 pr-3 text-sm outline-none"
+                          />
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        {filteredActivities.length === 0 ? (
+                          <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma atividade disponível.</p>
+                        ) : (
+                          filteredActivities.map((a) => (
+                            <button
+                              key={a.id}
+                              type="button"
+                              className="flex w-full items-start gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
+                              onClick={() => {
+                                setWizardActivityRows((prev) => [...prev, { activityId: a.id, responsibleIds: [], plannedHours: String(a.estimatedBalanceHours > 0 ? a.estimatedBalanceHours : ""), storyPoints: "", plannedStartDate: "", plannedEndDate: "", notes: "" }]);
+                                setWizardActivitySearch("");
+                              }}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate font-medium">{a.title}</div>
+                                <div className="text-xs text-muted-foreground">{a.projectName} · saldo: {formatHoursLabel(a.estimatedBalanceHours)}</div>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
 
-                {!wizardActivityForm ? (
-                  <button
-                    type="button"
-                    onClick={() => setWizardActivityForm(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 py-3 text-sm text-primary transition hover:border-primary hover:bg-primary/5"
-                  >
-                    <Plus className="h-4 w-4" /> Adicionar atividade
-                  </button>
-                ) : (
-                  <div className="rounded-xl border border-border bg-card/60 p-4">
-                    <p className="mb-3 text-sm font-semibold">Nova atividade na sprint</p>
-                    <SprintActivityPlanForm
-                      key={`wizard-plan-${wizardPendingPlans.length}`}
-                      initial={toSprintActivityPlanFormData(null)}
-                      activities={planningOptions}
-                      users={users}
-                      saving={false}
-                      submitLabel="Adicionar à lista"
-                      onSubmit={(data) => {
-                        setWizardPendingPlans((prev) => [...prev, data]);
-                        setWizardActivityForm(false);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setWizardActivityForm(false)}
-                      className="mt-2 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+                  {/* inline table */}
+                  {wizardActivityRows.length > 0 && (
+                    <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                            <th className="px-3 py-2 text-left font-medium">Atividade</th>
+                            <th className="px-3 py-2 text-left font-medium w-52">Responsáveis</th>
+                            <th className="px-3 py-2 text-left font-medium w-24">Horas pl.</th>
+                            <th className="px-3 py-2 text-left font-medium w-20">Story pts</th>
+                            <th className="px-3 py-2 text-left font-medium w-28">Início</th>
+                            <th className="px-3 py-2 text-left font-medium w-28">Fim</th>
+                            <th className="px-3 py-2 w-8" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {wizardActivityRows.map((row) => {
+                            const activity = activities.find((a) => a.id === row.activityId);
+                            return (
+                              <tr key={row.activityId} className="border-b border-border last:border-0 hover:bg-muted/20 transition">
+                                <td className="px-3 py-2">
+                                  <div>
+                                    <div className="truncate font-medium max-w-[180px]">{activity?.title ?? row.activityId}</div>
+                                    {activity?.project_name && <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">{activity.project_name}</div>}
+                                    {row.savedId && <span className="text-[10px] text-primary">✓ salvo</span>}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <WizardUserSelect
+                                    users={users}
+                                    selected={row.responsibleIds}
+                                    onChange={(ids) => updateActivityRow(row.activityId, { responsibleIds: ids })}
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={row.plannedHours}
+                                    onChange={(e) => updateActivityRow(row.activityId, { plannedHours: e.target.value })}
+                                    placeholder="0"
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={row.storyPoints}
+                                    onChange={(e) => updateActivityRow(row.activityId, { storyPoints: e.target.value })}
+                                    placeholder="—"
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="date"
+                                    value={row.plannedStartDate}
+                                    onChange={(e) => updateActivityRow(row.activityId, { plannedStartDate: e.target.value })}
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="date"
+                                    value={row.plannedEndDate}
+                                    onChange={(e) => updateActivityRow(row.activityId, { plannedEndDate: e.target.value })}
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (row.savedId) {
+                                        try { await deleteSprintActivityPlan(row.savedId); await queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] }); } catch { /* ignore */ }
+                                      }
+                                      setWizardActivityRows((prev) => prev.filter((r) => r.activityId !== row.activityId));
+                                    }}
+                                    className="text-destructive/50 hover:text-destructive transition"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {wizardActivityRows.length === 0 && (
+                    <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma atividade adicionada ainda.</p>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* ── STEP 3: Finalização ── */}
             {wizardStep === 3 && (() => {
-              const allTickets = Array.isArray(ticketsQuery.data)
-                ? ticketsQuery.data
-                : (ticketsQuery.data as { results?: typeof ticketsQuery.data } | undefined)?.results ?? [];
-              const selectedTickets = (allTickets as { id: string; code?: string; title?: string; priority?: string; status?: string }[]).filter((t) =>
-                wizardTicketIds.includes(t.id),
-              );
-              const totalNewHours = wizardPendingPlans.reduce((s, p) => s + Number(p.plannedHours || 0), 0);
-              const totalPlannedAfter = totalPlannedHours + totalNewHours;
+              const totalTicketHours = wizardTicketRows.reduce((s, r) => s + Number(r.plannedHours || 0), 0);
+              const totalActivityHours = wizardActivityRows.reduce((s, r) => s + Number(r.plannedHours || 0), 0);
+              const totalPlannedAfter = totalTicketHours + totalActivityHours;
               const capacity = sprint?.capacity ?? 0;
               const capacityPct = capacity > 0 ? Math.min(100, Math.round((totalPlannedAfter / capacity) * 100)) : 0;
 
               return (
                 <div className="space-y-5">
                   <div className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
-                    <h3 className="text-sm font-semibold">Resumo da sprint</h3>
-                    <div className="grid grid-cols-3 gap-3 text-sm">
+                    <h3 className="text-sm font-semibold">Resumo do planejamento</h3>
+                    <div className="grid grid-cols-4 gap-3 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">Capacidade</p>
                         <p className="font-semibold">{formatHoursLabel(capacity)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Total planejado</p>
-                        <p className="font-semibold">{formatHoursLabel(totalPlannedAfter)}</p>
+                        <p className="text-xs text-muted-foreground">Chamados</p>
+                        <p className="font-semibold">{formatHoursLabel(totalTicketHours)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Atividades</p>
+                        <p className="font-semibold">{formatHoursLabel(totalActivityHours)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Utilização</p>
@@ -1006,48 +1200,55 @@ function SprintDetail() {
                     )}
                   </div>
 
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Chamados ({wizardTicketIds.length})
-                    </p>
-                    {wizardTicketIds.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Nenhum chamado selecionado.</p>
-                    ) : (
-                      <div className="space-y-1">
-                        {selectedTickets.map((t) => (
-                          <div key={t.id} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
-                            <span className="font-mono text-xs text-muted-foreground">{t.code}</span>
-                            <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                            {t.priority && <span className="shrink-0 text-xs text-muted-foreground">{t.priority}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Atividades planejadas ({wizardPendingPlans.length})
-                    </p>
-                    {wizardPendingPlans.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Nenhuma atividade adicionada neste planejamento.</p>
-                    ) : (
-                      <div className="space-y-1">
-                        {wizardPendingPlans.map((plan, idx) => {
-                          const activity = activities.find((a) => a.id === plan.activityId);
-                          return (
-                            <div key={idx} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
-                              <span className="min-w-0 flex-1 truncate">{activity?.title ?? plan.activityId}</span>
-                              <span className="shrink-0 font-medium">{plan.plannedHours}h</span>
-                              {plan.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{plan.storyPoints} pts</span>}
-                            </div>
-                          );
-                        })}
-                        <div className="flex justify-end pt-1 text-xs text-muted-foreground">
-                          Total: <span className="ml-1 font-medium text-foreground">{formatHoursLabel(totalNewHours)}</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Chamados ({wizardTicketRows.length})
+                      </p>
+                      {wizardTicketRows.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Nenhum chamado.</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {wizardTicketRows.map((row) => {
+                            type TicketItem = { id: string; code?: string; title?: string };
+                            const allTickets = (Array.isArray(ticketsQuery.data)
+                              ? ticketsQuery.data
+                              : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as TicketItem[];
+                            const ticket = allTickets.find((t) => t.id === row.ticketId);
+                            return (
+                              <div key={row.ticketId} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
+                                <span className="font-mono text-xs text-muted-foreground">{ticket?.code}</span>
+                                <span className="min-w-0 flex-1 truncate">{ticket?.title ?? row.ticketId}</span>
+                                <span className="shrink-0 text-xs font-medium">{row.plannedHours ? `${row.plannedHours}h` : "—"}</span>
+                                {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Atividades ({wizardActivityRows.length})
+                      </p>
+                      {wizardActivityRows.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Nenhuma atividade.</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {wizardActivityRows.map((row) => {
+                            const activity = activities.find((a) => a.id === row.activityId);
+                            return (
+                              <div key={row.activityId} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
+                                <span className="min-w-0 flex-1 truncate">{activity?.title ?? row.activityId}</span>
+                                <span className="shrink-0 text-xs font-medium">{row.plannedHours ? `${row.plannedHours}h` : "—"}</span>
+                                {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -1062,6 +1263,7 @@ function SprintDetail() {
                 if (wizardStep === 1) setWizardOpen(false);
                 else setWizardStep((s) => (s - 1) as 1 | 2 | 3);
               }}
+              disabled={wizardSaving}
             >
               {wizardStep === 1 ? "Cancelar" : "← Voltar"}
             </Button>
@@ -1069,11 +1271,11 @@ function SprintDetail() {
               <span className="text-xs text-muted-foreground">Etapa {wizardStep} de 3</span>
               {wizardStep < 3 ? (
                 <Button
-                  onClick={() => setWizardStep((s) => (s + 1) as 1 | 2 | 3)}
-                  disabled={wizardStep === 2 && wizardActivityForm}
+                  onClick={handleWizardNext}
+                  disabled={wizardSaving}
                   className="gap-1.5 bg-gradient-primary text-white shadow-glow hover:opacity-90"
                 >
-                  Próximo <ChevronRight className="h-4 w-4" />
+                  {wizardSaving ? "Salvando..." : <><span>Próximo</span><ChevronRight className="h-4 w-4" /></>}
                 </Button>
               ) : (
                 <Button
@@ -1081,7 +1283,7 @@ function SprintDetail() {
                   disabled={wizardSaving}
                   className="gap-1.5 bg-gradient-primary text-white shadow-glow hover:opacity-90"
                 >
-                  {wizardSaving ? "Salvando..." : "Concluir planejamento"}
+                  Concluir planejamento
                 </Button>
               )}
             </div>
@@ -1231,6 +1433,62 @@ function InfoPanel({ icon: Icon, text }: { icon: any; text: string }) {
     <div className="glass flex items-center gap-2 rounded-2xl p-5 text-sm text-muted-foreground shadow-card">
       <Icon className="h-4 w-4" /> {text}
     </div>
+  );
+}
+
+function WizardUserSelect({ users, selected, onChange }: { users: import("@/lib/types").User[]; selected: string[]; onChange: (ids: string[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const selectedSet = new Set(selected);
+
+  const getUserLabel = (u: import("@/lib/types").User) =>
+    u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || u.email || "Usuário";
+
+  const toggle = (uid: string) => {
+    const next = selectedSet.has(uid) ? selected.filter((x) => x !== uid) : [...selected, uid];
+    onChange(next);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="flex min-h-[32px] w-full flex-wrap items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-left text-xs hover:border-primary transition">
+          {selected.length === 0 ? (
+            <span className="text-muted-foreground">Selecionar...</span>
+          ) : (
+            selected.slice(0, 3).map((uid) => {
+              const u = users.find((x) => x.id === uid);
+              const name = u ? getUserLabel(u) : uid;
+              return (
+                <span key={uid} className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary font-medium">
+                  {name.split(" ")[0]}
+                </span>
+              );
+            })
+          )}
+          {selected.length > 3 && <span className="text-[10px] text-muted-foreground">+{selected.length - 3}</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-1 glass" align="start">
+        <div className="max-h-48 overflow-y-auto">
+          {users.map((u) => {
+            const checked = selectedSet.has(u.id);
+            return (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => toggle(u.id)}
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted/40 transition"
+              >
+                <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${checked ? "border-primary bg-primary" : "border-border"}`}>
+                  {checked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                </div>
+                <span className="truncate">{getUserLabel(u)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
