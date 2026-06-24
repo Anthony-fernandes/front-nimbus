@@ -934,7 +934,7 @@ function SprintDetail() {
 
       {/* ─── 3-step planning wizard ─── */}
       <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) setWizardOpen(false); }}>
-        <DialogContent className="max-w-[95vw] w-[1200px] glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <DialogContent className="max-w-[98vw] w-[1600px] glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
           {/* wizard header + step indicators */}
           <div className="flex-shrink-0 border-b border-border px-6 pt-5 pb-4">
             <DialogTitle className="text-lg font-semibold">Planejamento da sprint</DialogTitle>
@@ -1445,7 +1445,8 @@ function SprintDetail() {
                       setWizardActivityRows((prev) => prev.map((r) => r.activityId === activityId ? { ...r, ...patch } : r));
 
                     const ticketTable = (
-                      <div className="overflow-x-auto rounded-xl border border-border flex-1 min-w-0">
+                      <div className="rounded-xl border border-border min-w-[580px] flex-1">
+                        <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
@@ -1518,11 +1519,13 @@ function SprintDetail() {
                             })}
                           </tbody>
                         </table>
+                        </div>
                       </div>
                     );
 
                     const activityTable = (
-                      <div className="overflow-x-auto rounded-xl border border-border flex-1 min-w-0">
+                      <div className="rounded-xl border border-border min-w-[580px] flex-1">
+                        <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
@@ -1597,13 +1600,16 @@ function SprintDetail() {
                             })}
                           </tbody>
                         </table>
+                        </div>
                       </div>
                     );
 
                     return (
-                      <div className="flex gap-4 overflow-x-auto">
-                        {ticketTable}
-                        {activityTable}
+                      <div className="overflow-x-auto rounded-xl">
+                        <div className="flex gap-4" style={{ minWidth: "1160px" }}>
+                          {ticketTable}
+                          {activityTable}
+                        </div>
                       </div>
                     );
                   })()}
