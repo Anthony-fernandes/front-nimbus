@@ -195,7 +195,6 @@ function SprintDetail() {
   const ticketsQuery = useQuery({
     queryKey: ["tickets-for-sprint-wizard"],
     queryFn: () => listTickets({ page_size: 200 }),
-    enabled: wizardOpen,
   });
   const ticketPlansQuery = useQuery({
     queryKey: ["sprint-ticket-plans", id],
@@ -605,14 +604,26 @@ function SprintDetail() {
           }
           actions={
             <>
-              <Button
-                type="button"
-                className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-                onClick={openWizard}
-              >
-                <Plus className="h-4 w-4" />
-                Planejar sprint
-              </Button>
+              {(sprintPlans.length > 0 || (ticketPlansQuery.data?.length ?? 0) > 0) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={openWizard}
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar atividade não planejada
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                  onClick={openWizard}
+                >
+                  <Plus className="h-4 w-4" />
+                  Planejar sprint
+                </Button>
+              )}
               {sprint.status !== "Concluída" && (
                 <Button
                   type="button"
@@ -695,7 +706,65 @@ function SprintDetail() {
               </TabsContent>
 
               <TabsContent value="planning" className="space-y-4">
-                {sprintPlans.length === 0 ? (
+                {/* Chamados planejados */}
+                {(ticketPlansQuery.data?.length ?? 0) > 0 && (() => {
+                  const allTicketsForPlanning = (Array.isArray(ticketsQuery.data)
+                    ? ticketsQuery.data
+                    : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as { id: string; code?: string; title?: string }[];
+                  return (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground">Chamados ({ticketPlansQuery.data!.length})</h3>
+                      {ticketPlansQuery.data!.map((tPlan) => {
+                        const ticket = allTicketsForPlanning.find((t) => t.id === tPlan.ticketId);
+                        const respNames = (tPlan.responsibleIds || [])
+                          .map((uid) => userMap.get(String(uid)) || "Usuário")
+                          .join(", ");
+                        return (
+                          <div key={tPlan.id} className="glass rounded-2xl p-5 shadow-card">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge className={`text-[10px] border ${PRIORITY_COLORS[tPlan.priority ?? ""] || ""}`}>{tPlan.priority}</Badge>
+                                  <span className="font-mono text-xs text-muted-foreground">{ticket?.code}</span>
+                                  <span className="text-sm font-semibold">{ticket?.title ?? tPlan.ticketId}</span>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                  <span>Planejado: {formatHoursLabel(tPlan.plannedHours ?? 0)}</span>
+                                  <span>Story points: {tPlan.storyPoints ?? 0}</span>
+                                  <span>Responsáveis: {respNames || "Não definidos"}</span>
+                                  <span>Fim previsto: {formatDate(tPlan.plannedEndDate)}</span>
+                                </div>
+                                {tPlan.notes && <p className="mt-3 text-sm text-muted-foreground">{tPlan.notes}</p>}
+                              </div>
+                              <div className="flex gap-2 lg:flex-col lg:items-end">
+                                <ConfirmDelete
+                                  trigger={
+                                    <Button type="button" variant="outline" size="sm" className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Remover
+                                    </Button>
+                                  }
+                                  title="Remover planejamento?"
+                                  description="Este chamado sairá do planejamento desta sprint."
+                                  onConfirm={async () => {
+                                    await deleteSprintTicketPlan(tPlan.id);
+                                    ticketPlansQuery.refetch();
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
+                {/* Atividades planejadas */}
+                {sprintPlans.length > 0 && (
+                  <h3 className="text-sm font-semibold text-muted-foreground">Atividades ({sprintPlans.length})</h3>
+                )}
+                {sprintPlans.length === 0 && (ticketPlansQuery.data?.length ?? 0) === 0 ? (
                   <div className="glass rounded-2xl p-5 text-sm text-muted-foreground shadow-card">
                     Nenhuma atividade foi planejada para esta sprint ainda.
                   </div>
