@@ -1,11 +1,17 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
-import { Bell, Command, LogOut, Menu, Plus, Search, Settings } from "lucide-react";
+import { Bell, Check, CheckCheck, Command, LogOut, Menu, Plus, Search, Settings } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
-import { getUnreadCount } from "@/services/notificationService";
+import {
+  getUnreadCount,
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/services/notificationService";
+import type { AppNotification } from "@/lib/types";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import type { User } from "@/lib/types";
 import {
@@ -240,25 +246,142 @@ function AppShellInner({ children }: { children: ReactNode }) {
 }
 
 function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+
   const { data: unread = 0 } = useQuery({
     queryKey: ["notifications-unread"],
-    queryFn: () => getUnreadCount(),
+    queryFn: getUnreadCount,
     refetchInterval: 15_000,
     refetchOnWindowFocus: true,
   });
 
+  const { data: notifications = [] } = useQuery({
+    queryKey: ["notifications-list"],
+    queryFn: () => listNotifications({ page_size: 20, is_read: false }),
+    enabled: open,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: markNotificationRead,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+      void queryClient.invalidateQueries({ queryKey: ["notifications-list"] });
+    },
+  });
+
+  const markAllMutation = useMutation({
+    mutationFn: markAllNotificationsRead,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+      void queryClient.invalidateQueries({ queryKey: ["notifications-list"] });
+    },
+  });
+
+  // Fechar ao clicar fora
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const items = Array.isArray(notifications)
+    ? (notifications as AppNotification[])
+    : ((notifications as { results?: AppNotification[] }).results ?? []);
+
   return (
-    <Link
-      to="/inbox"
-      title="Caixa de entrada"
-      className="relative grid h-9 w-9 place-items-center rounded-lg transition-colors hover:bg-muted/50"
-    >
-      <Bell className="h-4 w-4" />
-      {unread > 0 ? (
-        <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-semibold text-destructive-foreground">
-          {unread > 99 ? "99+" : unread}
-        </span>
+    <div ref={ref} className="relative">
+      <button
+        title="Notificações"
+        onClick={() => setOpen((v) => !v)}
+        className="relative grid h-9 w-9 place-items-center rounded-lg transition-colors hover:bg-muted/50"
+      >
+        <Bell className="h-4 w-4" />
+        {unread > 0 ? (
+          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-semibold text-destructive-foreground">
+            {unread > 99 ? "99+" : unread}
+          </span>
+        ) : null}
+      </button>
+
+      {open ? (
+        <div className="absolute right-0 top-11 z-50 w-80 rounded-2xl border border-border bg-background shadow-xl">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <span className="text-sm font-semibold">Notificações</span>
+            {unread > 0 ? (
+              <button
+                className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+                onClick={() => markAllMutation.mutate()}
+                disabled={markAllMutation.isPending}
+              >
+                <CheckCheck className="h-3 w-3" />
+                Marcar todas como lidas
+              </button>
+            ) : null}
+          </div>
+
+          {/* Lista */}
+          <div className="max-h-[400px] overflow-y-auto">
+            {items.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                Nenhuma notificação não lida.
+              </div>
+            ) : (
+              items.map((n) => (
+                <div
+                  key={n.id}
+                  className="group flex cursor-pointer items-start gap-3 border-b border-border/50 px-4 py-3 transition-colors last:border-0 hover:bg-muted/30"
+                  onClick={() => {
+                    markReadMutation.mutate(n.id);
+                    if (n.link) window.location.assign(n.link);
+                    else setOpen(false);
+                  }}
+                >
+                  <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium leading-snug">{n.title}</div>
+                    {n.message ? (
+                      <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{n.message}</div>
+                    ) : null}
+                    {n.created_at ? (
+                      <div className="mt-1 text-[10px] text-muted-foreground/60">
+                        {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                    title="Marcar como lida"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markReadMutation.mutate(n.id);
+                    }}
+                  >
+                    <Check className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-border px-4 py-2.5">
+            <Link
+              to="/inbox"
+              className="block text-center text-xs text-primary hover:underline"
+              onClick={() => setOpen(false)}
+            >
+              Ver todas as notificações →
+            </Link>
+          </div>
+        </div>
       ) : null}
-    </Link>
+    </div>
   );
 }

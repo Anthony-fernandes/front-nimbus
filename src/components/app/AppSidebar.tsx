@@ -14,7 +14,6 @@ import {
   LifeBuoy,
   Shield,
   ShieldCheck,
-  Inbox,
   LayoutDashboard,
   ListTodo,
   Mail,
@@ -66,7 +65,6 @@ type MenuItem = {
 function getInternalMenu(user: User | null | undefined) {
   const workspace: MenuItem[] = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard, visible: true },
-    { title: "Caixa de entrada", url: "/inbox", icon: Inbox, visible: true },
     {
       title: "Aprovações",
       url: "/aprovacoes",
