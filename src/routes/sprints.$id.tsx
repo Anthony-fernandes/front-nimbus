@@ -1437,97 +1437,176 @@ function SprintDetail() {
                     </div>
                   )}
 
-                  <div className="space-y-4">
-                    {/* Tabela Chamados */}
-                    <div className="overflow-x-auto rounded-xl border border-border">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
-                            <th className="px-3 py-2 text-left font-medium">Chamados ({wizardTicketRows.length})</th>
-                            <th className="px-3 py-2 text-left font-medium w-52">Responsáveis</th>
-                            <th className="px-3 py-2 text-left font-medium w-16">SP</th>
-                            <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
-                            <th className="px-3 py-2 text-left font-medium w-32">Previsão término</th>
-                            <th className="px-3 py-2 w-6" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {wizardTicketRows.length === 0 ? (
-                            <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhum chamado.</td></tr>
-                          ) : wizardTicketRows.map((row) => {
-                            const ticket = allTickets3.find((t) => t.id === row.ticketId);
-                            const respNames = row.responsibleIds.map(uid => {
-                              const u = users.find(x => String(x.id) === String(uid));
-                              return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
-                            });
-                            return (
-                              <tr key={row.ticketId} className="border-b border-border last:border-0 hover:bg-muted/10">
-                                <td className="px-3 py-2">
-                                  <div className="flex items-center gap-2">
-                                    <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
-                                    <span className="font-mono text-xs text-muted-foreground shrink-0">{ticket?.code}</span>
-                                    <span className="font-medium truncate">{ticket?.title ?? row.ticketId}</span>
-                                    {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-xs text-muted-foreground">{respNames.join(", ")}</td>
-                                <td className="px-3 py-2 text-xs font-medium">{row.storyPoints || "—"}</td>
-                                <td className="px-3 py-2 text-xs font-semibold">{row.plannedHours}h</td>
-                                <td className="px-3 py-2 text-xs text-muted-foreground">{row.plannedEndDate || "—"}</td>
-                                <td />
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                  {/* Side-by-side editable tables */}
+                  {(() => {
+                    const updateTicketRow3 = (ticketId: string, patch: Partial<WizardTicketRow>) =>
+                      setWizardTicketRows((prev) => prev.map((r) => r.ticketId === ticketId ? { ...r, ...patch } : r));
+                    const updateActivityRow3 = (activityId: string, patch: Partial<WizardActivityRow>) =>
+                      setWizardActivityRows((prev) => prev.map((r) => r.activityId === activityId ? { ...r, ...patch } : r));
 
-                    {/* Tabela Atividades */}
-                    <div className="overflow-x-auto rounded-xl border border-border">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
-                            <th className="px-3 py-2 text-left font-medium">Atividades ({wizardActivityRows.length})</th>
-                            <th className="px-3 py-2 text-left font-medium w-52">Responsáveis</th>
-                            <th className="px-3 py-2 text-left font-medium w-16">SP</th>
-                            <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
-                            <th className="px-3 py-2 text-left font-medium w-32">Previsão término</th>
-                            <th className="px-3 py-2 w-6" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {wizardActivityRows.length === 0 ? (
-                            <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhuma atividade.</td></tr>
-                          ) : wizardActivityRows.map((row) => {
-                            const activity = activities.find((a) => a.id === row.activityId);
-                            const respNames = row.responsibleIds.map(uid => {
-                              const u = users.find(x => String(x.id) === String(uid));
-                              return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
-                            });
-                            return (
-                              <tr key={row.activityId} className="border-b border-border last:border-0 hover:bg-muted/10">
-                                <td className="px-3 py-2">
-                                  <div className="flex items-center gap-2">
-                                    <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
-                                    <div className="min-w-0">
-                                      <p className="font-medium truncate">{activity?.title ?? row.activityId}</p>
-                                      {activity?.project_name && <p className="text-[10px] text-muted-foreground truncate">{activity.project_name}</p>}
+                    const ticketTable = (
+                      <div className="overflow-x-auto rounded-xl border border-border flex-1 min-w-0">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
+                              <th className="px-3 py-2 text-left font-medium">Chamados ({wizardTicketRows.length})</th>
+                              <th className="px-3 py-2 text-left font-medium w-44">Responsáveis</th>
+                              <th className="px-3 py-2 text-left font-medium w-16">SP</th>
+                              <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                              <th className="px-3 py-2 text-left font-medium w-32">Previsão término</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {wizardTicketRows.length === 0 ? (
+                              <tr><td colSpan={5} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhum chamado.</td></tr>
+                            ) : wizardTicketRows.map((row) => {
+                              const ticket = allTickets3.find((t) => t.id === row.ticketId);
+                              return (
+                                <tr key={row.ticketId} className="border-b border-border last:border-0 hover:bg-muted/20 transition">
+                                  <td className="px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                                      <div>
+                                        <span className="font-mono text-xs text-muted-foreground">{ticket?.code} </span>
+                                        <span className="truncate">{ticket?.title ?? row.ticketId}</span>
+                                        {row.savedId && <span className="ml-2 text-[10px] text-primary">✓</span>}
+                                      </div>
                                     </div>
-                                    {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-xs text-muted-foreground">{respNames.join(", ")}</td>
-                                <td className="px-3 py-2 text-xs font-medium">{row.storyPoints || "—"}</td>
-                                <td className="px-3 py-2 text-xs font-semibold">{row.plannedHours}h</td>
-                                <td className="px-3 py-2 text-xs text-muted-foreground">{row.plannedEndDate || "—"}</td>
-                                <td />
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <WizardUserSelect
+                                      users={users}
+                                      selected={row.responsibleIds}
+                                      onChange={(ids) => updateTicketRow3(row.ticketId, { responsibleIds: ids })}
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <select
+                                      value={row.storyPoints}
+                                      onChange={(e) => {
+                                        const sp = Number(e.target.value);
+                                        updateTicketRow3(row.ticketId, { storyPoints: e.target.value, plannedHours: sp ? String(spToHours(sp)) : row.plannedHours });
+                                      }}
+                                      className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                    >
+                                      <option value="">—</option>
+                                      {FIBONACCI_SP.map(sp => <option key={sp} value={sp}>{sp}</option>)}
+                                    </select>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="number" min="0" step="0.5"
+                                      value={row.plannedHours}
+                                      onChange={(e) => {
+                                        const h = Number(e.target.value);
+                                        updateTicketRow3(row.ticketId, { plannedHours: e.target.value, storyPoints: h ? String(hoursToSP(h)) : row.storyPoints });
+                                      }}
+                                      placeholder="0"
+                                      className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="date"
+                                      value={row.plannedEndDate}
+                                      onChange={(e) => updateTicketRow3(row.ticketId, { plannedEndDate: e.target.value })}
+                                      className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                    />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+
+                    const activityTable = (
+                      <div className="overflow-x-auto rounded-xl border border-border flex-1 min-w-0">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
+                              <th className="px-3 py-2 text-left font-medium">Atividades ({wizardActivityRows.length})</th>
+                              <th className="px-3 py-2 text-left font-medium w-44">Responsáveis</th>
+                              <th className="px-3 py-2 text-left font-medium w-16">SP</th>
+                              <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                              <th className="px-3 py-2 text-left font-medium w-32">Previsão término</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {wizardActivityRows.length === 0 ? (
+                              <tr><td colSpan={5} className="px-3 py-4 text-center text-muted-foreground text-xs">Nenhuma atividade.</td></tr>
+                            ) : wizardActivityRows.map((row) => {
+                              const activity = activities.find((a) => a.id === row.activityId);
+                              return (
+                                <tr key={row.activityId} className="border-b border-border last:border-0 hover:bg-muted/20 transition">
+                                  <td className="px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                                      <div className="min-w-0">
+                                        <p className="truncate font-medium">{activity?.title ?? row.activityId}</p>
+                                        {(activity as { project_name?: string } | undefined)?.project_name && (
+                                          <p className="text-[10px] text-muted-foreground truncate">{(activity as { project_name?: string }).project_name}</p>
+                                        )}
+                                        {row.savedId && <span className="text-[10px] text-primary">✓</span>}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <WizardUserSelect
+                                      users={users}
+                                      selected={row.responsibleIds}
+                                      onChange={(ids) => updateActivityRow3(row.activityId, { responsibleIds: ids })}
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <select
+                                      value={row.storyPoints}
+                                      onChange={(e) => {
+                                        const sp = Number(e.target.value);
+                                        updateActivityRow3(row.activityId, { storyPoints: e.target.value, plannedHours: sp ? String(spToHours(sp)) : row.plannedHours });
+                                      }}
+                                      className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                    >
+                                      <option value="">—</option>
+                                      {FIBONACCI_SP.map(sp => <option key={sp} value={sp}>{sp}</option>)}
+                                    </select>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="number" min="0" step="0.5"
+                                      value={row.plannedHours}
+                                      onChange={(e) => {
+                                        const h = Number(e.target.value);
+                                        updateActivityRow3(row.activityId, { plannedHours: e.target.value, storyPoints: h ? String(hoursToSP(h)) : row.storyPoints });
+                                      }}
+                                      placeholder="0"
+                                      className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="date"
+                                      value={row.plannedEndDate}
+                                      onChange={(e) => updateActivityRow3(row.activityId, { plannedEndDate: e.target.value })}
+                                      className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                    />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+
+                    return (
+                      <div className="flex gap-4 overflow-x-auto">
+                        {ticketTable}
+                        {activityTable}
+                      </div>
+                    );
+                  })()}
 
                 </div>
               );
