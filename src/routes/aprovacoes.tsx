@@ -57,7 +57,7 @@ function ApprovalsPage() {
 
   return (
     <AppShell>
-      <div className="max-w-4xl space-y-5">
+      <div className="space-y-5">
         <PageHeader
           title="Aprovações de chamados"
           subtitle="Chamados que aguardam a sua decisão como aprovador."

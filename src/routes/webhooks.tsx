@@ -86,7 +86,7 @@ function WebhooksPage() {
 
   return (
     <AppShell>
-      <div className="max-w-5xl space-y-6">
+      <div className="space-y-6">
         <PageHeader
           title="Webhooks"
           subtitle="Gerencie integrações via webhook para receber notificações de eventos."

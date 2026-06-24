@@ -1,13 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Mail, Send } from "lucide-react";
+import { Eye, EyeOff, Mail, Pencil, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { getStoredUser } from "@/services/authService";
 import {
@@ -39,6 +53,7 @@ const TEMPLATE_VARIABLES = [
 
 function EmailTemplatesPage() {
   const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<AvailableEvent | null>(null);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -86,6 +101,11 @@ function EmailTemplatesPage() {
 
   function invalidate() {
     void queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+  }
+
+  function openEditor(ev: AvailableEvent) {
+    setSelectedEvent(ev);
+    setDialogOpen(true);
   }
 
   const saveMutation = useMutation({
@@ -153,7 +173,7 @@ function EmailTemplatesPage() {
 
   return (
     <AppShell>
-      <div className="max-w-6xl space-y-5">
+      <div className="space-y-5">
         <PageHeader
           title="Templates de E-mail"
           subtitle="Personalize os e-mails enviados pela plataforma para cada empresa."
@@ -164,197 +184,211 @@ function EmailTemplatesPage() {
           }
         />
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {/* Left: event list */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Eventos ({availableEvents.length})
+        <div className="glass overflow-hidden rounded-2xl shadow-card">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="font-semibold">Eventos de e-mail</h2>
+            <p className="text-xs text-muted-foreground">
+              {availableEvents.length} eventos disponíveis · clique em Editar para personalizar o template.
             </p>
-            {availableEvents.map((ev) => {
-              const custom = templates.find((t) => t.event === ev.event);
-              const isSelected = selectedEvent?.event === ev.event;
-              return (
-                <button
-                  key={ev.event}
-                  type="button"
-                  onClick={() => setSelectedEvent(ev)}
-                  className={cn(
-                    "glass w-full rounded-xl px-4 py-3 text-left transition-colors",
-                    isSelected
-                      ? "border border-primary/50 bg-primary/10"
-                      : "hover:bg-muted/30",
-                  )}
-                >
-                  <p className="text-sm font-medium">{ev.label}</p>
-                  <span
-                    className={cn(
-                      "mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
-                      custom
-                        ? "bg-green-500/15 text-green-400"
-                        : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {custom ? "Personalizado" : "Padrão"}
-                  </span>
-                </button>
-              );
-            })}
           </div>
 
-          {/* Right: editor */}
-          {selectedEvent ? (
-            <div className="glass rounded-2xl p-5 shadow-card lg:col-span-2">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold">{selectedEvent.label}</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => setShowPreview((v) => !v)}
-                >
-                  {showPreview ? (
-                    <><EyeOff className="h-3.5 w-3.5" /> Editor</>
-                  ) : (
-                    <><Eye className="h-3.5 w-3.5" /> Pré-visualizar</>
-                  )}
-                </Button>
-              </div>
-
-              {showPreview ? (
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm">
-                    <span className="font-medium text-muted-foreground">Assunto: </span>
-                    {subject || <span className="italic text-muted-foreground">(sem assunto)</span>}
-                  </div>
-                  <div
-                    className="min-h-48 rounded-xl border border-border bg-white p-4 text-sm text-gray-800"
-                    // eslint-disable-next-line react/no-danger
-                    dangerouslySetInnerHTML={{
-                      __html: body || "<p><em>(corpo vazio)</em></p>",
-                    }}
-                  />
-                </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Evento</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {availableEvents.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                    Nenhum evento disponível.
+                  </TableCell>
+                </TableRow>
               ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                      Assunto
-                    </label>
-                    <input
-                      type="text"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm outline-none focus:border-primary/60"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                      Corpo (HTML)
-                    </label>
-                    <textarea
-                      ref={bodyRef}
-                      value={body}
-                      onChange={(e) => setBody(e.target.value)}
-                      rows={8}
-                      className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-sm outline-none focus:border-primary/60"
-                      style={{ minHeight: 200 }}
-                    />
-                  </div>
-
-                  {/* Variables */}
-                  <div className="rounded-xl border border-border">
-                    <p className="px-4 py-2.5 text-sm font-medium">Variáveis disponíveis</p>
-                    <div className="flex flex-wrap gap-2 border-t border-border px-4 py-3">
-                      {TEMPLATE_VARIABLES.map((v) => (
-                        <button
-                          key={v.key}
-                          type="button"
-                          title={v.label}
-                          onClick={() => insertVariable(v.key)}
-                          className="rounded bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+                availableEvents.map((ev) => {
+                  const custom = templates.find((t) => t.event === ev.event);
+                  return (
+                    <TableRow key={ev.event}>
+                      <TableCell>
+                        <div className="font-medium">{ev.label}</div>
+                        <div className="text-xs text-muted-foreground">{ev.event}</div>
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+                            custom
+                              ? "bg-green-500/15 text-green-600"
+                              : "bg-muted text-muted-foreground",
+                          )}
                         >
-                          {v.key}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Active toggle */}
-                  <div className="flex items-center gap-3">
-                    <Switch
-                      checked={active}
-                      onCheckedChange={setActive}
-                      id="template-active"
-                    />
-                    <label htmlFor="template-active" className="text-sm">
-                      Template ativo
-                    </label>
-                  </div>
-                </div>
+                          {custom ? "Personalizado" : "Padrão"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          onClick={() => openEditor(ev)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Editar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
 
-              {/* Actions */}
-              <div className="mt-4 space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => saveMutation.mutate()}
-                    disabled={saveMutation.isPending}
-                    className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-                    size="sm"
-                  >
-                    Salvar
-                  </Button>
-                  {existingTemplate ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-destructive/50 text-destructive hover:bg-destructive/10"
-                      onClick={() => deleteMutation.mutate()}
-                      disabled={deleteMutation.isPending}
-                    >
-                      Restaurar padrão
-                    </Button>
-                  ) : null}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedEvent(null)}
-                  >
-                    Cancelar
-                  </Button>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setSelectedEvent(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedEvent?.label ?? "Template de e-mail"}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setShowPreview((v) => !v)}
+              >
+                {showPreview ? (
+                  <><EyeOff className="h-3.5 w-3.5" /> Editor</>
+                ) : (
+                  <><Eye className="h-3.5 w-3.5" /> Pré-visualizar</>
+                )}
+              </Button>
+            </div>
+
+            {showPreview ? (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm">
+                  <span className="font-medium text-muted-foreground">Assunto: </span>
+                  {subject || <span className="italic text-muted-foreground">(sem assunto)</span>}
+                </div>
+                <div
+                  className="min-h-48 rounded-xl border border-border bg-white p-4 text-sm text-gray-800"
+                  // eslint-disable-next-line react/no-danger
+                  dangerouslySetInnerHTML={{ __html: body || "<p><em>(corpo vazio)</em></p>" }}
+                />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Assunto
+                  </label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm outline-none focus:border-primary/60"
+                  />
                 </div>
 
-                {/* Send test */}
-                <div className="flex items-center gap-2 border-t border-border pt-3">
-                  <input
-                    type="email"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="E-mail para teste"
-                    className="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm outline-none focus:border-primary/60"
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Corpo (HTML)
+                  </label>
+                  <textarea
+                    ref={bodyRef}
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={10}
+                    className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-sm outline-none focus:border-primary/60"
                   />
+                </div>
+
+                <div className="rounded-xl border border-border">
+                  <p className="px-4 py-2.5 text-sm font-medium">Variáveis disponíveis</p>
+                  <div className="flex flex-wrap gap-2 border-t border-border px-4 py-3">
+                    {TEMPLATE_VARIABLES.map((v) => (
+                      <button
+                        key={v.key}
+                        type="button"
+                        title={v.label}
+                        onClick={() => insertVariable(v.key)}
+                        className="rounded bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+                      >
+                        {v.key}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Switch checked={active} onCheckedChange={setActive} id="template-active" />
+                  <label htmlFor="template-active" className="text-sm">Template ativo</label>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3 border-t border-border pt-4">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                  className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                  size="sm"
+                >
+                  Salvar
+                </Button>
+                {existingTemplate ? (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 whitespace-nowrap"
-                    onClick={() => testMutation.mutate()}
-                    disabled={testMutation.isPending || !existingTemplate}
-                    title={!existingTemplate ? "Salve o template primeiro" : ""}
+                    className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={deleteMutation.isPending}
                   >
-                    <Send className="h-3.5 w-3.5" />
-                    Enviar teste
+                    Restaurar padrão
                   </Button>
-                </div>
+                ) : null}
+                <Button variant="ghost" size="sm" onClick={() => setDialogOpen(false)}>
+                  Fechar
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="E-mail para teste"
+                  className="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm outline-none focus:border-primary/60"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 whitespace-nowrap"
+                  onClick={() => testMutation.mutate()}
+                  disabled={testMutation.isPending || !existingTemplate}
+                  title={!existingTemplate ? "Salve o template primeiro" : ""}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Enviar teste
+                </Button>
               </div>
             </div>
-          ) : (
-            <div className="glass flex items-center justify-center rounded-2xl p-10 text-center text-sm text-muted-foreground lg:col-span-2">
-              Selecione um evento para editar o template.
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

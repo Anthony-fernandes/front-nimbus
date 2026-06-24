@@ -145,7 +145,7 @@ function SLAPage() {
 
   return (
     <AppShell>
-      <div className="max-w-5xl space-y-6">
+      <div className="space-y-6">
         <PageHeader
           title="SLA"
           subtitle="Políticas de prazo de atendimento e alertas de violação."
