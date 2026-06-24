@@ -1649,8 +1649,7 @@ function DashboardBuilderCanvas({
         ref={containerRef}
         className="relative min-h-[300px] rounded-xl border border-border bg-background/20 p-3"
         onDragOver={(e) => {
-          const payload = _activeDragPayload;
-          if (payload?.kind === "template") e.preventDefault();
+          if (_activeDragPayload?.kind === "template") e.preventDefault();
         }}
         onDrop={(e) => {
           const payload = _activeDragPayload;
@@ -1659,9 +1658,9 @@ function DashboardBuilderCanvas({
           e.preventDefault();
           const bounds = containerRef.current?.getBoundingClientRect();
           if (!bounds) return;
-          const colWidth = containerWidth / BUILDER_GRID_COLUMNS;
-          const x = Math.max(0, Math.min(BUILDER_GRID_COLUMNS - payload.w, Math.floor((e.clientX - bounds.left) / colWidth)));
-          const y = Math.max(0, Math.floor((e.clientY - bounds.top) / BUILDER_GRID_ROW_HEIGHT));
+          const colWidth = (containerWidth - 24) / BUILDER_GRID_COLUMNS;
+          const x = Math.max(0, Math.min(BUILDER_GRID_COLUMNS - payload.w, Math.floor((e.clientX - bounds.left - 12) / colWidth)));
+          const y = Math.max(0, Math.floor((e.clientY - bounds.top - 12) / (BUILDER_GRID_ROW_HEIGHT + BUILDER_GRID_GAP)));
           onAddComponent(payload.templateType, { x, y, w: payload.w, h: payload.h });
         }}
       >
@@ -1675,7 +1674,8 @@ function DashboardBuilderCanvas({
           isDraggable
           isResizable
           resizeHandles={["se", "sw", "ne", "nw"]}
-          draggableHandle=".drag-handle"
+          draggableHandle=".rgl-drag-handle"
+          draggableCancel=".rgl-no-drag"
           onDragStop={(_layout: unknown, _old: unknown, item: { i: string; x: number; y: number; w: number; h: number }) => {
             onUpdateComponentLayout(item.i, { x: item.x, y: item.y, w: item.w, h: item.h });
           }}
@@ -1687,36 +1687,65 @@ function DashboardBuilderCanvas({
             <div
               key={component.id}
               className={cn(
-                "group relative",
-                component.id === selectedComponentId && "ring-2 ring-primary/60 rounded-xl",
+                "flex flex-col overflow-hidden rounded-xl border border-border/60",
+                component.id === selectedComponentId ? "ring-2 ring-primary/60 border-primary/40" : "hover:border-border",
               )}
             >
-              {/* drag handle overlay — covers top area so clicks on widget don't start drags */}
+              {/* always-visible drag bar */}
               <div
-                className="drag-handle absolute inset-x-0 top-0 z-10 flex h-8 cursor-grab items-center justify-center opacity-0 transition group-hover:opacity-100 active:cursor-grabbing"
+                className="rgl-drag-handle flex shrink-0 cursor-grab items-center gap-2 border-b border-border/60 bg-surface/80 px-2.5 py-1.5 active:cursor-grabbing"
                 title="Arraste para mover"
               >
-                <div className="flex gap-0.5 rounded-md border border-border bg-background/90 px-2 py-1 shadow-sm">
-                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground">{component.title}</span>
+                <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                  {component.title}
+                </span>
+                <div className="rgl-no-drag flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onToggleComponentVisibility(component.id); }}
+                    className="rounded p-0.5 text-muted-foreground/60 hover:bg-surface-2 hover:text-foreground"
+                    title={component.isVisible ? "Ocultar" : "Mostrar"}
+                  >
+                    {component.isVisible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDuplicateComponent(component.id); }}
+                    className="rounded p-0.5 text-muted-foreground/60 hover:bg-surface-2 hover:text-foreground"
+                    title="Duplicar"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDeleteComponent(component.id); }}
+                    className="rounded p-0.5 text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive"
+                    title="Remover"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
 
-              <DashboardWidgetCard
-                component={component}
-                data={data}
-                editing
-                isSelected={component.id === selectedComponentId}
-                onSelect={() => onSelectComponent(component.id)}
-                onConfigure={() => onConfigureComponent(component.id)}
-                onDuplicate={() => onDuplicateComponent(component.id)}
-                onMoveUp={() => onMoveComponent(component.id, -1)}
-                onMoveDown={() => onMoveComponent(component.id, 1)}
-                onToggleVisibility={() => onToggleComponentVisibility(component.id)}
-                onDelete={() => onDeleteComponent(component.id)}
-                mode="builder"
-                spanClassName="col-span-12"
-              />
+              {/* card fills remaining height without minHeight overflow */}
+              <div className="rgl-no-drag min-h-0 flex-1 overflow-hidden">
+                <DashboardWidgetCard
+                  component={component}
+                  data={data}
+                  editing
+                  isSelected={component.id === selectedComponentId}
+                  onSelect={() => onSelectComponent(component.id)}
+                  onConfigure={() => onConfigureComponent(component.id)}
+                  onDuplicate={() => onDuplicateComponent(component.id)}
+                  onMoveUp={() => onMoveComponent(component.id, -1)}
+                  onMoveDown={() => onMoveComponent(component.id, 1)}
+                  onToggleVisibility={() => onToggleComponentVisibility(component.id)}
+                  onDelete={() => onDeleteComponent(component.id)}
+                  mode="builder"
+                  spanClassName="h-full"
+                />
+              </div>
             </div>
           ))}
         </RGL>
@@ -2765,10 +2794,10 @@ function DashboardWidgetCard({
         "group relative overflow-hidden rounded-xl border border-border bg-surface/60 transition-colors",
         colSpanClass,
         editing && "cursor-pointer hover:border-border-strong",
-        mode === "builder" && "bg-surface/70",
+        mode === "builder" && "bg-surface/70 border-0 rounded-none h-full",
         isSelected && "ring-1 ring-primary/50",
       )}
-      style={{ minHeight: resolvedMinHeight }}
+      style={mode === "builder" ? undefined : { minHeight: resolvedMinHeight }}
       onClick={onSelect}
     >
       {editing ? (
