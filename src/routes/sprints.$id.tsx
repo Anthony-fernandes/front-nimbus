@@ -1437,67 +1437,75 @@ function SprintDetail() {
                     </div>
                   )}
 
-                  {wizardTicketRows.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Chamados */}
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Chamados ({wizardTicketRows.length})
                       </p>
-                      {wizardTicketRows.map((row) => {
-                        const ticket = allTickets3.find((t) => t.id === row.ticketId);
-                        const respNames = row.responsibleIds.map(uid => {
-                          const u = users.find(x => String(x.id) === String(uid));
-                          return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
-                        });
-                        return (
-                          <div key={row.ticketId} className="glass rounded-xl px-4 py-3 shadow-card">
-                            <div className="flex items-center gap-3">
-                              <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
-                              <span className="font-mono text-xs text-muted-foreground shrink-0">{ticket?.code}</span>
-                              <span className="min-w-0 flex-1 truncate font-medium text-sm">{ticket?.title ?? row.ticketId}</span>
-                              <span className="shrink-0 text-sm font-semibold">{row.plannedHours}h</span>
-                              {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
-                              {row.savedId && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                            </div>
-                            {respNames.length > 0 && (
-                              <p className="mt-1.5 text-xs text-muted-foreground pl-1">{respNames.join(", ")}</p>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {wizardTicketRows.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Nenhum chamado.</p>
+                      ) : (
+                        <div className="overflow-hidden rounded-xl border border-border">
+                          {wizardTicketRows.map((row, i) => {
+                            const ticket = allTickets3.find((t) => t.id === row.ticketId);
+                            const respNames = row.responsibleIds.map(uid => {
+                              const u = users.find(x => String(x.id) === String(uid));
+                              return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
+                            });
+                            return (
+                              <div key={row.ticketId} className={`px-4 py-3 ${i > 0 ? "border-t border-border" : ""}`}>
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                                  <span className="font-mono text-xs text-muted-foreground shrink-0">{ticket?.code}</span>
+                                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{ticket?.title ?? row.ticketId}</span>
+                                  <span className="shrink-0 text-xs font-semibold">{row.plannedHours}h</span>
+                                  {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
+                                  {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">{respNames.join(", ")}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
 
-                  {wizardActivityRows.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {/* Atividades */}
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Atividades ({wizardActivityRows.length})
                       </p>
-                      {wizardActivityRows.map((row) => {
-                        const activity = activities.find((a) => a.id === row.activityId);
-                        const respNames = row.responsibleIds.map(uid => {
-                          const u = users.find(x => String(x.id) === String(uid));
-                          return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
-                        });
-                        return (
-                          <div key={row.activityId} className="glass rounded-xl px-4 py-3 shadow-card">
-                            <div className="flex items-center gap-3">
-                              <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate font-medium text-sm">{activity?.title ?? row.activityId}</p>
-                                {activity?.project_name && <p className="text-[10px] text-muted-foreground truncate">{activity.project_name}</p>}
+                      {wizardActivityRows.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Nenhuma atividade.</p>
+                      ) : (
+                        <div className="overflow-hidden rounded-xl border border-border">
+                          {wizardActivityRows.map((row, i) => {
+                            const activity = activities.find((a) => a.id === row.activityId);
+                            const respNames = row.responsibleIds.map(uid => {
+                              const u = users.find(x => String(x.id) === String(uid));
+                              return u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
+                            });
+                            return (
+                              <div key={row.activityId} className={`px-4 py-3 ${i > 0 ? "border-t border-border" : ""}`}>
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium">{activity?.title ?? row.activityId}</p>
+                                    {activity?.project_name && <p className="text-[10px] text-muted-foreground truncate">{activity.project_name}</p>}
+                                  </div>
+                                  <span className="shrink-0 text-xs font-semibold">{row.plannedHours}h</span>
+                                  {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
+                                  {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">{respNames.join(", ")}</p>
                               </div>
-                              <span className="shrink-0 text-sm font-semibold">{row.plannedHours}h</span>
-                              {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
-                              {row.savedId && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                            </div>
-                            {respNames.length > 0 && (
-                              <p className="mt-1.5 text-xs text-muted-foreground pl-1">{respNames.join(", ")}</p>
-                            )}
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                 </div>
               );
@@ -1705,7 +1713,7 @@ function WizardUserSelect({ users, selected, onChange }: { users: import("@/lib/
             <span className="text-muted-foreground">Selecionar...</span>
           ) : (
             selected.slice(0, 3).map((uid) => {
-              const u = users.find((x) => x.id === uid);
+              const u = users.find((x) => String(x.id) === String(uid));
               const name = u ? getUserLabel(u) : uid;
               return (
                 <span key={uid} className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary font-medium">
@@ -1720,12 +1728,13 @@ function WizardUserSelect({ users, selected, onChange }: { users: import("@/lib/
       <PopoverContent className="w-56 p-1 glass" align="start">
         <div className="max-h-48 overflow-y-auto">
           {users.map((u) => {
-            const checked = selectedSet.has(u.id);
+            const uid = String(u.id);
+            const checked = selectedSet.has(uid);
             return (
               <button
-                key={u.id}
+                key={uid}
                 type="button"
-                onClick={() => toggle(u.id)}
+                onClick={() => toggle(uid)}
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted/40 transition"
               >
                 <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${checked ? "border-primary bg-primary" : "border-border"}`}>
