@@ -533,9 +533,9 @@ function ChatPage() {
 
   return (
     <AppShell>
-      <div className="flex h-[calc(100vh-5rem)] overflow-hidden rounded-2xl border border-border shadow-card">
+      <div className="flex h-[calc(100vh-5rem)] overflow-hidden rounded-2xl shadow-card glass">
         {/* ── sidebar ── */}
-        <aside className="flex h-full w-[300px] shrink-0 flex-col border-r border-border bg-card">
+        <aside className="flex h-full w-[300px] shrink-0 flex-col border-r border-border bg-card/60">
           {/* header */}
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -610,7 +610,9 @@ function ChatPage() {
                       onClick={() => setSelectedConversationId(conv.id)}
                       className={cn(
                         "flex w-full items-center gap-3 px-3 py-3 text-left transition",
-                        isActive ? "bg-accent" : "hover:bg-muted/60",
+                        isActive
+                          ? "border-l-[3px] border-primary bg-primary/8 pl-[calc(0.75rem-3px)]"
+                          : "border-l-[3px] border-transparent hover:bg-muted/40",
                         conv.is_archived && "opacity-50",
                       )}
                     >
@@ -691,7 +693,7 @@ function ChatPage() {
         </aside>
 
         {/* ── chat area ── */}
-        <main className="relative flex min-w-0 flex-1 flex-col bg-background">
+        <main className="relative flex min-w-0 flex-1 flex-col">
           {!selectedConversationId ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
               <div className="grid h-16 w-16 place-items-center rounded-2xl bg-muted text-4xl">💬</div>
@@ -703,7 +705,7 @@ function ChatPage() {
           ) : (
             <>
               {/* chat header */}
-              <div className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
+              <div className="flex h-14 items-center justify-between border-b border-border bg-card/60 px-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <ConvAvatar label={activeConvLabel} size={40} />
                   <div className="min-w-0">
@@ -827,8 +829,8 @@ function ChatPage() {
                           className={cn(
                             "relative max-w-[70%] rounded-2xl px-4 py-2.5 text-sm shadow-sm",
                             isOwn
-                              ? "rounded-tr-sm bg-primary text-primary-foreground"
-                              : "rounded-tl-sm bg-muted text-foreground",
+                              ? "rounded-tr-sm bg-gradient-primary text-white"
+                              : "rounded-tl-sm border border-border/60 bg-card/80 text-foreground",
                           )}
                         >
                           {!isOwn && msg.author_name && (
@@ -842,7 +844,7 @@ function ChatPage() {
                               className={cn(
                                 "mb-1.5 rounded-lg border-l-2 px-2 py-1 text-[10px]",
                                 isOwn
-                                  ? "border-primary-foreground/40 bg-primary-foreground/10"
+                                  ? "border-white/50 bg-white/15"
                                   : "border-primary/40 bg-primary/5",
                               )}
                             >
@@ -868,7 +870,7 @@ function ChatPage() {
                                 rel="noopener noreferrer"
                                 className={cn(
                                   "mb-1 flex items-center gap-1.5 text-xs underline underline-offset-2",
-                                  isOwn ? "text-primary-foreground/90" : "text-primary",
+                                  isOwn ? "text-white/90" : "text-primary",
                                 )}
                               >
                                 <Paperclip size={12} className="shrink-0" />
@@ -880,7 +882,7 @@ function ChatPage() {
                           {isEditing ? (
                             <div className="mt-1 flex items-center gap-1">
                               <input
-                                className="flex-1 rounded border border-primary-foreground/30 bg-primary-foreground/20 px-2 py-0.5 text-sm text-primary-foreground outline-none placeholder:text-primary-foreground/50 focus:border-primary-foreground/60"
+                                className="flex-1 rounded border border-white/30 bg-white/20 px-2 py-0.5 text-sm text-white outline-none placeholder:text-white/50 focus:border-white/60"
                                 value={editingContent}
                                 onChange={(e) => setEditingContent(e.target.value)}
                                 onKeyDown={(e) => {
@@ -907,7 +909,7 @@ function ChatPage() {
                           <div
                             className={cn(
                               "mt-1 flex items-center gap-1 text-[10px]",
-                              isOwn ? "justify-end text-primary-foreground/70" : "text-muted-foreground",
+                              isOwn ? "justify-end text-white/70" : "text-muted-foreground",
                             )}
                           >
                             <span>{formatTime(msg.created_at)}</span>
@@ -970,7 +972,7 @@ function ChatPage() {
               </div>
 
               {/* composer */}
-              <div className="border-t border-border bg-card p-3 space-y-2">
+              <div className="border-t border-border bg-card/60 p-3 space-y-2">
                 {replyingTo && (
                   <div className="flex items-center gap-3 rounded-lg border-l-4 border-primary bg-muted px-3 py-2">
                     <div className="flex-1 min-w-0">
