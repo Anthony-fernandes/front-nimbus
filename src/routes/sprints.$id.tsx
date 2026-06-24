@@ -73,14 +73,140 @@ import { formatDate, toNumber } from "@/services/utils";
 import { listUsers } from "@/services/userService";
 import { api } from "@/services/api";
 import { BurndownChart } from "@/components/dashboard/Charts";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/sprints/$id")({
   head: () => ({ meta: [{ title: "Detalhes da sprint · NimbusDesk" }] }),
   component: SprintDetail,
 });
 
-type WizardTicketRow = { ticketId: string; responsibleIds: string[]; plannedHours: string; storyPoints: string; notes: string; savedId?: string };
-type WizardActivityRow = { activityId: string; responsibleIds: string[]; plannedHours: string; storyPoints: string; plannedStartDate: string; plannedEndDate: string; notes: string; savedId?: string };
+type WizardTicketRow = { ticketId: string; responsibleIds: string[]; userHours: Record<string,string>; plannedHours: string; storyPoints: string; priority: string; complexity: string; notes: string; savedId?: string };
+type WizardActivityRow = { activityId: string; responsibleIds: string[]; userHours: Record<string,string>; plannedHours: string; storyPoints: string; priority: string; complexity: string; plannedStartDate: string; plannedEndDate: string; notes: string; savedId?: string };
+
+const FIBONACCI_SP = [1, 2, 3, 5, 8, 13, 21] as const;
+const SP_HOUR_THRESHOLDS: Record<number, number> = { 1: 2, 2: 4, 3: 8, 5: 16, 8: 24, 13: 40, 21: Infinity };
+
+function hoursToSP(hours: number): number {
+  for (const sp of FIBONACCI_SP) {
+    if (hours <= SP_HOUR_THRESHOLDS[sp]) return sp;
+  }
+  return 21;
+}
+
+function spToHours(sp: number): number {
+  const map: Record<number, number> = { 1: 2, 2: 4, 3: 8, 5: 16, 8: 24, 13: 40, 21: 48 };
+  return map[sp] ?? 0;
+}
+
+const PRIORITY_OPTIONS = ["Crítica", "Alta", "Média", "Baixa"] as const;
+const PRIORITY_COLORS: Record<string, string> = {
+  "Crítica": "bg-red-500/15 text-red-500 border-red-500/30",
+  "Alta": "bg-orange-500/15 text-orange-500 border-orange-500/30",
+  "Média": "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
+  "Baixa": "bg-blue-500/15 text-blue-500 border-blue-500/30",
+};
+
+function UserHoursBreakdown({ users, responsible, userHours, totalHours, onChange }: {
+  users: import("@/lib/types").User[]; responsible: string[]; userHours: Record<string,string>;
+  totalHours: number; onChange: (uh: Record<string,string>) => void;
+}) {
+  const sum = responsible.reduce((s, uid) => s + (Number(userHours[uid]) || 0), 0);
+  const diff = totalHours - sum;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">Distribuição de horas</span>
+        {responsible.length > 0 && (
+          <span className={`text-xs font-medium ${Math.abs(diff) < 0.01 ? "text-success" : "text-destructive"}`}>
+            {Math.abs(diff) < 0.01 ? "✓ Balanceado" : diff > 0 ? `Faltam ${diff.toFixed(1)}h` : `Excedente ${Math.abs(diff).toFixed(1)}h`}
+          </span>
+        )}
+      </div>
+      {responsible.length === 0 && <p className="text-xs text-muted-foreground">Adicione responsáveis para distribuir as horas.</p>}
+      {responsible.map(uid => {
+        const u = users.find(x => x.id === uid);
+        const name = u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || u.email || "Usuário") : uid;
+        const h = Number(userHours[uid]) || 0;
+        const pct = totalHours > 0 ? Math.min(100, (h / totalHours) * 100) : 0;
+        return (
+          <div key={uid} className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-28 truncate text-xs">{name}</span>
+              <input
+                type="number" min="0" step="0.5"
+                value={userHours[uid] ?? ""}
+                onChange={e => onChange({ ...userHours, [uid]: e.target.value })}
+                className="w-20 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs outline-none focus:border-primary"
+              />
+              <span className="text-xs text-muted-foreground">h</span>
+              <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="w-10 text-right text-xs text-muted-foreground">{pct.toFixed(0)}%</span>
+            </div>
+          </div>
+        );
+      })}
+      {responsible.length > 1 && (
+        <button type="button"
+          onClick={() => {
+            const perUser = totalHours / responsible.length;
+            onChange(Object.fromEntries(responsible.map(uid => [uid, String(perUser.toFixed(1))])));
+          }}
+          className="text-xs text-primary hover:underline"
+        >
+          Distribuir igualmente
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TechnicianCapacityPanel({ users, ticketRows, activityRows, sprintDays }: {
+  users: import("@/lib/types").User[]; ticketRows: WizardTicketRow[]; activityRows: WizardActivityRow[]; sprintDays: number;
+}) {
+  const allResponsible = new Set([
+    ...ticketRows.flatMap(r => r.responsibleIds),
+    ...activityRows.flatMap(r => r.responsibleIds),
+  ]);
+  if (allResponsible.size === 0) return (
+    <div className="rounded-xl border border-border bg-muted/20 p-4">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Capacidade dos técnicos</p>
+      <p className="text-xs text-muted-foreground">Adicione responsáveis para ver a capacidade.</p>
+    </div>
+  );
+  const capacityPerUser = sprintDays * 8;
+  return (
+    <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Capacidade dos técnicos</p>
+      {Array.from(allResponsible).map(uid => {
+        const u = users.find(x => x.id === uid);
+        const name = u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : uid;
+        const allocated = [
+          ...ticketRows.map(r => Number(r.userHours[uid]) || 0),
+          ...activityRows.map(r => Number(r.userHours[uid]) || 0),
+        ].reduce((a, b) => a + b, 0);
+        const pct = capacityPerUser > 0 ? (allocated / capacityPerUser) * 100 : 0;
+        const barColor = pct > 100 ? "bg-destructive" : pct > 80 ? "bg-warning" : "bg-gradient-primary";
+        const textColor = pct > 100 ? "text-destructive" : pct > 80 ? "text-warning" : "text-success";
+        return (
+          <div key={uid} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="truncate font-medium max-w-[120px]">{name}</span>
+              <span className={`font-semibold ${textColor}`}>{allocated.toFixed(1)}h / {capacityPerUser}h</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
+            </div>
+            {pct > 100 && (
+              <p className="text-[10px] text-destructive">Excedeu em {(allocated - capacityPerUser).toFixed(1)}h</p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function SprintDetail() {
   const { id } = Route.useParams();
@@ -97,6 +223,7 @@ function SprintDetail() {
   const [wizardTicketSearch, setWizardTicketSearch] = useState("");
   const [wizardActivitySearch, setWizardActivitySearch] = useState("");
   const [wizardSaving, setWizardSaving] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("overview");
   const [closeSprintOpen, setCloseSprintOpen] = useState(false);
   const [closeNotes, setCloseNotes] = useState("");
@@ -175,6 +302,20 @@ function SprintDetail() {
   const sprint = sprintQuery.data;
   const activities = activitiesQuery.data || [];
   const users = usersQuery.data || [];
+
+  const sprintDays = useMemo(() => {
+    if (!sprint?.start_at || !sprint?.end_at) return 10;
+    const start = new Date(sprint.start_at);
+    const end = new Date(sprint.end_at);
+    let days = 0;
+    const cur = new Date(start);
+    while (cur <= end) {
+      const dow = cur.getDay();
+      if (dow !== 0 && dow !== 6) days++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return Math.max(1, days);
+  }, [sprint?.start_at, sprint?.end_at]);
   const sprintPlans = plansQuery.data || [];
   const allPlans = allPlansQuery.data || [];
   const allTimeEntries = allTimeEntriesQuery.data || [];
@@ -254,8 +395,11 @@ function SprintDetail() {
     setWizardTicketRows(existingTicketPlans.map((p) => ({
       ticketId: p.ticketId,
       responsibleIds: p.responsibleIds || [],
+      userHours: Object.fromEntries(Object.entries(p.userHours || {}).map(([k,v]) => [k, String(v)])),
       plannedHours: String(p.plannedHours ?? ""),
       storyPoints: p.storyPoints != null ? String(p.storyPoints) : "",
+      priority: p.priority || "Média",
+      complexity: p.complexity ? String(p.complexity) : "",
       notes: p.notes || "",
       savedId: p.id,
     })));
@@ -263,8 +407,11 @@ function SprintDetail() {
     setWizardActivityRows(existingActivityPlans.map((p) => ({
       activityId: p.activityId,
       responsibleIds: p.responsibleIds || [],
+      userHours: Object.fromEntries(Object.entries(p.userHours || {}).map(([k,v]) => [k, String(v)])),
       plannedHours: String(p.plannedHours ?? ""),
       storyPoints: p.storyPoints != null ? String(p.storyPoints) : "",
+      priority: p.priority || "Média",
+      complexity: p.complexity ? String(p.complexity) : "",
       plannedStartDate: p.plannedStartDate || "",
       plannedEndDate: p.plannedEndDate || "",
       notes: p.notes || "",
@@ -288,6 +435,9 @@ function SprintDetail() {
             plannedHours: Number(row.plannedHours || 0),
             storyPoints: row.storyPoints ? Number(row.storyPoints) : undefined,
             notes: row.notes,
+            userHours: Object.fromEntries(Object.entries(row.userHours).map(([k,v]) => [k, Number(v) || 0])),
+            priority: row.priority || "Média",
+            complexity: row.complexity ? Number(row.complexity) : undefined,
           };
           if (row.savedId) {
             await saveSprintTicketPlan({ ...payload, id: row.savedId }, "edit", row.savedId);
@@ -324,6 +474,9 @@ function SprintDetail() {
             plannedStartDate: row.plannedStartDate || "",
             plannedEndDate: row.plannedEndDate || "",
             notes: row.notes,
+            userHours: Object.fromEntries(Object.entries(row.userHours).map(([k,v]) => [k, Number(v) || 0])),
+            priority: row.priority || "Média",
+            complexity: row.complexity ? Number(row.complexity) : undefined,
           };
           if (row.savedId) {
             await saveSprintActivityPlan({ ...payload, id: row.savedId }, "edit", row.savedId);
@@ -810,7 +963,7 @@ function SprintDetail() {
 
       {/* ─── 3-step planning wizard ─── */}
       <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) setWizardOpen(false); }}>
-        <DialogContent className="max-w-5xl glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <DialogContent className="max-w-6xl glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
           {/* wizard header + step indicators */}
           <div className="flex-shrink-0 border-b border-border px-6 pt-5 pb-4">
             <DialogTitle className="text-lg font-semibold">Planejamento da sprint</DialogTitle>
@@ -854,7 +1007,7 @@ function SprintDetail() {
                 ? available.filter((t) => (t.title ?? "").toLowerCase().includes(searchLower) || (t.code ?? "").toLowerCase().includes(searchLower))
                 : available;
 
-              const updateTicketRow = (ticketId: string, patch: Partial<{ responsibleIds: string[]; plannedHours: string; storyPoints: string; notes: string }>) => {
+              const updateTicketRow = (ticketId: string, patch: Partial<WizardTicketRow>) => {
                 setWizardTicketRows((prev) => prev.map((r) => r.ticketId === ticketId ? { ...r, ...patch } : r));
               };
 
@@ -895,7 +1048,7 @@ function SprintDetail() {
                               type="button"
                               className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
                               onClick={() => {
-                                setWizardTicketRows((prev) => [...prev, { ticketId: t.id, responsibleIds: [], plannedHours: "", storyPoints: "", notes: "" }]);
+                                setWizardTicketRows((prev) => [...prev, { ticketId: t.id, responsibleIds: [], userHours: {}, plannedHours: "", storyPoints: "", priority: "Média", complexity: "", notes: "" }]);
                                 setWizardTicketSearch("");
                               }}
                             >
@@ -909,84 +1062,154 @@ function SprintDetail() {
                     </PopoverContent>
                   </Popover>
 
-                  {/* inline table */}
-                  {wizardTicketRows.length > 0 && (
-                    <div className="overflow-x-auto rounded-xl border border-border">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
-                            <th className="px-3 py-2 text-left font-medium">Chamado</th>
-                            <th className="px-3 py-2 text-left font-medium w-52">Responsáveis</th>
-                            <th className="px-3 py-2 text-left font-medium w-24">Horas pl.</th>
-                            <th className="px-3 py-2 text-left font-medium w-20">Story pts</th>
-                            <th className="px-3 py-2 w-8" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {wizardTicketRows.map((row) => {
-                            const ticket = (allTickets as TicketItem[]).find((t) => t.id === row.ticketId);
-                            return (
-                              <tr key={row.ticketId} className="border-b border-border last:border-0 hover:bg-muted/20 transition">
-                                <td className="px-3 py-2">
-                                  <div>
-                                    <span className="font-mono text-xs text-muted-foreground">{ticket?.code} </span>
-                                    <span className="truncate">{ticket?.title ?? row.ticketId}</span>
-                                    {row.savedId && <span className="ml-2 text-[10px] text-primary">✓ salvo</span>}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2">
-                                  <WizardUserSelect
-                                    users={users}
-                                    selected={row.responsibleIds}
-                                    onChange={(ids) => updateTicketRow(row.ticketId, { responsibleIds: ids })}
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="0.5"
-                                    value={row.plannedHours}
-                                    onChange={(e) => updateTicketRow(row.ticketId, { plannedHours: e.target.value })}
-                                    placeholder="0"
-                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={row.storyPoints}
-                                    onChange={(e) => updateTicketRow(row.ticketId, { storyPoints: e.target.value })}
-                                    placeholder="—"
-                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      if (row.savedId) {
-                                        try { await deleteSprintTicketPlan(row.savedId); } catch { /* ignore */ }
-                                      }
-                                      setWizardTicketRows((prev) => prev.filter((r) => r.ticketId !== row.ticketId));
-                                    }}
-                                    className="text-destructive/50 hover:text-destructive transition"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                </td>
+                  {/* inline table + capacity sidebar */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 min-w-0">
+                      {wizardTicketRows.length > 0 && (
+                        <div className="overflow-x-auto rounded-xl border border-border">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                                <th className="px-3 py-2 text-left font-medium">Chamado</th>
+                                <th className="px-3 py-2 text-left font-medium w-44">Responsáveis</th>
+                                <th className="px-3 py-2 text-left font-medium w-20">SP</th>
+                                <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                                <th className="px-3 py-2 w-8" />
+                                <th className="px-3 py-2 w-8" />
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                            </thead>
+                            <tbody>
+                              {wizardTicketRows.map((row) => {
+                                const ticket = (allTickets as TicketItem[]).find((t) => t.id === row.ticketId);
+                                const rowKey = `ticket-${row.ticketId}`;
+                                const isExpanded = expandedRows.has(rowKey);
+                                return (
+                                  <>
+                                    <tr key={row.ticketId} className="border-b border-border last:border-0 hover:bg-muted/20 transition">
+                                      <td className="px-3 py-2">
+                                        <div className="flex items-center gap-2">
+                                          <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                                          <div>
+                                            <span className="font-mono text-xs text-muted-foreground">{ticket?.code} </span>
+                                            <span className="truncate">{ticket?.title ?? row.ticketId}</span>
+                                            {row.savedId && <span className="ml-2 text-[10px] text-primary">✓</span>}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <WizardUserSelect
+                                          users={users}
+                                          selected={row.responsibleIds}
+                                          onChange={(ids) => updateTicketRow(row.ticketId, { responsibleIds: ids })}
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <select
+                                          value={row.storyPoints}
+                                          onChange={(e) => {
+                                            const sp = Number(e.target.value);
+                                            updateTicketRow(row.ticketId, { storyPoints: e.target.value, plannedHours: sp ? String(spToHours(sp)) : row.plannedHours });
+                                          }}
+                                          className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                        >
+                                          <option value="">—</option>
+                                          {FIBONACCI_SP.map(sp => <option key={sp} value={sp}>{sp}</option>)}
+                                        </select>
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="0.5"
+                                          value={row.plannedHours}
+                                          onChange={(e) => {
+                                            const h = Number(e.target.value);
+                                            updateTicketRow(row.ticketId, { plannedHours: e.target.value, storyPoints: h ? String(hoursToSP(h)) : row.storyPoints });
+                                          }}
+                                          placeholder="0"
+                                          className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <button type="button" onClick={() => setExpandedRows(prev => { const n = new Set(prev); n.has(rowKey) ? n.delete(rowKey) : n.add(rowKey); return n; })} className="text-muted-foreground hover:text-foreground transition text-xs">
+                                          {isExpanded ? "▲" : "▼"}
+                                        </button>
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            if (row.savedId) {
+                                              try { await deleteSprintTicketPlan(row.savedId); } catch { /* ignore */ }
+                                            }
+                                            setWizardTicketRows((prev) => prev.filter((r) => r.ticketId !== row.ticketId));
+                                          }}
+                                          className="text-destructive/50 hover:text-destructive transition"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                    {isExpanded && (
+                                      <tr key={`${row.ticketId}-expanded`} className="border-b border-border bg-muted/10">
+                                        <td colSpan={6} className="px-4 py-3 space-y-3">
+                                          <UserHoursBreakdown
+                                            users={users}
+                                            responsible={row.responsibleIds}
+                                            userHours={row.userHours}
+                                            totalHours={Number(row.plannedHours) || 0}
+                                            onChange={(uh) => updateTicketRow(row.ticketId, { userHours: uh })}
+                                          />
+                                          <div className="flex gap-4">
+                                            <div className="space-y-1">
+                                              <label className="text-xs font-medium text-muted-foreground">Prioridade</label>
+                                              <div className="flex gap-1.5 flex-wrap">
+                                                {PRIORITY_OPTIONS.map(p => (
+                                                  <button key={p} type="button"
+                                                    onClick={() => updateTicketRow(row.ticketId, { priority: p })}
+                                                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${row.priority === p ? PRIORITY_COLORS[p] : "border-border text-muted-foreground hover:border-primary/50"}`}
+                                                  >{p}</button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                              <label className="text-xs font-medium text-muted-foreground">Complexidade (1-10)</label>
+                                              <input
+                                                type="number" min="1" max="10"
+                                                value={row.complexity}
+                                                onChange={e => updateTicketRow(row.ticketId, { complexity: e.target.value })}
+                                                className="w-20 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                              />
+                                            </div>
+                                            <div className="flex-1 space-y-1">
+                                              <label className="text-xs font-medium text-muted-foreground">Observações</label>
+                                              <input
+                                                type="text"
+                                                value={row.notes}
+                                                onChange={e => updateTicketRow(row.ticketId, { notes: e.target.value })}
+                                                placeholder="Observações..."
+                                                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                              />
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      {wizardTicketRows.length === 0 && (
+                        <p className="py-4 text-center text-sm text-muted-foreground">Nenhum chamado adicionado ainda.</p>
+                      )}
                     </div>
-                  )}
-
-                  {wizardTicketRows.length === 0 && (
-                    <p className="py-4 text-center text-sm text-muted-foreground">Nenhum chamado adicionado ainda.</p>
-                  )}
+                    <div className="w-64 shrink-0">
+                      <TechnicianCapacityPanel users={users} ticketRows={wizardTicketRows} activityRows={wizardActivityRows} sprintDays={sprintDays} />
+                    </div>
+                  </div>
                 </div>
               );
             })()}
@@ -1039,7 +1262,7 @@ function SprintDetail() {
                               type="button"
                               className="flex w-full items-start gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
                               onClick={() => {
-                                setWizardActivityRows((prev) => [...prev, { activityId: a.id, responsibleIds: [], plannedHours: String(a.estimatedBalanceHours > 0 ? a.estimatedBalanceHours : ""), storyPoints: "", plannedStartDate: "", plannedEndDate: "", notes: "" }]);
+                                setWizardActivityRows((prev) => [...prev, { activityId: a.id, responsibleIds: [], userHours: {}, plannedHours: String(a.estimatedBalanceHours > 0 ? a.estimatedBalanceHours : ""), storyPoints: "", priority: "Média", complexity: "", plannedStartDate: "", plannedEndDate: "", notes: "" }]);
                                 setWizardActivitySearch("");
                               }}
                             >
@@ -1054,102 +1277,172 @@ function SprintDetail() {
                     </PopoverContent>
                   </Popover>
 
-                  {/* inline table */}
-                  {wizardActivityRows.length > 0 && (
-                    <div className="overflow-x-auto rounded-xl border border-border">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
-                            <th className="px-3 py-2 text-left font-medium">Atividade</th>
-                            <th className="px-3 py-2 text-left font-medium w-52">Responsáveis</th>
-                            <th className="px-3 py-2 text-left font-medium w-24">Horas pl.</th>
-                            <th className="px-3 py-2 text-left font-medium w-20">Story pts</th>
-                            <th className="px-3 py-2 text-left font-medium w-28">Início</th>
-                            <th className="px-3 py-2 text-left font-medium w-28">Fim</th>
-                            <th className="px-3 py-2 w-8" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {wizardActivityRows.map((row) => {
-                            const activity = activities.find((a) => a.id === row.activityId);
-                            return (
-                              <tr key={row.activityId} className="border-b border-border last:border-0 hover:bg-muted/20 transition">
-                                <td className="px-3 py-2">
-                                  <div>
-                                    <div className="truncate font-medium max-w-[180px]">{activity?.title ?? row.activityId}</div>
-                                    {activity?.project_name && <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">{activity.project_name}</div>}
-                                    {row.savedId && <span className="text-[10px] text-primary">✓ salvo</span>}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2">
-                                  <WizardUserSelect
-                                    users={users}
-                                    selected={row.responsibleIds}
-                                    onChange={(ids) => updateActivityRow(row.activityId, { responsibleIds: ids })}
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="0.5"
-                                    value={row.plannedHours}
-                                    onChange={(e) => updateActivityRow(row.activityId, { plannedHours: e.target.value })}
-                                    placeholder="0"
-                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={row.storyPoints}
-                                    onChange={(e) => updateActivityRow(row.activityId, { storyPoints: e.target.value })}
-                                    placeholder="—"
-                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="date"
-                                    value={row.plannedStartDate}
-                                    onChange={(e) => updateActivityRow(row.activityId, { plannedStartDate: e.target.value })}
-                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="date"
-                                    value={row.plannedEndDate}
-                                    onChange={(e) => updateActivityRow(row.activityId, { plannedEndDate: e.target.value })}
-                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      if (row.savedId) {
-                                        try { await deleteSprintActivityPlan(row.savedId); await queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] }); } catch { /* ignore */ }
-                                      }
-                                      setWizardActivityRows((prev) => prev.filter((r) => r.activityId !== row.activityId));
-                                    }}
-                                    className="text-destructive/50 hover:text-destructive transition"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                </td>
+                  {/* inline table + capacity sidebar */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 min-w-0">
+                      {wizardActivityRows.length > 0 && (
+                        <div className="overflow-x-auto rounded-xl border border-border">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                                <th className="px-3 py-2 text-left font-medium">Atividade</th>
+                                <th className="px-3 py-2 text-left font-medium w-44">Responsáveis</th>
+                                <th className="px-3 py-2 text-left font-medium w-20">SP</th>
+                                <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                                <th className="px-3 py-2 text-left font-medium w-24">Início</th>
+                                <th className="px-3 py-2 text-left font-medium w-24">Fim</th>
+                                <th className="px-3 py-2 w-8" />
+                                <th className="px-3 py-2 w-8" />
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                            </thead>
+                            <tbody>
+                              {wizardActivityRows.map((row) => {
+                                const activity = activities.find((a) => a.id === row.activityId);
+                                const rowKey = `activity-${row.activityId}`;
+                                const isExpanded = expandedRows.has(rowKey);
+                                return (
+                                  <>
+                                    <tr key={row.activityId} className="border-b border-border last:border-0 hover:bg-muted/20 transition">
+                                      <td className="px-3 py-2">
+                                        <div className="flex items-center gap-2">
+                                          <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                                          <div>
+                                            <div className="truncate font-medium max-w-[150px]">{activity?.title ?? row.activityId}</div>
+                                            {activity?.project_name && <div className="text-[10px] text-muted-foreground truncate max-w-[150px]">{activity.project_name}</div>}
+                                            {row.savedId && <span className="text-[10px] text-primary">✓</span>}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <WizardUserSelect
+                                          users={users}
+                                          selected={row.responsibleIds}
+                                          onChange={(ids) => updateActivityRow(row.activityId, { responsibleIds: ids })}
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <select
+                                          value={row.storyPoints}
+                                          onChange={(e) => {
+                                            const sp = Number(e.target.value);
+                                            updateActivityRow(row.activityId, { storyPoints: e.target.value, plannedHours: sp ? String(spToHours(sp)) : row.plannedHours });
+                                          }}
+                                          className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                        >
+                                          <option value="">—</option>
+                                          {FIBONACCI_SP.map(sp => <option key={sp} value={sp}>{sp}</option>)}
+                                        </select>
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="0.5"
+                                          value={row.plannedHours}
+                                          onChange={(e) => {
+                                            const h = Number(e.target.value);
+                                            updateActivityRow(row.activityId, { plannedHours: e.target.value, storyPoints: h ? String(hoursToSP(h)) : row.storyPoints });
+                                          }}
+                                          placeholder="0"
+                                          className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <input
+                                          type="date"
+                                          value={row.plannedStartDate}
+                                          onChange={(e) => updateActivityRow(row.activityId, { plannedStartDate: e.target.value })}
+                                          className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <input
+                                          type="date"
+                                          value={row.plannedEndDate}
+                                          onChange={(e) => updateActivityRow(row.activityId, { plannedEndDate: e.target.value })}
+                                          className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                        />
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <button type="button" onClick={() => setExpandedRows(prev => { const n = new Set(prev); n.has(rowKey) ? n.delete(rowKey) : n.add(rowKey); return n; })} className="text-muted-foreground hover:text-foreground transition text-xs">
+                                          {isExpanded ? "▲" : "▼"}
+                                        </button>
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            if (row.savedId) {
+                                              try { await deleteSprintActivityPlan(row.savedId); await queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] }); } catch { /* ignore */ }
+                                            }
+                                            setWizardActivityRows((prev) => prev.filter((r) => r.activityId !== row.activityId));
+                                          }}
+                                          className="text-destructive/50 hover:text-destructive transition"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                    {isExpanded && (
+                                      <tr key={`${row.activityId}-expanded`} className="border-b border-border bg-muted/10">
+                                        <td colSpan={8} className="px-4 py-3 space-y-3">
+                                          <UserHoursBreakdown
+                                            users={users}
+                                            responsible={row.responsibleIds}
+                                            userHours={row.userHours}
+                                            totalHours={Number(row.plannedHours) || 0}
+                                            onChange={(uh) => updateActivityRow(row.activityId, { userHours: uh })}
+                                          />
+                                          <div className="flex gap-4">
+                                            <div className="space-y-1">
+                                              <label className="text-xs font-medium text-muted-foreground">Prioridade</label>
+                                              <div className="flex gap-1.5 flex-wrap">
+                                                {PRIORITY_OPTIONS.map(p => (
+                                                  <button key={p} type="button"
+                                                    onClick={() => updateActivityRow(row.activityId, { priority: p })}
+                                                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${row.priority === p ? PRIORITY_COLORS[p] : "border-border text-muted-foreground hover:border-primary/50"}`}
+                                                  >{p}</button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                              <label className="text-xs font-medium text-muted-foreground">Complexidade (1-10)</label>
+                                              <input
+                                                type="number" min="1" max="10"
+                                                value={row.complexity}
+                                                onChange={e => updateActivityRow(row.activityId, { complexity: e.target.value })}
+                                                className="w-20 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                              />
+                                            </div>
+                                            <div className="flex-1 space-y-1">
+                                              <label className="text-xs font-medium text-muted-foreground">Observações</label>
+                                              <input
+                                                type="text"
+                                                value={row.notes}
+                                                onChange={e => updateActivityRow(row.activityId, { notes: e.target.value })}
+                                                placeholder="Observações..."
+                                                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                                              />
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      {wizardActivityRows.length === 0 && (
+                        <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma atividade adicionada ainda.</p>
+                      )}
                     </div>
-                  )}
-
-                  {wizardActivityRows.length === 0 && (
-                    <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma atividade adicionada ainda.</p>
-                  )}
+                    <div className="w-64 shrink-0">
+                      <TechnicianCapacityPanel users={users} ticketRows={wizardTicketRows} activityRows={wizardActivityRows} sprintDays={sprintDays} />
+                    </div>
+                  </div>
                 </div>
               );
             })()}
@@ -1159,46 +1452,47 @@ function SprintDetail() {
               const totalTicketHours = wizardTicketRows.reduce((s, r) => s + Number(r.plannedHours || 0), 0);
               const totalActivityHours = wizardActivityRows.reduce((s, r) => s + Number(r.plannedHours || 0), 0);
               const totalPlannedAfter = totalTicketHours + totalActivityHours;
+              const totalSP = [...wizardTicketRows, ...wizardActivityRows].reduce((s, r) => s + (Number(r.storyPoints) || 0), 0);
               const capacity = sprint?.capacity ?? 0;
-              const capacityPct = capacity > 0 ? Math.min(100, Math.round((totalPlannedAfter / capacity) * 100)) : 0;
+              const capacityPct = capacity > 0 ? Math.min(999, Math.round((totalPlannedAfter / capacity) * 100)) : 0;
+              type TicketItem3 = { id: string; code?: string; title?: string };
+              const allTickets3 = (Array.isArray(ticketsQuery.data)
+                ? ticketsQuery.data
+                : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as TicketItem3[];
 
               return (
                 <div className="space-y-5">
-                  <div className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
-                    <h3 className="text-sm font-semibold">Resumo do planejamento</h3>
-                    <div className="grid grid-cols-4 gap-3 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Capacidade</p>
-                        <p className="font-semibold">{formatHoursLabel(capacity)}</p>
+                  {/* 4 stat cards */}
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { label: "Total SP", value: String(totalSP) },
+                      { label: "Total Horas", value: formatHoursLabel(totalPlannedAfter) },
+                      { label: "Capacidade", value: formatHoursLabel(capacity) },
+                      { label: "Utilização", value: `${capacityPct}%`, color: capacityPct > 100 ? "text-destructive" : capacityPct > 80 ? "text-warning" : "text-success" },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} className="rounded-xl border border-border bg-card/60 p-4">
+                        <p className="text-xs text-muted-foreground">{label}</p>
+                        <p className={`mt-1 text-xl font-bold ${color ?? ""}`}>{value}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Chamados</p>
-                        <p className="font-semibold">{formatHoursLabel(totalTicketHours)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Atividades</p>
-                        <p className="font-semibold">{formatHoursLabel(totalActivityHours)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Utilização</p>
-                        <p className={`font-semibold ${capacityPct > 100 ? "text-destructive" : "text-primary"}`}>{capacityPct}%</p>
-                      </div>
-                    </div>
-                    {capacity > 0 && (
+                    ))}
+                  </div>
+
+                  {capacity > 0 && (
+                    <div className="space-y-1">
                       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                         <div
                           className={`h-full rounded-full transition-all ${capacityPct > 100 ? "bg-destructive" : "bg-gradient-primary"}`}
                           style={{ width: `${Math.min(100, capacityPct)}%` }}
                         />
                       </div>
-                    )}
-                    {capacityPct > 100 && (
-                      <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                        Planejamento excede a capacidade da sprint.
-                      </div>
-                    )}
-                  </div>
+                      {capacityPct > 100 && (
+                        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          Planejamento excede a capacidade da sprint.
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1210,16 +1504,14 @@ function SprintDetail() {
                       ) : (
                         <div className="space-y-1">
                           {wizardTicketRows.map((row) => {
-                            type TicketItem = { id: string; code?: string; title?: string };
-                            const allTickets = (Array.isArray(ticketsQuery.data)
-                              ? ticketsQuery.data
-                              : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as TicketItem[];
-                            const ticket = allTickets.find((t) => t.id === row.ticketId);
+                            const ticket = allTickets3.find((t) => t.id === row.ticketId);
                             return (
                               <div key={row.ticketId} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
+                                <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
                                 <span className="font-mono text-xs text-muted-foreground">{ticket?.code}</span>
                                 <span className="min-w-0 flex-1 truncate">{ticket?.title ?? row.ticketId}</span>
                                 <span className="shrink-0 text-xs font-medium">{row.plannedHours ? `${row.plannedHours}h` : "—"}</span>
+                                {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
                                 {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
                               </div>
                             );
@@ -1240,8 +1532,10 @@ function SprintDetail() {
                             const activity = activities.find((a) => a.id === row.activityId);
                             return (
                               <div key={row.activityId} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm">
+                                <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
                                 <span className="min-w-0 flex-1 truncate">{activity?.title ?? row.activityId}</span>
                                 <span className="shrink-0 text-xs font-medium">{row.plannedHours ? `${row.plannedHours}h` : "—"}</span>
+                                {row.storyPoints && <span className="shrink-0 text-xs text-muted-foreground">{row.storyPoints}SP</span>}
                                 {row.savedId && <Check className="h-3 w-3 shrink-0 text-primary" />}
                               </div>
                             );
@@ -1250,6 +1544,8 @@ function SprintDetail() {
                       )}
                     </div>
                   </div>
+
+                  <TechnicianCapacityPanel users={users} ticketRows={wizardTicketRows} activityRows={wizardActivityRows} sprintDays={sprintDays} />
                 </div>
               );
             })()}

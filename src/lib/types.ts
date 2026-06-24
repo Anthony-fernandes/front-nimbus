@@ -685,8 +685,11 @@ export type SprintActivityPlan = {
   activityId: string;
   projectId: string;
   responsibleIds?: string[];
+  userHours?: Record<string, number>;
   plannedHours: number;
   storyPoints?: number;
+  priority?: string;
+  complexity?: number;
   plannedStartDate?: string;
   plannedEndDate?: string;
   order?: number;
@@ -700,8 +703,11 @@ export type SprintTicketPlan = {
   sprintId: string;
   ticketId: string;
   responsibleIds?: string[];
+  userHours?: Record<string, number>;
   plannedHours: number;
   storyPoints?: number;
+  priority?: string;
+  complexity?: number;
   notes?: string;
   createdAt: string;
   updatedAt?: string;

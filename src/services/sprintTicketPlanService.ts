@@ -19,11 +19,20 @@ function normalizeSprintTicketPlan(
       ? payload.responsible_ids
       : [];
 
+  const rawUserHours = payload.userHours ?? (payload as Record<string, unknown>).user_hours;
+  const userHours =
+    rawUserHours && typeof rawUserHours === "object" && !Array.isArray(rawUserHours)
+      ? (rawUserHours as Record<string, number>)
+      : {};
+
   return {
     id: String(payload.id || ""),
     sprintId: String(payload.sprintId || payload.sprint_id || payload.sprint || ""),
     ticketId: String(payload.ticketId || payload.ticket_id || payload.ticket || ""),
     responsibleIds: responsibleIds.map((v) => String(v || "").trim()).filter(Boolean),
+    userHours,
+    priority: typeof payload.priority === "string" ? payload.priority : "Média",
+    complexity: payload.complexity != null ? Number(payload.complexity) : undefined,
     plannedHours: Math.max(0, toNumber((payload.plannedHours ?? payload.planned_hours) as string | number | null | undefined, 0)),
     storyPoints:
       payload.storyPoints == null && payload.story_points == null
@@ -50,8 +59,11 @@ function buildPayload(payload: Partial<SprintTicketPlan>) {
     sprint: payload.sprintId || null,
     ticket: payload.ticketId || null,
     responsible_ids: Array.from(new Set((payload.responsibleIds || []).filter(Boolean))),
+    user_hours: payload.userHours || {},
     planned_hours: Math.max(0, toNumber(payload.plannedHours, 0)),
     story_points: payload.storyPoints == null ? null : Math.max(0, toNumber(payload.storyPoints, 0)),
+    priority: payload.priority || "Média",
+    complexity: payload.complexity ?? null,
     notes: payload.notes || "",
   };
 }
@@ -67,7 +79,6 @@ export async function saveSprintTicketPlan(
   planId?: string,
 ) {
   requireId(mode, planId);
-
   if (!payload.sprintId) throw new Error("Sprint obrigatória.");
   if (!payload.ticketId) throw new Error("Chamado obrigatório.");
 
