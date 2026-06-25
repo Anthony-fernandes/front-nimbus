@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, CheckCircle, ChevronRight, Pencil, Plus, Search, TimerReset, Trash2, TrendingUp, X } from "lucide-react";
+import { AlertCircle, Check, CheckCircle, ChevronRight, Pencil, Plus, Search, TimerReset, Trash2, TrendingUp, Users, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -748,6 +748,21 @@ function SprintDetail() {
 
               const totalRows = (ticketPlansQuery.data?.length ?? 0) + sprintPlans.length;
 
+              // Per-technician hour totals from userHours of all plans
+              const techHours: Record<string, number> = {};
+              for (const plan of sprintPlans) {
+                for (const [uid, h] of Object.entries(plan.userHours || {})) {
+                  techHours[uid] = (techHours[uid] || 0) + Number(h);
+                }
+              }
+              for (const tPlan of ticketPlansQuery.data ?? []) {
+                for (const [uid, h] of Object.entries(tPlan.userHours || {})) {
+                  techHours[uid] = (techHours[uid] || 0) + Number(h);
+                }
+              }
+              const techEntries = Object.entries(techHours).filter(([, h]) => h > 0);
+              const sprintCapacity = toNumber(sprint.capacity, 0);
+
               if (totalRows === 0) {
                 return (
                   <div className="glass rounded-2xl p-5 text-sm text-muted-foreground shadow-card">
@@ -757,6 +772,49 @@ function SprintDetail() {
               }
 
               return (
+                <>
+                {techEntries.length > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{totalRows} item(s) planejado(s)</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                          <Users className="h-3.5 w-3.5" />
+                          Carga por técnico
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 p-4 glass" align="end">
+                        <p className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Horas planejadas por técnico</p>
+                        <div className="space-y-3">
+                          {techEntries.map(([uid, h]) => {
+                            const name = userMap.get(uid) || userMap.get(String(uid)) || uid;
+                            const pct = sprintCapacity > 0 ? Math.min(100, Math.round((h / sprintCapacity) * 100)) : 0;
+                            const over = sprintCapacity > 0 && h > sprintCapacity;
+                            return (
+                              <div key={uid} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-medium truncate max-w-[140px]">{name}</span>
+                                  <span className={over ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                                    {formatHoursLabel(h)}{sprintCapacity > 0 ? ` / ${formatHoursLabel(sprintCapacity)}` : ""}
+                                  </span>
+                                </div>
+                                {sprintCapacity > 0 && (
+                                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                    <div
+                                      className={`h-full rounded-full ${over ? "bg-destructive" : "bg-gradient-primary"}`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+
                 <div className="glass rounded-2xl shadow-card overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -863,6 +921,7 @@ function SprintDetail() {
                     </table>
                   </div>
                 </div>
+                </>
               );
             })()}
           </TabsContent>
