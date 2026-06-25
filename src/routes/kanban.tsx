@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app/AppShell";
 import type { Ticket } from "@/lib/types";
 import { listTickets, updateTicket } from "@/services/ticketService";
+import { listUsers } from "@/services/userService";
 
 const EMPTY_TICKETS: Ticket[] = [];
 
@@ -50,6 +51,11 @@ function KanbanPage() {
   const [localTickets, setLocalTickets] = useState<Ticket[]>([]);
   const [draggedTicketId, setDraggedTicketId] = useState<string | null>(null);
   const [activeColumn, setActiveColumn] = useState<string | null>(null);
+  const [filterTech, setFilterTech] = useState<string>("");
+  const [filterPriority, setFilterPriority] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: listUsers });
 
   useEffect(() => {
     setLocalTickets(tickets);
@@ -67,12 +73,14 @@ function KanbanPage() {
   });
 
   const groupedTickets = useMemo(
-    () =>
-      statusCols.map((column) => ({
-        ...column,
-        cards: localTickets.filter((ticket) => (ticket.status || "Triagem") === column.name),
-      })),
-    [localTickets],
+    () => statusCols.map(column => ({
+      ...column,
+      cards: localTickets
+        .filter(t => (t.status || "Triagem") === column.name)
+        .filter(t => !filterTech || (t.technicians || []).map(String).includes(filterTech))
+        .filter(t => !filterPriority || t.priority === filterPriority),
+    })),
+    [localTickets, filterTech, filterPriority],
   );
 
   const moveTicketToStatus = (ticketId: string, nextStatus: string) => {
@@ -113,26 +121,49 @@ function KanbanPage() {
               Fluxo de trabalho · {localTickets.length} cards
             </p>
           </div>
-          <div className="flex gap-2 text-xs">
-            <button
-              type="button"
-              className="glass rounded-lg px-3 py-1.5 transition-colors hover:border-primary/40"
-            >
-              Filtrar
-            </button>
-            <button
-              type="button"
-              className="glass rounded-lg px-3 py-1.5 transition-colors hover:border-primary/40"
-            >
-              Agrupar por
-            </button>
-            <a
-              href="/tickets/new"
-              className="rounded-lg bg-gradient-primary px-3 py-1.5 text-primary-foreground shadow-glow"
-            >
-              + Novo card
-            </a>
-          </div>
+          <div className="flex gap-2 text-xs items-center">
+  <button
+    type="button"
+    onClick={() => setShowFilters(f => !f)}
+    className="glass rounded-lg px-3 py-1.5 transition-colors hover:border-primary/40"
+  >
+    Filtrar {showFilters ? "▲" : "▼"}
+  </button>
+  {showFilters && (
+    <>
+      <select
+        value={filterTech}
+        onChange={e => setFilterTech(e.target.value)}
+        className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs outline-none focus:border-primary"
+      >
+        <option value="">Todos os técnicos</option>
+        {users.map(u => (
+          <option key={u.id} value={String(u.id)}>
+            {u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || u.email}
+          </option>
+        ))}
+      </select>
+      <select
+        value={filterPriority}
+        onChange={e => setFilterPriority(e.target.value)}
+        className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs outline-none focus:border-primary"
+      >
+        <option value="">Todas as prioridades</option>
+        {["Crítica", "Alta", "Média", "Baixa"].map(p => (
+          <option key={p} value={p}>{p}</option>
+        ))}
+      </select>
+      {(filterTech || filterPriority) && (
+        <button type="button" onClick={() => { setFilterTech(""); setFilterPriority(""); }} className="text-xs text-muted-foreground hover:text-foreground">
+          Limpar
+        </button>
+      )}
+    </>
+  )}
+  <a href="/tickets/new" className="ml-auto rounded-lg bg-gradient-primary px-3 py-1.5 text-primary-foreground shadow-glow">
+    + Novo card
+  </a>
+</div>
         </div>
         <div className="-mx-2 flex min-h-0 flex-1 gap-4 overflow-x-auto px-2 pb-4">
           {groupedTickets.map((column) => (

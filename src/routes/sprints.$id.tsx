@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, CheckCircle, ChevronRight, Pencil, Plus, Search, TimerReset, Trash2, TrendingUp, Users, X } from "lucide-react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { AlertCircle, Check, CheckCircle, ChevronRight, Clock, MessageSquare, Paperclip, Pencil, Plus, Search, TimerReset, Trash2, TrendingUp, Users, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -46,7 +46,7 @@ import { formatSprintStatusLabel } from "@/lib/labels";
 import type { SprintActivityPlan } from "@/lib/types";
 import { listActivities } from "@/services/activityService";
 import { listActivityTimeEntries } from "@/services/activityTimeEntryService";
-import { listTickets } from "@/services/ticketService";
+import { listTickets, updateTicket } from "@/services/ticketService";
 import { listActivityTags } from "@/services/activityTagService";
 import {
   deleteSprintActivityPlan,
@@ -105,6 +105,15 @@ const PRIORITY_COLORS: Record<string, string> = {
   "Média": "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
   "Baixa": "bg-blue-500/15 text-blue-500 border-blue-500/30",
 };
+
+const sprintKanbanCols = [
+  { name: "Triagem", label: "Backlog", accent: "bg-muted-foreground" },
+  { name: "Em atendimento", label: "Em progresso", accent: "bg-primary" },
+  { name: "Aguardando cliente", label: "Aguardando", accent: "bg-warning" },
+  { name: "Validação", label: "Homologação", accent: "bg-accent" },
+  { name: "Pausado", label: "Pausado", accent: "bg-info" },
+  { name: "Finalizado", label: "Finalizado", accent: "bg-success" },
+] as const;
 
 function UserHoursBreakdown({ users, responsible, userHours, totalHours, onChange }: {
   users: import("@/lib/types").User[]; responsible: string[]; userHours: Record<string,string>;
@@ -188,6 +197,12 @@ function SprintDetail() {
   const [retroWentWell, setRetroWentWell] = useState("");
   const [retroToImprove, setRetroToImprove] = useState("");
   const [retroSaving, setRetroSaving] = useState(false);
+  const [kanbanLocalTickets, setKanbanLocalTickets] = useState<import("@/lib/types").Ticket[]>([]);
+  const [kanbanDragId, setKanbanDragId] = useState<string | null>(null);
+  const [kanbanActiveCol, setKanbanActiveCol] = useState<string | null>(null);
+  const [kanbanFilterTech, setKanbanFilterTech] = useState<string>("");
+  const [kanbanFilterPriority, setKanbanFilterPriority] = useState<string>("");
+  const [kanbanShowFilters, setKanbanShowFilters] = useState(false);
 
   const sprintQuery = useQuery({ queryKey: ["sprint", id], queryFn: () => getSprint(id) });
   const activitiesQuery = useQuery({ queryKey: ["activities"], queryFn: () => listActivities() });
@@ -254,6 +269,32 @@ function SprintDetail() {
     queryKey: ["sprint-velocity"],
     queryFn: () => getSprintVelocity(),
   });
+
+  useEffect(() => {
+    const allT = (Array.isArray(ticketsQuery.data)
+      ? ticketsQuery.data
+      : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as import("@/lib/types").Ticket[];
+    const ids = new Set((ticketPlansQuery.data ?? []).map((p: import("@/lib/types").SprintTicketPlan) => p.ticketId));
+    setKanbanLocalTickets(allT.filter(t => ids.has(t.id)));
+  }, [ticketsQuery.data, ticketPlansQuery.data]);
+
+  const kanbanUpdateMutation = useMutation({
+    mutationFn: ({ ticketId, status }: { ticketId: string; status: string }) =>
+      updateTicket(ticketId, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tickets-for-sprint-wizard"] });
+    },
+  });
+
+  const moveKanbanTicket = (ticketId: string, nextStatus: string) => {
+    const current = kanbanLocalTickets.find(t => t.id === ticketId);
+    if (!current || current.status === nextStatus) return;
+    const prev = current.status || "Triagem";
+    setKanbanLocalTickets(ts => ts.map(t => t.id === ticketId ? { ...t, status: nextStatus } : t));
+    kanbanUpdateMutation.mutate({ ticketId, status: nextStatus }, {
+      onError: () => setKanbanLocalTickets(ts => ts.map(t => t.id === ticketId ? { ...t, status: prev } : t)),
+    });
+  };
 
   const sprint = sprintQuery.data;
   const activities = activitiesQuery.data || [];
@@ -926,74 +967,149 @@ function SprintDetail() {
             })()}
           </TabsContent>
 
-          <TabsContent value="kanban" className="space-y-4">
-            {(() => {
-              const allTicketsForKanban = (Array.isArray(ticketsQuery.data)
-                ? ticketsQuery.data
-                : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as { id: string; code?: string; title?: string; status?: string }[];
+          <TabsContent value="kanban">
+  <div className="flex flex-col gap-4" style={{ height: "calc(100dvh - 18rem)" }}>
+    {/* Filter bar */}
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setKanbanShowFilters(f => !f)}
+        className="glass rounded-lg px-3 py-1.5 text-xs transition-colors hover:border-primary/40"
+      >
+        Filtrar {kanbanShowFilters ? "▲" : "▼"}
+      </button>
+      {kanbanShowFilters && (
+        <>
+          <select
+            value={kanbanFilterTech}
+            onChange={e => setKanbanFilterTech(e.target.value)}
+            className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs outline-none focus:border-primary"
+          >
+            <option value="">Todos os técnicos</option>
+            {users.map(u => (
+              <option key={u.id} value={String(u.id)}>
+                {u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username}
+              </option>
+            ))}
+          </select>
+          <select
+            value={kanbanFilterPriority}
+            onChange={e => setKanbanFilterPriority(e.target.value)}
+            className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs outline-none focus:border-primary"
+          >
+            <option value="">Todas as prioridades</option>
+            {["Crítica", "Alta", "Média", "Baixa"].map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          {(kanbanFilterTech || kanbanFilterPriority) && (
+            <button
+              type="button"
+              onClick={() => { setKanbanFilterTech(""); setKanbanFilterPriority(""); }}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Limpar
+            </button>
+          )}
+        </>
+      )}
+      <span className="ml-auto text-xs text-muted-foreground">
+        {kanbanLocalTickets.length} chamado(s) nesta sprint
+      </span>
+    </div>
 
-              type KanbanCard = { key: string; type: "Chamado" | "Atividade"; title: string; subtitle?: string; priority?: string; status: string };
+    {/* Columns */}
+    <div className="-mx-2 flex min-h-0 flex-1 gap-4 overflow-x-auto px-2 pb-4">
+      {sprintKanbanCols.map(col => {
+        const colTickets = kanbanLocalTickets
+          .filter(t => (t.status || "Triagem") === col.name)
+          .filter(t => !kanbanFilterTech || (t.technicians || []).map(String).includes(kanbanFilterTech))
+          .filter(t => !kanbanFilterPriority || t.priority === kanbanFilterPriority);
 
-              const cards: KanbanCard[] = [
-                ...(ticketPlansQuery.data ?? []).map((tPlan): KanbanCard => {
-                  const ticket = allTicketsForKanban.find((t) => t.id === tPlan.ticketId);
-                  return { key: `t-${tPlan.id}`, type: "Chamado", title: ticket?.title ?? tPlan.ticketId, subtitle: ticket?.code, priority: tPlan.priority ?? undefined, status: ticket?.status ?? "Aberto" };
-                }),
-                ...sprintPlans.map((plan): KanbanCard => {
-                  const activity = activityMap.get(plan.activityId);
-                  return { key: `a-${plan.id}`, type: "Atividade", title: activity?.title ?? plan.activityId, subtitle: (activity as { project_name?: string } | undefined)?.project_name, priority: plan.priority ?? undefined, status: (activity as { status?: string } | undefined)?.status ?? "Backlog" };
-                }),
-              ];
-
-              const DONE_STATUSES = new Set(["Finalizado", "Concluído", "Concluida", "Resolvido", "Fechado", "Convertido em Atividade de Projeto", "Cancelado"]);
-              const IN_PROGRESS_STATUSES = new Set(["Em atendimento", "Em andamento", "Em Andamento", "Validacao", "Aguardando cliente"]);
-
-              const columns: { label: string; filter: (c: KanbanCard) => boolean; color: string }[] = [
-                { label: "A Fazer", filter: (c) => !DONE_STATUSES.has(c.status) && !IN_PROGRESS_STATUSES.has(c.status), color: "bg-muted/40" },
-                { label: "Em Andamento", filter: (c) => IN_PROGRESS_STATUSES.has(c.status), color: "bg-blue-500/10" },
-                { label: "Concluído", filter: (c) => DONE_STATUSES.has(c.status), color: "bg-success/10" },
-              ];
-
-              if (cards.length === 0) {
-                return <div className="glass rounded-2xl p-5 text-sm text-muted-foreground shadow-card">Nenhum item planejado para o kanban.</div>;
-              }
-
-              return (
-                <div className="flex gap-4 overflow-x-auto pb-4">
-                  {columns.map((col) => {
-                    const colCards = cards.filter(col.filter);
-                    return (
-                      <div key={col.label} className="flex-1 min-w-[280px]">
-                        <div className={`rounded-xl border border-border ${col.color} p-3 space-y-3`}>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{col.label}</span>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{colCards.length}</span>
-                          </div>
-                          {colCards.length === 0 ? (
-                            <p className="py-4 text-center text-xs text-muted-foreground">Vazio</p>
-                          ) : (
-                            colCards.map((card) => (
-                              <div key={card.key} className="glass rounded-xl border border-border p-3 shadow-sm space-y-1.5">
-                                <div className="flex items-start justify-between gap-2">
-                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0 ${card.type === "Chamado" ? "bg-blue-500/15 text-blue-400" : "bg-violet-500/15 text-violet-400"}`}>{card.type}</span>
-                                  {card.priority && (
-                                    <Badge className={`text-[10px] border shrink-0 ${PRIORITY_COLORS[card.priority] || ""}`}>{card.priority}</Badge>
-                                  )}
-                                </div>
-                                {card.subtitle && <p className="text-[10px] text-muted-foreground font-mono">{card.subtitle}</p>}
-                                <p className="text-xs font-medium leading-snug">{card.title}</p>
-                                <p className="text-[10px] text-muted-foreground">{card.status}</p>
-                              </div>
-                            ))
-                          )}
-                        </div>
+        return (
+          <div
+            key={col.name}
+            className={`glass flex h-full min-h-0 w-72 shrink-0 flex-col rounded-2xl p-3 ${kanbanActiveCol === col.name ? "border-primary/50 ring-1 ring-primary/30" : ""}`}
+            onDragOver={e => { e.preventDefault(); if (kanbanDragId) { e.dataTransfer.dropEffect = "move"; setKanbanActiveCol(col.name); } }}
+            onDragLeave={() => { if (kanbanActiveCol === col.name) setKanbanActiveCol(null); }}
+            onDrop={e => {
+              e.preventDefault();
+              const tid = e.dataTransfer.getData("text/plain") || kanbanDragId;
+              setKanbanActiveCol(null);
+              setKanbanDragId(null);
+              if (tid) moveKanbanTicket(tid, col.name);
+            }}
+          >
+            <div className="mb-3 flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${col.accent}`} />
+                <span className="text-sm font-medium">{col.label}</span>
+                <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{colTickets.length}</span>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              {colTickets.map(card => {
+                const tPlan = (ticketPlansQuery.data ?? []).find(p => p.ticketId === card.id);
+                return (
+                  <div
+                    key={card.id}
+                    draggable
+                    onDragStart={e => { setKanbanDragId(card.id); setKanbanActiveCol(col.name); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", card.id); }}
+                    onDragEnd={() => { setKanbanDragId(null); setKanbanActiveCol(null); }}
+                    className={`group rounded-xl border border-border bg-card/80 p-3 transition-all hover:border-primary/40 hover:shadow-glow ${kanbanDragId === card.id ? "opacity-60" : ""}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Link to="/tickets/$id" params={{ id: card.id }} className="font-mono text-[10px] text-muted-foreground hover:text-primary">
+                        {card.code || card.id.slice(0, 8)}
+                      </Link>
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${PRIORITY_COLORS[card.priority || "Média"] || ""}`}>
+                        {card.priority || "Média"}
+                      </span>
+                    </div>
+                    <Link to="/tickets/$id" params={{ id: card.id }} className="mt-1.5 block text-sm leading-snug hover:text-primary">
+                      {card.title}
+                    </Link>
+                    {card.client_name && <p className="mt-1 text-[11px] text-muted-foreground">{card.client_name}</p>}
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {(card.tags || []).map(tag => (
+                        <span key={tag} className="rounded border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{card.sla || "8h"}</span>
+                        <span className="inline-flex items-center gap-1"><MessageSquare className="h-3 w-3" />0</span>
+                        <span className="inline-flex items-center gap-1"><Paperclip className="h-3 w-3" />0</span>
                       </div>
-                    );
-                  })}
+                      <span className="rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10px] text-accent">
+                        {tPlan ? `${tPlan.plannedHours ?? 0}h` : `${card.est_hours || 0}h`}
+                      </span>
+                    </div>
+                    <label className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span className="shrink-0">Mover para</span>
+                      <select
+                        value={card.status || "Triagem"}
+                        onChange={e => moveKanbanTicket(card.id, e.target.value)}
+                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground outline-none transition-colors hover:border-primary/40 focus:border-primary/40"
+                      >
+                        {sprintKanbanCols.map(s => <option key={s.name} value={s.name}>{s.label}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                );
+              })}
+              {colTickets.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                  Solte um card aqui
                 </div>
-              );
-            })()}
-          </TabsContent>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</TabsContent>
 
           <TabsContent value="burndown" className="space-y-4">
                 <div className="glass rounded-2xl p-5 shadow-card">
