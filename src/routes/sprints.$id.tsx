@@ -185,6 +185,13 @@ function SprintDetail() {
   const [editingPlan, setEditingPlan] = useState<SprintActivityPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [unplannedOpen, setUnplannedOpen] = useState(false);
+  const [unplannedTab, setUnplannedTab] = useState<"chamados" | "atividades">("chamados");
+  const [unplannedTicketSearch, setUnplannedTicketSearch] = useState("");
+  const [unplannedActivitySearch, setUnplannedActivitySearch] = useState("");
+  const [unplannedTicketRows, setUnplannedTicketRows] = useState<WizardTicketRow[]>([]);
+  const [unplannedActivityRows, setUnplannedActivityRows] = useState<WizardActivityRow[]>([]);
+  const [unplannedSaving, setUnplannedSaving] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
   const [wizardParticipantRows, setWizardParticipantRows] = useState<{
     userId: string;
@@ -727,10 +734,17 @@ function SprintDetail() {
                   type="button"
                   variant="outline"
                   className="gap-1.5"
-                  onClick={openWizard}
+                  onClick={() => {
+                    setUnplannedTicketRows([]);
+                    setUnplannedActivityRows([]);
+                    setUnplannedTicketSearch("");
+                    setUnplannedActivitySearch("");
+                    setUnplannedTab("chamados");
+                    setUnplannedOpen(true);
+                  }}
                 >
                   <Plus className="h-4 w-4" />
-                  Adicionar atividade não planejada
+                  Adicionar não planejados
                 </Button>
               ) : (
                 <Button
@@ -2239,6 +2253,253 @@ function SprintDetail() {
                 </Button>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Adicionar não planejados dialog ─── */}
+      <Dialog open={unplannedOpen} onOpenChange={setUnplannedOpen}>
+        <DialogContent className="max-w-3xl glass-strong">
+          <DialogHeader>
+            <DialogTitle>Adicionar não planejados</DialogTitle>
+            <DialogDescription>Adicione chamados ou atividades fora do planejamento original da sprint.</DialogDescription>
+          </DialogHeader>
+
+          <Tabs value={unplannedTab} onValueChange={(v) => setUnplannedTab(v as "chamados" | "atividades")}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="chamados">Chamados ({unplannedTicketRows.length})</TabsTrigger>
+              <TabsTrigger value="atividades">Atividades ({unplannedActivityRows.length})</TabsTrigger>
+            </TabsList>
+
+            {/* ── Chamados tab ── */}
+            <TabsContent value="chamados" className="space-y-3">
+              <input
+                placeholder="Buscar chamado..."
+                value={unplannedTicketSearch}
+                onChange={e => setUnplannedTicketSearch(e.target.value)}
+                className="w-full rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+              {(() => {
+                const allTickets = (Array.isArray(ticketsQuery.data)
+                  ? ticketsQuery.data
+                  : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as { id: string; code?: string; title?: string }[];
+                const addedIds = new Set(unplannedTicketRows.map(r => r.ticketId));
+                const visible = allTickets.filter(t =>
+                  !addedIds.has(t.id) &&
+                  (!unplannedTicketSearch || [t.code, t.title].join(" ").toLowerCase().includes(unplannedTicketSearch.toLowerCase()))
+                ).slice(0, 20);
+                return (
+                  <div className="max-h-40 overflow-y-auto rounded-xl border border-border divide-y divide-border">
+                    {visible.length === 0
+                      ? <p className="px-4 py-3 text-xs text-muted-foreground">Nenhum chamado disponível.</p>
+                      : visible.map(t => (
+                        <button key={t.id} type="button"
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
+                          onClick={() => setUnplannedTicketRows(prev => [...prev, {
+                            ticketId: t.id, responsibleIds: [], storyPoints: "", plannedHours: "", plannedEndDate: "", notes: "", priority: "Média", complexity: "", userHours: {},
+                          }])}>
+                          <span className="font-mono text-[10px] text-muted-foreground">{t.code ?? t.id.slice(0,8)}</span>
+                          <span className="truncate">{t.title}</span>
+                          <Plus className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" />
+                        </button>
+                      ))}
+                  </div>
+                );
+              })()}
+
+              {unplannedTicketRows.length > 0 && (
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
+                        <th className="px-3 py-2 text-left font-medium">Chamado</th>
+                        <th className="px-3 py-2 text-left font-medium w-40">Responsáveis</th>
+                        <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                        <th className="px-3 py-2 text-left font-medium w-32">Previsão término</th>
+                        <th className="px-3 py-2 w-8" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {unplannedTicketRows.map(row => {
+                        const allTickets = (Array.isArray(ticketsQuery.data)
+                          ? ticketsQuery.data
+                          : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as { id: string; code?: string; title?: string }[];
+                        const t = allTickets.find(x => x.id === row.ticketId);
+                        return (
+                          <tr key={row.ticketId} className="border-b border-border last:border-0">
+                            <td className="px-3 py-2">
+                              <p className="font-medium text-xs truncate max-w-[160px]">{t?.title ?? row.ticketId}</p>
+                              <p className="text-[10px] text-muted-foreground font-mono">{t?.code}</p>
+                            </td>
+                            <td className="px-3 py-2">
+                              <WizardUserSelect users={users} selected={row.responsibleIds}
+                                onChange={ids => setUnplannedTicketRows(prev => prev.map(r => r.ticketId === row.ticketId ? { ...r, responsibleIds: ids } : r))} />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input type="number" min="0" step="0.5" placeholder="0" value={row.plannedHours}
+                                onChange={e => setUnplannedTicketRows(prev => prev.map(r => r.ticketId === row.ticketId ? { ...r, plannedHours: e.target.value } : r))}
+                                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary" />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input type="date" value={row.plannedEndDate}
+                                onChange={e => setUnplannedTicketRows(prev => prev.map(r => r.ticketId === row.ticketId ? { ...r, plannedEndDate: e.target.value } : r))}
+                                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary" />
+                            </td>
+                            <td className="px-3 py-2">
+                              <button type="button" onClick={() => setUnplannedTicketRows(prev => prev.filter(r => r.ticketId !== row.ticketId))}
+                                className="text-destructive/50 hover:text-destructive transition">
+                                <X className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ── Atividades tab ── */}
+            <TabsContent value="atividades" className="space-y-3">
+              <input
+                placeholder="Buscar atividade..."
+                value={unplannedActivitySearch}
+                onChange={e => setUnplannedActivitySearch(e.target.value)}
+                className="w-full rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+              {(() => {
+                const addedIds = new Set(unplannedActivityRows.map(r => r.activityId));
+                const visible = (activities || []).filter(a =>
+                  !addedIds.has(a.id) &&
+                  (!unplannedActivitySearch || a.title?.toLowerCase().includes(unplannedActivitySearch.toLowerCase()))
+                ).slice(0, 20);
+                return (
+                  <div className="max-h-40 overflow-y-auto rounded-xl border border-border divide-y divide-border">
+                    {visible.length === 0
+                      ? <p className="px-4 py-3 text-xs text-muted-foreground">Nenhuma atividade disponível.</p>
+                      : visible.map(a => (
+                        <button key={a.id} type="button"
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
+                          onClick={() => setUnplannedActivityRows(prev => [...prev, {
+                            activityId: a.id, responsibleIds: [], storyPoints: "", plannedHours: "", plannedEndDate: "", notes: "", priority: "Média", complexity: "", userHours: {},
+                          }])}>
+                          <span className="truncate">{a.title}</span>
+                          <Plus className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" />
+                        </button>
+                      ))}
+                  </div>
+                );
+              })()}
+
+              {unplannedActivityRows.length > 0 && (
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
+                        <th className="px-3 py-2 text-left font-medium">Atividade</th>
+                        <th className="px-3 py-2 text-left font-medium w-40">Responsáveis</th>
+                        <th className="px-3 py-2 text-left font-medium w-20">Horas</th>
+                        <th className="px-3 py-2 text-left font-medium w-32">Previsão término</th>
+                        <th className="px-3 py-2 w-8" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {unplannedActivityRows.map(row => {
+                        const a = (activities || []).find(x => x.id === row.activityId);
+                        return (
+                          <tr key={row.activityId} className="border-b border-border last:border-0">
+                            <td className="px-3 py-2">
+                              <p className="font-medium text-xs truncate max-w-[160px]">{a?.title ?? row.activityId}</p>
+                            </td>
+                            <td className="px-3 py-2">
+                              <WizardUserSelect users={users} selected={row.responsibleIds}
+                                onChange={ids => setUnplannedActivityRows(prev => prev.map(r => r.activityId === row.activityId ? { ...r, responsibleIds: ids } : r))} />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input type="number" min="0" step="0.5" placeholder="0" value={row.plannedHours}
+                                onChange={e => setUnplannedActivityRows(prev => prev.map(r => r.activityId === row.activityId ? { ...r, plannedHours: e.target.value } : r))}
+                                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary" />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input type="date" value={row.plannedEndDate}
+                                onChange={e => setUnplannedActivityRows(prev => prev.map(r => r.activityId === row.activityId ? { ...r, plannedEndDate: e.target.value } : r))}
+                                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary" />
+                            </td>
+                            <td className="px-3 py-2">
+                              <button type="button" onClick={() => setUnplannedActivityRows(prev => prev.filter(r => r.activityId !== row.activityId))}
+                                className="text-destructive/50 hover:text-destructive transition">
+                                <X className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
+            <Button variant="outline" onClick={() => setUnplannedOpen(false)} disabled={unplannedSaving}>Cancelar</Button>
+            <Button
+              disabled={unplannedSaving || (unplannedTicketRows.length === 0 && unplannedActivityRows.length === 0)}
+              className="bg-gradient-primary text-white shadow-glow hover:opacity-90"
+              onClick={async () => {
+                for (const row of unplannedTicketRows) {
+                  if (!row.responsibleIds.length) { toast.error("Chamado sem responsável."); return; }
+                  if (!Number(row.plannedHours)) { toast.error("Chamado sem horas planejadas."); return; }
+                }
+                for (const row of unplannedActivityRows) {
+                  if (!row.responsibleIds.length) { toast.error("Atividade sem responsável."); return; }
+                  if (!Number(row.plannedHours)) { toast.error("Atividade sem horas planejadas."); return; }
+                }
+                setUnplannedSaving(true);
+                try {
+                  for (const row of unplannedTicketRows) {
+                    await saveSprintTicketPlan({
+                      sprintId: id, ticketId: row.ticketId,
+                      responsibleIds: row.responsibleIds,
+                      plannedHours: Number(row.plannedHours),
+                      storyPoints: row.storyPoints ? Number(row.storyPoints) : undefined,
+                      plannedEndDate: row.plannedEndDate || "",
+                      notes: row.notes,
+                      userHours: {},
+                      priority: row.priority || "Média",
+                    }, "create");
+                  }
+                  for (const row of unplannedActivityRows) {
+                    const a = (activities || []).find(x => x.id === row.activityId);
+                    await saveSprintActivityPlan({
+                      sprintId: id, activityId: row.activityId,
+                      projectId: a?.project || "",
+                      responsibleIds: row.responsibleIds,
+                      plannedHours: Number(row.plannedHours),
+                      storyPoints: row.storyPoints ? Number(row.storyPoints) : undefined,
+                      plannedEndDate: row.plannedEndDate || "",
+                      notes: row.notes,
+                      userHours: {},
+                      priority: row.priority || "Média",
+                    }, "create");
+                  }
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["sprint-ticket-plans", id] }),
+                    queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] }),
+                    queryClient.invalidateQueries({ queryKey: ["all-sprint-activity-plans"] }),
+                  ]);
+                  toast.success("Itens não planejados adicionados.");
+                  setUnplannedOpen(false);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Erro ao salvar.");
+                } finally {
+                  setUnplannedSaving(false);
+                }
+              }}
+            >
+              {unplannedSaving ? "Salvando..." : "Salvar"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
