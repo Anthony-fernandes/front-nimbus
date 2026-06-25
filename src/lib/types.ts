@@ -593,6 +593,7 @@ export type Sprint = {
   start_at?: string | null;
   end_at?: string | null;
   capacity?: number;
+  total_capacity?: number;
   story_points?: number;
   backlog?: Array<string | SprintBacklogItem>;
   tasks?: Array<string | SprintBacklogItem>;
@@ -696,6 +697,18 @@ export type SprintActivityPlan = {
   notes?: string;
   createdAt: string;
   updatedAt?: string;
+};
+
+export type SprintParticipant = {
+  id: string;
+  sprintId: string;
+  userId: string;
+  userName?: string;
+  hoursPerDay: number;
+  workingDays: number;
+  availabilityFactor: number;
+  capacity: number;
+  createdAt?: string;
 };
 
 export type SprintTicketPlan = {

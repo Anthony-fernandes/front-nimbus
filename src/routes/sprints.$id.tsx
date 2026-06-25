@@ -44,6 +44,8 @@ import {
 } from "@/lib/activityFlow";
 import { formatSprintStatusLabel } from "@/lib/labels";
 import type { SprintActivityPlan } from "@/lib/types";
+import { listSprintParticipants, saveSprintParticipant, deleteSprintParticipant } from "@/services/sprintParticipantService";
+import type { SprintParticipant } from "@/lib/types";
 import { listActivities } from "@/services/activityService";
 import { listActivityTimeEntries } from "@/services/activityTimeEntryService";
 import { listTickets, updateTicket } from "@/services/ticketService";
@@ -183,7 +185,14 @@ function SprintDetail() {
   const [editingPlan, setEditingPlan] = useState<SprintActivityPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
+  const [wizardParticipantRows, setWizardParticipantRows] = useState<{
+    userId: string;
+    hoursPerDay: string;
+    workingDays: string;
+    availabilityFactor: string;
+    savedId?: string;
+  }[]>([]);
   const [wizardTicketRows, setWizardTicketRows] = useState<WizardTicketRow[]>([]);
   const [wizardActivityRows, setWizardActivityRows] = useState<WizardActivityRow[]>([]);
   const [wizardTicketSearch, setWizardTicketSearch] = useState("");
@@ -205,6 +214,10 @@ function SprintDetail() {
   const [kanbanShowFilters, setKanbanShowFilters] = useState(false);
 
   const sprintQuery = useQuery({ queryKey: ["sprint", id], queryFn: () => getSprint(id) });
+  const participantsQuery = useQuery({
+    queryKey: ["sprint-participants", id],
+    queryFn: () => listSprintParticipants(id),
+  });
   const activitiesQuery = useQuery({ queryKey: ["activities"], queryFn: () => listActivities() });
   const usersQuery = useQuery({ queryKey: ["form-users"], queryFn: () => listUsers() });
   const ticketsQuery = useQuery({
@@ -314,6 +327,12 @@ function SprintDetail() {
     return Math.max(1, days);
   }, [sprint?.start_at, sprint?.end_at]);
   const sprintPlans = plansQuery.data || [];
+  const participants = participantsQuery.data || [];
+
+  const totalCapacity = participants.length > 0
+    ? participants.reduce((s, p) => s + p.capacity, 0)
+    : toNumber(sprint?.capacity, 0);
+
   const allPlans = allPlansQuery.data || [];
   const allTimeEntries = allTimeEntriesQuery.data || [];
   const activityTags = activityTagsQuery.data || [];
@@ -340,6 +359,21 @@ function SprintDetail() {
     () => new Set(activityTags.filter((tag) => tag.active).map((tag) => tag.name)),
     [activityTags],
   );
+
+  const techPlannedHours = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const plan of sprintPlans) {
+      for (const [uid, h] of Object.entries(plan.userHours || {})) {
+        map[uid] = (map[uid] || 0) + Number(h);
+      }
+    }
+    for (const tPlan of ticketPlansQuery.data ?? []) {
+      for (const [uid, h] of Object.entries(tPlan.userHours || {})) {
+        map[uid] = (map[uid] || 0) + Number(h);
+      }
+    }
+    return map;
+  }, [sprintPlans, ticketPlansQuery.data]);
 
   const planningOptions = useMemo(() => {
     return activities
@@ -369,10 +403,9 @@ function SprintDetail() {
   const totalPlannedHours = sumPlannedHours(sprintPlans);
   const sprintTimeEntries = allTimeEntries.filter((entry) => entry.sprintId === id);
   const totalRealizedHours = sumRealizedHours(sprintTimeEntries);
-  const capacityUtilization =
-    sprint?.capacity && sprint.capacity > 0
-      ? Math.min(999, Math.round((totalPlannedHours / sprint.capacity) * 100))
-      : 0;
+  const capacityUtilization = totalCapacity > 0
+    ? Math.min(999, Math.round((totalPlannedHours / totalCapacity) * 100))
+    : 0;
   const overrunPlans = sprintPlans.filter((plan) => {
     const relatedEntries = allTimeEntries.filter((entry) => entry.activityId === plan.activityId);
     return getSprintPlanExecutionSummary(plan, relatedEntries).status === "over";
@@ -385,6 +418,20 @@ function SprintDetail() {
 
   const openWizard = () => {
     setWizardStep(1);
+    // Load existing participants
+    const existingParticipants = participantsQuery.data || [];
+    if (existingParticipants.length > 0) {
+      setWizardParticipantRows(existingParticipants.map(p => ({
+        userId: p.userId,
+        hoursPerDay: String(p.hoursPerDay),
+        workingDays: String(p.workingDays),
+        availabilityFactor: String(p.availabilityFactor),
+        savedId: p.id,
+      })));
+    } else {
+      setWizardParticipantRows([]);
+    }
+    // Keep existing ticket/activity row loading code below
     setWizardTicketSearch("");
     setWizardActivitySearch("");
     // pre-populate from existing saved plans
@@ -419,7 +466,37 @@ function SprintDetail() {
 
   const handleWizardNext = async () => {
     if (wizardStep === 1) {
-      if (wizardTicketRows.length === 0) { setWizardStep(2); return; }
+      if (wizardParticipantRows.length === 0) {
+        toast.error("Adicione ao menos um participante à sprint.");
+        return;
+      }
+      setWizardSaving(true);
+      try {
+        for (const row of wizardParticipantRows) {
+          if (row.savedId) {
+            await saveSprintParticipant(
+              { sprintId: id, userId: row.userId, hoursPerDay: Number(row.hoursPerDay), workingDays: Number(row.workingDays), availabilityFactor: Number(row.availabilityFactor) },
+              "edit", row.savedId
+            );
+          } else {
+            const saved = await saveSprintParticipant(
+              { sprintId: id, userId: row.userId, hoursPerDay: Number(row.hoursPerDay), workingDays: Number(row.workingDays), availabilityFactor: Number(row.availabilityFactor) },
+              "create"
+            );
+            setWizardParticipantRows(prev => prev.map(r => r.userId === row.userId ? { ...r, savedId: saved.id } : r));
+          }
+        }
+        participantsQuery.refetch();
+        setWizardStep(2);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao salvar participantes.");
+      } finally {
+        setWizardSaving(false);
+      }
+      return;
+    }
+    if (wizardStep === 2) {
+      if (wizardTicketRows.length === 0) { setWizardStep(3); return; }
       for (const row of wizardTicketRows) {
         const t = (Array.isArray(ticketsQuery.data) ? ticketsQuery.data : (ticketsQuery.data as { results?: { code?: string }[] } | undefined)?.results ?? []) as { id: string; code?: string }[];
         const code = t.find(x => x.id === row.ticketId)?.code ?? row.ticketId;
@@ -454,14 +531,14 @@ function SprintDetail() {
         setWizardTicketRows(updatedRows);
         await queryClient.invalidateQueries({ queryKey: ["sprint-ticket-plans", id] });
         toast.success("Chamados salvos.");
-        setWizardStep(2);
+        setWizardStep(3);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao salvar chamados.");
       } finally {
         setWizardSaving(false);
       }
-    } else if (wizardStep === 2) {
-      if (wizardActivityRows.length === 0) { setWizardStep(3); return; }
+    } else if (wizardStep === 3) {
+      if (wizardActivityRows.length === 0) { setWizardStep(4); return; }
       for (const row of wizardActivityRows) {
         const activity = activities.find(a => a.id === row.activityId);
         const label = activity?.title ?? row.activityId;
@@ -502,7 +579,7 @@ function SprintDetail() {
           queryClient.invalidateQueries({ queryKey: ["all-sprint-activity-plans"] }),
         ]);
         toast.success("Atividades salvas.");
-        setWizardStep(3);
+        setWizardStep(4);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Erro ao salvar atividades.");
       } finally {
@@ -718,6 +795,51 @@ function SprintDetail() {
               <h3 className="mb-2 text-sm font-semibold">Objetivo da sprint</h3>
               <p className="text-sm text-muted-foreground">{sprint.goal || "Nenhum objetivo informado."}</p>
             </div>
+
+            {/* Per-technician capacity panel */}
+            {participants.length > 0 && (
+              <div className="glass rounded-2xl p-5 shadow-card space-y-4">
+                <h3 className="text-sm font-semibold">Capacidade por técnico</h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {participants.map(p => {
+                    const plannedH = techPlannedHours[p.userId] || 0;
+                    const realizedH = (() => {
+                      return allTimeEntries
+                        .filter(e => e.sprintId === id && String(e.collaboratorId) === p.userId)
+                        .reduce((s, e) => s + toNumber(e.hours, 0), 0);
+                    })();
+                    const balance = p.capacity - plannedH;
+                    const pct = p.capacity > 0 ? Math.min(999, Math.round((plannedH / p.capacity) * 100)) : 0;
+                    const over = plannedH > p.capacity;
+                    return (
+                      <div key={p.id} className={`rounded-xl border p-4 space-y-3 ${over ? "border-destructive/40 bg-destructive/5" : "border-border bg-card/40"}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-primary text-[10px] font-semibold text-primary-foreground">
+                              {(p.userName || "?")[0].toUpperCase()}
+                            </div>
+                            <span className="text-sm font-semibold truncate">{p.userName || p.userId}</span>
+                          </div>
+                          {over && <span className="text-[10px] font-semibold text-destructive">SOBRECARGA</span>}
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          <span className="text-muted-foreground">Capacidade</span><span className="font-medium text-right">{formatHoursLabel(p.capacity)}</span>
+                          <span className="text-muted-foreground">Planejado</span><span className={`font-medium text-right ${over ? "text-destructive" : ""}`}>{formatHoursLabel(plannedH)}</span>
+                          <span className="text-muted-foreground">Executado</span><span className="font-medium text-right">{formatHoursLabel(realizedH)}</span>
+                          <span className="text-muted-foreground">Saldo</span><span className={`font-semibold text-right ${balance < 0 ? "text-destructive" : "text-success"}`}>{balance < 0 ? "-" : "+"}{formatHoursLabel(Math.abs(balance))}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                            <div className={`h-full rounded-full transition-all ${over ? "bg-destructive" : "bg-gradient-primary"}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                          </div>
+                          <p className="text-[10px] text-right text-muted-foreground">{pct}% utilizado</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-5 lg:grid-cols-3">
               {/* Left: capacity + indicators */}
@@ -1232,10 +1354,10 @@ function SprintDetail() {
           {/* wizard header + step indicators */}
           <div className="flex-shrink-0 border-b border-border px-6 pt-5 pb-4">
             <DialogTitle className="text-lg font-semibold">Planejamento da sprint</DialogTitle>
-            <DialogDescription className="sr-only">Planejamento em 3 etapas</DialogDescription>
+            <DialogDescription className="sr-only">Planejamento em 4 etapas</DialogDescription>
             <div className="mt-4 flex items-center gap-2">
-              {(["Chamados", "Atividades", "Finalização"] as const).map((label, idx) => {
-                const step = (idx + 1) as 1 | 2 | 3;
+              {(["Participantes", "Chamados", "Atividades", "Finalização"] as const).map((label, idx) => {
+                const step = (idx + 1) as 1 | 2 | 3 | 4;
                 const done = wizardStep > step;
                 const active = wizardStep === step;
                 return (
@@ -1248,16 +1370,15 @@ function SprintDetail() {
                       {done ? <Check className="h-3.5 w-3.5" /> : step}
                     </div>
                     <span className={`text-sm font-medium ${active ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
-                    {idx < 2 && <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
+                    {idx < 3 && <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* live technician load bar — visible on steps 1 and 2 */}
-          {wizardStep < 3 && (() => {
-            const capacity = toNumber(sprint.capacity, 0);
+          {/* live technician load bar — visible on steps 2 and 3 (tickets and activities) */}
+          {wizardStep > 1 && wizardStep < 4 && (() => {
             // sum userHours from all wizard rows
             const liveHours: Record<string, number> = {};
             for (const row of [...wizardTicketRows, ...wizardActivityRows]) {
@@ -1273,8 +1394,12 @@ function SprintDetail() {
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                   {techEntries.map(([uid, h]) => {
                     const name = userMap.get(uid) || userMap.get(String(uid)) || uid;
-                    const pct = capacity > 0 ? Math.min(100, Math.round((h / capacity) * 100)) : 0;
-                    const over = capacity > 0 && h > capacity;
+                    const participantCapacity = wizardParticipantRows.find(r => r.userId === uid);
+                    const indivCapacity = participantCapacity
+                      ? Number(participantCapacity.hoursPerDay) * Number(participantCapacity.workingDays) * (Number(participantCapacity.availabilityFactor) / 100)
+                      : toNumber(sprint?.capacity, 0);
+                    const pct = indivCapacity > 0 ? Math.min(100, Math.round((h / indivCapacity) * 100)) : 0;
+                    const over = indivCapacity > 0 && h > indivCapacity;
                     return (
                       <div key={uid} className="flex items-center gap-2 min-w-[180px]">
                         <span className="text-xs font-medium truncate max-w-[100px]">{name}</span>
@@ -1282,7 +1407,7 @@ function SprintDetail() {
                           <div className={`h-full rounded-full ${over ? "bg-destructive" : "bg-gradient-primary"}`} style={{ width: `${pct}%` }} />
                         </div>
                         <span className={`text-[10px] whitespace-nowrap shrink-0 ${over ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
-                          {formatHoursLabel(h)}{capacity > 0 ? ` / ${formatHoursLabel(capacity)}` : ""}
+                          {formatHoursLabel(h)}{indivCapacity > 0 ? ` / ${formatHoursLabel(indivCapacity)}` : ""}
                         </span>
                       </div>
                     );
@@ -1295,8 +1420,140 @@ function SprintDetail() {
           {/* step content */}
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
 
-            {/* ── STEP 1: Chamados ── */}
+            {/* ── STEP 1: Participantes ── */}
             {wizardStep === 1 && (() => {
+              const alreadyAddedIds = new Set(wizardParticipantRows.map(r => r.userId));
+              const availableUsers = users.filter(u => !alreadyAddedIds.has(String(u.id)));
+
+              const updateParticipantRow = (userId: string, patch: Partial<typeof wizardParticipantRows[0]>) => {
+                setWizardParticipantRows(prev => prev.map(r => r.userId === userId ? { ...r, ...patch } : r));
+              };
+
+              return (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Selecione os participantes desta sprint e defina a disponibilidade de cada um. A capacidade total da sprint será calculada automaticamente.
+                  </p>
+
+                  {/* Add participant */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button type="button" className="flex w-full items-center gap-2 rounded-xl border border-dashed border-primary/40 py-2.5 px-4 text-sm text-primary transition hover:border-primary hover:bg-primary/5">
+                        <Plus className="h-4 w-4" />
+                        Adicionar participante
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-0 glass" align="start">
+                      <div className="max-h-60 overflow-y-auto">
+                        {availableUsers.length === 0 ? (
+                          <p className="py-4 text-center text-xs text-muted-foreground">Todos os usuários já foram adicionados.</p>
+                        ) : availableUsers.map(u => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-muted/40 transition"
+                            onClick={() => {
+                              setWizardParticipantRows(prev => [...prev, {
+                                userId: String(u.id),
+                                hoursPerDay: "8",
+                                workingDays: String(sprintDays),
+                                availabilityFactor: "100",
+                              }]);
+                            }}
+                          >
+                            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-primary text-[10px] font-semibold text-primary-foreground">
+                              {(u.name || u.first_name || u.username || "?")[0].toUpperCase()}
+                            </div>
+                            <span>{u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* Participants table */}
+                  {wizardParticipantRows.length > 0 && (
+                    <div className="overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
+                            <th className="px-3 py-2 text-left font-medium">Participante</th>
+                            <th className="px-3 py-2 text-left font-medium w-24">Horas/dia</th>
+                            <th className="px-3 py-2 text-left font-medium w-24">Dias úteis</th>
+                            <th className="px-3 py-2 text-left font-medium w-24">Disponib. %</th>
+                            <th className="px-3 py-2 text-left font-medium w-28">Capacidade</th>
+                            <th className="px-3 py-2 w-8" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {wizardParticipantRows.map(row => {
+                            const u = users.find(x => String(x.id) === String(row.userId));
+                            const name = u ? (u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Usuário") : row.userId;
+                            const capacity = Number(row.hoursPerDay) * Number(row.workingDays) * (Number(row.availabilityFactor) / 100);
+                            return (
+                              <tr key={row.userId} className="border-b border-border last:border-0 hover:bg-muted/10">
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gradient-primary text-[9px] font-semibold text-primary-foreground">
+                                      {name[0].toUpperCase()}
+                                    </div>
+                                    <span className="font-medium text-xs">{name}</span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input type="number" min="0.5" max="24" step="0.5" value={row.hoursPerDay}
+                                    onChange={e => updateParticipantRow(row.userId, { hoursPerDay: e.target.value })}
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary" />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input type="number" min="1" max="365" step="1" value={row.workingDays}
+                                    onChange={e => updateParticipantRow(row.userId, { workingDays: e.target.value })}
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary" />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input type="number" min="0" max="100" step="5" value={row.availabilityFactor}
+                                    onChange={e => updateParticipantRow(row.userId, { availabilityFactor: e.target.value })}
+                                    className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary" />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className="text-xs font-semibold text-primary">{formatHoursLabel(capacity)}</span>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <button type="button"
+                                    onClick={async () => {
+                                      if (row.savedId) {
+                                        try { await deleteSprintParticipant(row.savedId); } catch { /* ignore */ }
+                                      }
+                                      setWizardParticipantRows(prev => prev.filter(r => r.userId !== row.userId));
+                                    }}
+                                    className="text-destructive/50 hover:text-destructive transition">
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t border-border bg-muted/20">
+                            <td colSpan={4} className="px-3 py-2 text-xs font-semibold text-muted-foreground text-right">Capacidade total da sprint:</td>
+                            <td className="px-3 py-2">
+                              <span className="text-sm font-bold text-primary">
+                                {formatHoursLabel(wizardParticipantRows.reduce((s, r) => s + Number(r.hoursPerDay) * Number(r.workingDays) * (Number(r.availabilityFactor) / 100), 0))}
+                              </span>
+                            </td>
+                            <td />
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* ── STEP 2: Chamados ── */}
+            {wizardStep === 2 && (() => {
               type TicketItem = { id: string; code?: string; title?: string; status?: string; sprint?: string | null; priority?: string };
               const allTickets = (Array.isArray(ticketsQuery.data)
                 ? ticketsQuery.data
@@ -1511,8 +1768,8 @@ function SprintDetail() {
               );
             })()}
 
-            {/* ── STEP 2: Atividades de projetos ── */}
-            {wizardStep === 2 && (() => {
+            {/* ── STEP 3: Atividades de projetos ── */}
+            {wizardStep === 3 && (() => {
               const addedActivityIds = new Set(wizardActivityRows.map((r) => r.activityId));
               const availableActivities = planningOptions.filter((a) => !addedActivityIds.has(a.id));
               const actSearchLower = wizardActivitySearch.toLowerCase();
@@ -1721,8 +1978,8 @@ function SprintDetail() {
               );
             })()}
 
-            {/* ── STEP 3: Finalização ── */}
-            {wizardStep === 3 && (() => {
+            {/* ── STEP 4: Finalização ── */}
+            {wizardStep === 4 && (() => {
               const totalTicketHours = wizardTicketRows.reduce((s, r) => s + Number(r.plannedHours || 0), 0);
               const totalActivityHours = wizardActivityRows.reduce((s, r) => s + Number(r.plannedHours || 0), 0);
               const totalPlannedAfter = totalTicketHours + totalActivityHours;
@@ -1956,15 +2213,15 @@ function SprintDetail() {
               variant="outline"
               onClick={() => {
                 if (wizardStep === 1) setWizardOpen(false);
-                else setWizardStep((s) => (s - 1) as 1 | 2 | 3);
+                else setWizardStep((s) => (s - 1) as 1 | 2 | 3 | 4);
               }}
               disabled={wizardSaving}
             >
               {wizardStep === 1 ? "Cancelar" : "← Voltar"}
             </Button>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Etapa {wizardStep} de 3</span>
-              {wizardStep < 3 ? (
+              <span className="text-xs text-muted-foreground">Etapa {wizardStep} de 4</span>
+              {wizardStep < 4 ? (
                 <Button
                   onClick={handleWizardNext}
                   disabled={wizardSaving}
