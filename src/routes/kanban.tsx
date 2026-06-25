@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, MessageSquare, MoreHorizontal, Paperclip } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -8,6 +8,8 @@ import { AppShell } from "@/components/app/AppShell";
 import type { Ticket } from "@/lib/types";
 import { listTickets, updateTicket } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
+import { useItemDrawer } from "@/context/ItemDrawerContext";
+import type { ItemDrawerItem } from "@/context/ItemDrawerContext";
 
 const EMPTY_TICKETS: Ticket[] = [];
 
@@ -42,6 +44,7 @@ function initials(names?: string[]) {
 }
 
 function KanbanPage() {
+  const { openTicket } = useItemDrawer();
   const queryClient = useQueryClient();
   const { data: tickets = EMPTY_TICKETS } = useQuery({
     queryKey: ["kanban-tickets"],
@@ -222,26 +225,32 @@ function KanbanPage() {
                     className={`group rounded-xl border border-border bg-card/80 p-3 transition-all hover:border-primary/40 hover:shadow-glow ${draggedTicketId === card.id ? "opacity-60" : ""}`}
                   >
                     <div className="flex items-center justify-between">
-                      <Link
-                        to="/tickets/$id"
-                        params={{ id: card.id }}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allItems: ItemDrawerItem[] = column.cards.map(c => ({ type: "ticket" as const, id: c.id }));
+                          openTicket(card.id, allItems);
+                        }}
                         className="text-[10px] font-mono text-muted-foreground hover:text-primary"
                       >
                         {card.code || card.id.slice(0, 8)}
-                      </Link>
+                      </button>
                       <span
                         className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${priorityClr[card.priority || "M\u00e9dia"]}`}
                       >
                         {card.priority || "M\u00e9dia"}
                       </span>
                     </div>
-                    <Link
-                      to="/tickets/$id"
-                      params={{ id: card.id }}
-                      className="mt-1.5 block text-sm leading-snug hover:text-primary"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allItems: ItemDrawerItem[] = column.cards.map(c => ({ type: "ticket" as const, id: c.id }));
+                        openTicket(card.id, allItems);
+                      }}
+                      className="mt-1.5 block w-full text-left text-sm leading-snug hover:text-primary"
                     >
                       {card.title}
-                    </Link>
+                    </button>
                     {card.client_name && (
                       <p className="mt-1 text-[11px] text-muted-foreground">{card.client_name}</p>
                     )}

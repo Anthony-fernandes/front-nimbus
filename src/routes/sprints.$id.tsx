@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { useItemDrawer, type ItemDrawerItem } from "@/context/ItemDrawerContext";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
 import {
@@ -178,6 +179,7 @@ function UserHoursBreakdown({ users, responsible, userHours, totalHours, onChang
 
 function SprintDetail() {
   const { id } = Route.useParams();
+  const { openTicket, openActivity } = useItemDrawer();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -1062,9 +1064,9 @@ function SprintDetail() {
                                   <div className="min-w-0">
                                     <span className="font-medium">{activity?.title ?? plan.activityId}</span>
                                     {activity && (
-                                      <Link to="/activities/$id" params={{ id: activity.id }} className="ml-2 text-[10px] text-primary underline underline-offset-2">
+                                      <button type="button" onClick={() => openActivity(activity.id)} className="ml-2 text-[10px] text-primary underline underline-offset-2">
                                         abrir
-                                      </Link>
+                                      </button>
                                     )}
                                   </div>
                                 </div>
@@ -1195,16 +1197,26 @@ function SprintDetail() {
                     className={`group rounded-xl border border-border bg-card/80 p-3 transition-all hover:border-primary/40 hover:shadow-glow ${kanbanDragId === card.id ? "opacity-60" : ""}`}
                   >
                     <div className="flex items-center justify-between">
-                      <Link to="/tickets/$id" params={{ id: card.id }} className="font-mono text-[10px] text-muted-foreground hover:text-primary">
+                      <button type="button"
+                        onClick={() => {
+                          const list: ItemDrawerItem[] = colTickets.map(c => ({ type: "ticket" as const, id: c.id }));
+                          openTicket(card.id, list);
+                        }}
+                        className="font-mono text-[10px] text-muted-foreground hover:text-primary">
                         {card.code || card.id.slice(0, 8)}
-                      </Link>
+                      </button>
                       <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${PRIORITY_COLORS[card.priority || "Média"] || ""}`}>
                         {card.priority || "Média"}
                       </span>
                     </div>
-                    <Link to="/tickets/$id" params={{ id: card.id }} className="mt-1.5 block text-sm leading-snug hover:text-primary">
+                    <button type="button"
+                      onClick={() => {
+                        const list: ItemDrawerItem[] = colTickets.map(c => ({ type: "ticket" as const, id: c.id }));
+                        openTicket(card.id, list);
+                      }}
+                      className="mt-1.5 block w-full text-left text-sm leading-snug hover:text-primary">
                       {card.title}
-                    </Link>
+                    </button>
                     {card.client_name && <p className="mt-1 text-[11px] text-muted-foreground">{card.client_name}</p>}
                     <div className="mt-2 flex flex-wrap gap-1">
                       {(card.tags || []).map(tag => (
