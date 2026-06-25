@@ -31,8 +31,6 @@ import {
 import { AppSidebar } from "./AppSidebar";
 import { GlobalSearch } from "./GlobalSearch";
 import { ThemeSwitcher } from "./ThemeSwitcher";
-import { ItemDrawerProvider } from "@/context/ItemDrawerContext";
-import { ItemDrawer } from "./ItemDrawer";
 
 function canCreateFromPath(pathname: string, user: User | null) {
   if (!user) {
@@ -76,12 +74,9 @@ function canCreateFromPath(pathname: string, user: User | null) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <ItemDrawerProvider>
-      <SidebarProvider>
-        <AppShellInner>{children}</AppShellInner>
-        <ItemDrawer />
-      </SidebarProvider>
-    </ItemDrawerProvider>
+    <SidebarProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </SidebarProvider>
   );
 }
 

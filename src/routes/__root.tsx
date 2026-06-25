@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/app/ErrorBoundary";
+import { ItemDrawerProvider } from "@/context/ItemDrawerContext";
+import { ItemDrawer } from "@/components/app/ItemDrawer";
 import { API_BASE_URL } from "@/services/api";
 import { getAccessToken, isAuthenticated } from "@/services/session";
 import {
@@ -221,11 +223,14 @@ function RootComponent() {
   return (
     <ThemeContext.Provider value={{ config: themeConfig, setConfig: handleSetConfig }}>
       <QueryClientProvider client={queryClient}>
-        <GlobalNotificationSocket />
-        <ErrorBoundary>
-          <Outlet />
-        </ErrorBoundary>
-        <Toaster richColors position="top-right" theme={toasterTheme} />
+        <ItemDrawerProvider>
+          <GlobalNotificationSocket />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
+          <ItemDrawer />
+          <Toaster richColors position="top-right" theme={toasterTheme} />
+        </ItemDrawerProvider>
       </QueryClientProvider>
     </ThemeContext.Provider>
   );
