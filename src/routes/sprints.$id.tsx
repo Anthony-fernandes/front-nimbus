@@ -1255,6 +1255,43 @@ function SprintDetail() {
             </div>
           </div>
 
+          {/* live technician load bar — visible on steps 1 and 2 */}
+          {wizardStep < 3 && (() => {
+            const capacity = toNumber(sprint.capacity, 0);
+            // sum userHours from all wizard rows
+            const liveHours: Record<string, number> = {};
+            for (const row of [...wizardTicketRows, ...wizardActivityRows]) {
+              for (const [uid, h] of Object.entries(row.userHours || {})) {
+                liveHours[uid] = (liveHours[uid] || 0) + Number(h);
+              }
+            }
+            const techEntries = Object.entries(liveHours).filter(([, h]) => h > 0);
+            if (techEntries.length === 0) return null;
+            return (
+              <div className="flex-shrink-0 border-b border-border bg-muted/20 px-6 py-3">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Carga por técnico</p>
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                  {techEntries.map(([uid, h]) => {
+                    const name = userMap.get(uid) || userMap.get(String(uid)) || uid;
+                    const pct = capacity > 0 ? Math.min(100, Math.round((h / capacity) * 100)) : 0;
+                    const over = capacity > 0 && h > capacity;
+                    return (
+                      <div key={uid} className="flex items-center gap-2 min-w-[180px]">
+                        <span className="text-xs font-medium truncate max-w-[100px]">{name}</span>
+                        <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-muted min-w-[60px]">
+                          <div className={`h-full rounded-full ${over ? "bg-destructive" : "bg-gradient-primary"}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className={`text-[10px] whitespace-nowrap shrink-0 ${over ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                          {formatHoursLabel(h)}{capacity > 0 ? ` / ${formatHoursLabel(capacity)}` : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* step content */}
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
 
