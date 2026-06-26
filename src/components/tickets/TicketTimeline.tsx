@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { MessageSquare, Send, Shield, UserRound } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ export function TicketTimeline({
   emptyText = "Nenhuma interacao registrada ainda.",
   allowComposer = false,
   composerLabel = "Novo registro",
+  submitHelpText = "Esse registro entra na timeline do chamado.",
   onCommentSubmit,
 }: {
   events: TicketTimelineEvent[];
@@ -26,6 +28,7 @@ export function TicketTimeline({
   emptyText?: string;
   allowComposer?: boolean;
   composerLabel?: string;
+  submitHelpText?: string;
   onCommentSubmit?: (payload: {
     message: string;
     visibility: TicketVisibility;
@@ -53,6 +56,8 @@ export function TicketTimeline({
     try {
       await onCommentSubmit({ message: message.trim(), visibility });
       setMessage("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel publicar a resposta.");
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +99,7 @@ export function TicketTimeline({
             <p className="text-xs text-muted-foreground">
               {!onCommentSubmit
                 ? "A API atual ainda não grava comentários independentes. A tela já está preparada para isso."
-                : "Esse registro entra na timeline do chamado."}
+                : submitHelpText}
             </p>
             <Button
               type="submit"

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { Fragment, useMemo, useState, useEffect, type Dispatch, type SetStateAction } from "react";
 import { Outlet, createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { AlertCircle, Check, CheckCircle, ChevronRight, Clock, MessageSquare, Paperclip, Pencil, Plus, Search, TimerReset, Trash2, TrendingUp, Users, X } from "lucide-react";
@@ -44,10 +44,9 @@ import {
   sumRealizedHours,
 } from "@/lib/activityFlow";
 import { formatSprintStatusLabel } from "@/lib/labels";
-import type { SprintActivityPlan } from "@/lib/types";
+import type { Activity, SprintActivityPlan, SprintParticipant, SprintTicketPlan, Ticket } from "@/lib/types";
 import { listSprintParticipants, saveSprintParticipant, deleteSprintParticipant } from "@/services/sprintParticipantService";
-import type { SprintParticipant } from "@/lib/types";
-import { listActivities } from "@/services/activityService";
+import { listActivities, updateActivity } from "@/services/activityService";
 import { listActivityTimeEntries } from "@/services/activityTimeEntryService";
 import { listTickets, updateTicket } from "@/services/ticketService";
 import { listActivityTags } from "@/services/activityTagService";
@@ -85,6 +84,56 @@ export const Route = createFileRoute("/sprints/$id")({
 
 type WizardTicketRow = { ticketId: string; responsibleIds: string[]; userHours: Record<string,string>; plannedHours: string; storyPoints: string; priority: string; complexity: string; plannedEndDate: string; notes: string; savedId?: string };
 type WizardActivityRow = { activityId: string; responsibleIds: string[]; userHours: Record<string,string>; plannedHours: string; storyPoints: string; priority: string; complexity: string; plannedEndDate: string; notes: string; savedId?: string };
+type PlanningTicketItem = { id: string; code?: string; title?: string; status?: string; priority?: string };
+type KanbanCard = {
+  key: string;
+  type: "ticket" | "activity";
+  id: string;
+  status: string;
+  title: string;
+  code: string;
+  priority?: string;
+  subtitle?: string;
+  tags: string[];
+  responsibleIds: string[];
+  hoursLabel: string;
+  metaLabel: string;
+};
+
+function normalizeKanbanText(value?: string | null) {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function normalizeKanbanPriority(priority?: string | null) {
+  const normalized = normalizeKanbanText(priority);
+  if (normalized.includes("critic")) return PRIORITY_OPTIONS[0];
+  if (normalized.includes("alta")) return PRIORITY_OPTIONS[1];
+  if (normalized.includes("baix")) return PRIORITY_OPTIONS[3];
+  if (normalized.includes("media") || normalized.includes("medi")) return PRIORITY_OPTIONS[2];
+  return priority || PRIORITY_OPTIONS[2];
+}
+
+function getActivityKanbanColumn(status?: string | null) {
+  const normalized = normalizeKanbanText(status);
+  if (normalized.includes("conclu") || normalized.includes("final")) return "Finalizado";
+  if (normalized.includes("revis") || normalized.includes("valid")) return "ValidaÃ§Ã£o";
+  if (normalized.includes("paus")) return "Pausado";
+  if (normalized.includes("bloque") || normalized.includes("aguard")) return "Aguardando cliente";
+  if (normalized.includes("progres") || normalized.includes("andamento")) return "Em atendimento";
+  return "Triagem";
+}
+
+function getActivityStatusForKanbanColumn(column: string) {
+  const normalized = normalizeKanbanText(column);
+  if (normalized.includes("final")) return "Concluido";
+  if (normalized.includes("valid")) return "Em revisao";
+  if (normalized.includes("aguard") || normalized.includes("paus")) return "Bloqueado";
+  if (normalized.includes("atendimento")) return "Em progresso";
+  return "Backlog";
+}
 
 const FIBONACCI_SP = [1, 2, 3, 5, 8, 13, 21] as const;
 const SP_HOUR_THRESHOLDS: Record<number, number> = { 1: 2, 2: 4, 3: 8, 5: 16, 8: 24, 13: 40, 21: Infinity };
@@ -176,6 +225,560 @@ function UserHoursBreakdown({ users, responsible, userHours, totalHours, onChang
   );
 }
 
+function TicketPlanningSection({
+  description,
+  users,
+  tickets,
+  rows,
+  setRows,
+  search,
+  setSearch,
+  expandedRows,
+  setExpandedRows,
+  emptyRowsLabel,
+  excludedIds = [],
+  isLoading = false,
+  onBeforeRemoveRow,
+}: {
+  description: string;
+  users: import("@/lib/types").User[];
+  tickets: PlanningTicketItem[];
+  rows: WizardTicketRow[];
+  setRows: Dispatch<SetStateAction<WizardTicketRow[]>>;
+  search: string;
+  setSearch: Dispatch<SetStateAction<string>>;
+  expandedRows: Set<string>;
+  setExpandedRows: Dispatch<SetStateAction<Set<string>>>;
+  emptyRowsLabel: string;
+  excludedIds?: string[];
+  isLoading?: boolean;
+  onBeforeRemoveRow?: (row: WizardTicketRow) => Promise<void> | void;
+}) {
+  const excludedIdSet = new Set(excludedIds);
+  const openTickets = tickets.filter((ticket) => ticket.status !== "Resolvido" && ticket.status !== "Fechado" && ticket.status !== "Cancelado");
+  const addedIds = new Set(rows.map((row) => row.ticketId));
+  const availableTickets = openTickets.filter((ticket) => !addedIds.has(ticket.id) && !excludedIdSet.has(ticket.id));
+  const searchLower = search.toLowerCase();
+  const filteredAvailable = search.trim()
+    ? availableTickets.filter(
+        (ticket) =>
+          (ticket.title ?? "").toLowerCase().includes(searchLower)
+          || (ticket.code ?? "").toLowerCase().includes(searchLower),
+      )
+    : availableTickets;
+
+  const updateRow = (ticketId: string, patch: Partial<WizardTicketRow>) => {
+    setRows((prev) => prev.map((row) => (row.ticketId === ticketId ? { ...row, ...patch } : row)));
+  };
+
+  const toggleExpandedRow = (rowKey: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowKey)) next.delete(rowKey);
+      else next.add(rowKey);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">{description}</p>
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className="flex w-full items-center gap-2 rounded-xl border border-dashed border-primary/40 px-4 py-2.5 text-sm text-primary transition hover:border-primary hover:bg-primary/5">
+            <Plus className="h-4 w-4" />
+            Adicionar chamado
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[500px] p-0 glass" align="start">
+          <div className="border-b border-border p-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar por código ou título..."
+                className="w-full rounded-lg border border-border bg-muted/50 py-1.5 pl-9 pr-3 text-sm outline-none"
+              />
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto">
+            {isLoading ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">Carregando...</p>
+            ) : filteredAvailable.length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">Nenhum chamado disponível.</p>
+            ) : (
+              filteredAvailable.map((ticket) => (
+                <button
+                  key={ticket.id}
+                  type="button"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-muted/40"
+                  onClick={() => {
+                    setRows((prev) => [
+                      ...prev,
+                      {
+                        ticketId: ticket.id,
+                        responsibleIds: [],
+                        userHours: {},
+                        plannedHours: "",
+                        storyPoints: "",
+                        priority: "Média",
+                        complexity: "",
+                        plannedEndDate: "",
+                        notes: "",
+                      },
+                    ]);
+                    setSearch("");
+                  }}
+                >
+                  <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{ticket.code}</span>
+                  <span className="min-w-0 flex-1 truncate">{ticket.title}</span>
+                  {ticket.priority && <span className="shrink-0 text-[10px] text-muted-foreground">{ticket.priority}</span>}
+                </button>
+              ))
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <div>
+        {rows.length > 0 ? (
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                  <th className="px-3 py-2 text-left font-medium">Chamado</th>
+                  <th className="w-44 px-3 py-2 text-left font-medium">Responsáveis</th>
+                  <th className="w-20 px-3 py-2 text-left font-medium">SP</th>
+                  <th className="w-20 px-3 py-2 text-left font-medium">Horas</th>
+                  <th className="w-28 px-3 py-2 text-left font-medium">Previsão término</th>
+                  <th className="w-8 px-3 py-2" />
+                  <th className="w-8 px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const ticket = tickets.find((item) => item.id === row.ticketId);
+                  const rowKey = `ticket-${row.ticketId}`;
+                  const isExpanded = expandedRows.has(rowKey);
+                  return (
+                    <Fragment key={row.ticketId}>
+                      <tr className="border-b border-border transition last:border-0 hover:bg-muted/20">
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Badge className={`shrink-0 border text-[10px] ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                            <div>
+                              <span className="font-mono text-xs text-muted-foreground">{ticket?.code} </span>
+                              <span className="truncate">{ticket?.title ?? row.ticketId}</span>
+                              {row.savedId && <span className="ml-2 text-[10px] text-primary">✓</span>}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <WizardUserSelect
+                            users={users}
+                            selected={row.responsibleIds}
+                            onChange={(ids) => updateRow(row.ticketId, { responsibleIds: ids })}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <select
+                            value={row.storyPoints}
+                            onChange={(event) => {
+                              const storyPoints = Number(event.target.value);
+                              updateRow(row.ticketId, {
+                                storyPoints: event.target.value,
+                                plannedHours: storyPoints ? String(spToHours(storyPoints)) : row.plannedHours,
+                              });
+                            }}
+                            className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                          >
+                            <option value="">—</option>
+                            {FIBONACCI_SP.map((storyPoints) => (
+                              <option key={storyPoints} value={storyPoints}>
+                                {storyPoints}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={row.plannedHours}
+                            onChange={(event) => {
+                              const plannedHours = Number(event.target.value);
+                              updateRow(row.ticketId, {
+                                plannedHours: event.target.value,
+                                storyPoints: plannedHours ? String(hoursToSP(plannedHours)) : row.storyPoints,
+                              });
+                            }}
+                            placeholder="0"
+                            className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="date"
+                            value={row.plannedEndDate}
+                            onChange={(event) => updateRow(row.ticketId, { plannedEndDate: event.target.value })}
+                            className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleExpandedRow(rowKey)}
+                            className="text-xs text-muted-foreground transition hover:text-foreground"
+                          >
+                            {isExpanded ? "▲" : "▼"}
+                          </button>
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await onBeforeRemoveRow?.(row);
+                              setRows((prev) => prev.filter((item) => item.ticketId !== row.ticketId));
+                            }}
+                            className="text-destructive/50 transition hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-border bg-muted/10">
+                          <td colSpan={7} className="space-y-3 px-4 py-3">
+                            <UserHoursBreakdown
+                              users={users}
+                              responsible={row.responsibleIds}
+                              userHours={row.userHours}
+                              totalHours={Number(row.plannedHours) || 0}
+                              onChange={(userHours) => updateRow(row.ticketId, { userHours })}
+                            />
+                            <div className="flex items-start gap-6">
+                              <div className="space-y-1">
+                                <label className="text-xs font-medium text-muted-foreground">Prioridade</label>
+                                <div className="flex gap-1.5">
+                                  {PRIORITY_OPTIONS.map((priority) => (
+                                    <button
+                                      key={priority}
+                                      type="button"
+                                      onClick={() => updateRow(row.ticketId, { priority })}
+                                      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${row.priority === priority ? PRIORITY_COLORS[priority] : "border-border text-muted-foreground hover:border-primary/50"}`}
+                                    >
+                                      {priority}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <label className="text-xs font-medium text-muted-foreground">Observações</label>
+                                <textarea
+                                  rows={2}
+                                  value={row.notes}
+                                  onChange={(event) => updateRow(row.ticketId, { notes: event.target.value })}
+                                  placeholder="Adicione observações sobre este chamado na sprint..."
+                                  className="w-full resize-none rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs outline-none focus:border-primary"
+                                />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="py-4 text-center text-sm text-muted-foreground">{emptyRowsLabel}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ActivityPlanningSection({
+  description,
+  users,
+  activityOptions,
+  rows,
+  setRows,
+  search,
+  setSearch,
+  expandedRows,
+  setExpandedRows,
+  emptyRowsLabel,
+  excludedIds = [],
+  onBeforeRemoveRow,
+}: {
+  description: string;
+  users: import("@/lib/types").User[];
+  activityOptions: SprintActivityPlanOption[];
+  rows: WizardActivityRow[];
+  setRows: Dispatch<SetStateAction<WizardActivityRow[]>>;
+  search: string;
+  setSearch: Dispatch<SetStateAction<string>>;
+  expandedRows: Set<string>;
+  setExpandedRows: Dispatch<SetStateAction<Set<string>>>;
+  emptyRowsLabel: string;
+  excludedIds?: string[];
+  onBeforeRemoveRow?: (row: WizardActivityRow) => Promise<void> | void;
+}) {
+  const excludedIdSet = new Set(excludedIds);
+  const addedIds = new Set(rows.map((row) => row.activityId));
+  const availableActivities = activityOptions.filter((activity) => !addedIds.has(activity.id) && !excludedIdSet.has(activity.id));
+  const searchLower = search.toLowerCase();
+  const filteredActivities = search.trim()
+    ? availableActivities.filter(
+        (activity) =>
+          activity.title.toLowerCase().includes(searchLower)
+          || (activity.projectName ?? "").toLowerCase().includes(searchLower),
+      )
+    : availableActivities;
+
+  const updateRow = (activityId: string, patch: Partial<WizardActivityRow>) => {
+    setRows((prev) => prev.map((row) => (row.activityId === activityId ? { ...row, ...patch } : row)));
+  };
+
+  const toggleExpandedRow = (rowKey: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowKey)) next.delete(rowKey);
+      else next.add(rowKey);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">{description}</p>
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className="flex w-full items-center gap-2 rounded-xl border border-dashed border-primary/40 px-4 py-2.5 text-sm text-primary transition hover:border-primary hover:bg-primary/5">
+            <Plus className="h-4 w-4" />
+            Adicionar atividade
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[540px] p-0 glass" align="start">
+          <div className="border-b border-border p-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar por título ou projeto..."
+                className="w-full rounded-lg border border-border bg-muted/50 py-1.5 pl-9 pr-3 text-sm outline-none"
+              />
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto">
+            {filteredActivities.length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma atividade disponível.</p>
+            ) : (
+              filteredActivities.map((activity) => (
+                <button
+                  key={activity.id}
+                  type="button"
+                  className="flex w-full items-start gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-muted/40"
+                  onClick={() => {
+                    setRows((prev) => [
+                      ...prev,
+                      {
+                        activityId: activity.id,
+                        responsibleIds: [],
+                        userHours: {},
+                        plannedHours: String(activity.estimatedBalanceHours > 0 ? activity.estimatedBalanceHours : ""),
+                        storyPoints: "",
+                        priority: "Média",
+                        complexity: "",
+                        plannedEndDate: "",
+                        notes: "",
+                      },
+                    ]);
+                    setSearch("");
+                  }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{activity.title}</div>
+                    <div className="text-xs text-muted-foreground">{activity.projectName} · saldo: {formatHoursLabel(activity.estimatedBalanceHours)}</div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <div>
+        {rows.length > 0 ? (
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                  <th className="px-3 py-2 text-left font-medium">Atividade</th>
+                  <th className="w-44 px-3 py-2 text-left font-medium">Responsáveis</th>
+                  <th className="w-20 px-3 py-2 text-left font-medium">SP</th>
+                  <th className="w-20 px-3 py-2 text-left font-medium">Horas</th>
+                  <th className="w-28 px-3 py-2 text-left font-medium">Previsão término</th>
+                  <th className="w-8 px-3 py-2" />
+                  <th className="w-8 px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const activity = activityOptions.find((item) => item.id === row.activityId);
+                  const rowKey = `activity-${row.activityId}`;
+                  const isExpanded = expandedRows.has(rowKey);
+                  return (
+                    <Fragment key={row.activityId}>
+                      <tr className="border-b border-border transition last:border-0 hover:bg-muted/20">
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Badge className={`shrink-0 border text-[10px] ${PRIORITY_COLORS[row.priority] || ""}`}>{row.priority}</Badge>
+                            <div>
+                              <div className="max-w-[150px] truncate font-medium">{activity?.title ?? row.activityId}</div>
+                              {activity?.projectName && <div className="max-w-[150px] truncate text-[10px] text-muted-foreground">{activity.projectName}</div>}
+                              {row.savedId && <span className="text-[10px] text-primary">✓</span>}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <WizardUserSelect
+                            users={users}
+                            selected={row.responsibleIds}
+                            onChange={(ids) => updateRow(row.activityId, { responsibleIds: ids })}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <select
+                            value={row.storyPoints}
+                            onChange={(event) => {
+                              const storyPoints = Number(event.target.value);
+                              updateRow(row.activityId, {
+                                storyPoints: event.target.value,
+                                plannedHours: storyPoints ? String(spToHours(storyPoints)) : row.plannedHours,
+                              });
+                            }}
+                            className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                          >
+                            <option value="">—</option>
+                            {FIBONACCI_SP.map((storyPoints) => (
+                              <option key={storyPoints} value={storyPoints}>
+                                {storyPoints}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={row.plannedHours}
+                            onChange={(event) => {
+                              const plannedHours = Number(event.target.value);
+                              updateRow(row.activityId, {
+                                plannedHours: event.target.value,
+                                storyPoints: plannedHours ? String(hoursToSP(plannedHours)) : row.storyPoints,
+                              });
+                            }}
+                            placeholder="0"
+                            className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-sm outline-none focus:border-primary"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="date"
+                            value={row.plannedEndDate}
+                            onChange={(event) => updateRow(row.activityId, { plannedEndDate: event.target.value })}
+                            className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs outline-none focus:border-primary"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleExpandedRow(rowKey)}
+                            className="text-xs text-muted-foreground transition hover:text-foreground"
+                          >
+                            {isExpanded ? "▲" : "▼"}
+                          </button>
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await onBeforeRemoveRow?.(row);
+                              setRows((prev) => prev.filter((item) => item.activityId !== row.activityId));
+                            }}
+                            className="text-destructive/50 transition hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-border bg-muted/10">
+                          <td colSpan={7} className="space-y-3 px-4 py-3">
+                            <UserHoursBreakdown
+                              users={users}
+                              responsible={row.responsibleIds}
+                              userHours={row.userHours}
+                              totalHours={Number(row.plannedHours) || 0}
+                              onChange={(userHours) => updateRow(row.activityId, { userHours })}
+                            />
+                            <div className="flex items-start gap-6">
+                              <div className="space-y-1">
+                                <label className="text-xs font-medium text-muted-foreground">Prioridade</label>
+                                <div className="flex gap-1.5">
+                                  {PRIORITY_OPTIONS.map((priority) => (
+                                    <button
+                                      key={priority}
+                                      type="button"
+                                      onClick={() => updateRow(row.activityId, { priority })}
+                                      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${row.priority === priority ? PRIORITY_COLORS[priority] : "border-border text-muted-foreground hover:border-primary/50"}`}
+                                    >
+                                      {priority}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <label className="text-xs font-medium text-muted-foreground">Observações</label>
+                                <textarea
+                                  rows={2}
+                                  value={row.notes}
+                                  onChange={(event) => updateRow(row.activityId, { notes: event.target.value })}
+                                  placeholder="Adicione observações sobre esta atividade na sprint..."
+                                  className="w-full resize-none rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs outline-none focus:border-primary"
+                                />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="py-4 text-center text-sm text-muted-foreground">{emptyRowsLabel}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 function SprintDetail() {
   const { id } = Route.useParams();
@@ -193,6 +796,7 @@ function SprintDetail() {
   const [unplannedActivitySearch, setUnplannedActivitySearch] = useState("");
   const [unplannedTicketRows, setUnplannedTicketRows] = useState<WizardTicketRow[]>([]);
   const [unplannedActivityRows, setUnplannedActivityRows] = useState<WizardActivityRow[]>([]);
+  const [unplannedExpandedRows, setUnplannedExpandedRows] = useState<Set<string>>(new Set());
   const [unplannedSaving, setUnplannedSaving] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
   const [wizardParticipantRows, setWizardParticipantRows] = useState<{
@@ -215,7 +819,8 @@ function SprintDetail() {
   const [retroWentWell, setRetroWentWell] = useState("");
   const [retroToImprove, setRetroToImprove] = useState("");
   const [retroSaving, setRetroSaving] = useState(false);
-  const [kanbanLocalTickets, setKanbanLocalTickets] = useState<import("@/lib/types").Ticket[]>([]);
+  const [kanbanLocalTickets, setKanbanLocalTickets] = useState<Ticket[]>([]);
+  const [kanbanLocalActivities, setKanbanLocalActivities] = useState<Activity[]>([]);
   const [kanbanDragId, setKanbanDragId] = useState<string | null>(null);
   const [kanbanActiveCol, setKanbanActiveCol] = useState<string | null>(null);
   const [kanbanFilterTech, setKanbanFilterTech] = useState<string>("");
@@ -295,8 +900,8 @@ function SprintDetail() {
   useEffect(() => {
     const allT = (Array.isArray(ticketsQuery.data)
       ? ticketsQuery.data
-      : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as import("@/lib/types").Ticket[];
-    const ids = new Set((ticketPlansQuery.data ?? []).map((p: import("@/lib/types").SprintTicketPlan) => p.ticketId));
+      : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as Ticket[];
+    const ids = new Set((ticketPlansQuery.data ?? []).map((p: SprintTicketPlan) => p.ticketId));
     setKanbanLocalTickets(allT.filter(t => ids.has(t.id)));
   }, [ticketsQuery.data, ticketPlansQuery.data]);
 
@@ -308,6 +913,15 @@ function SprintDetail() {
     },
   });
 
+  const kanbanActivityUpdateMutation = useMutation({
+    mutationFn: ({ activityId, status }: { activityId: string; status: string }) =>
+      updateActivity(activityId, { status }),
+    onSuccess: (_activity, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
+      queryClient.invalidateQueries({ queryKey: ["activity", variables.activityId] });
+    },
+  });
+
   const moveKanbanTicket = (ticketId: string, nextStatus: string) => {
     const current = kanbanLocalTickets.find(t => t.id === ticketId);
     if (!current || current.status === nextStatus) return;
@@ -316,6 +930,27 @@ function SprintDetail() {
     kanbanUpdateMutation.mutate({ ticketId, status: nextStatus }, {
       onError: () => setKanbanLocalTickets(ts => ts.map(t => t.id === ticketId ? { ...t, status: prev } : t)),
     });
+  };
+
+  const moveKanbanActivity = (activityId: string, nextColumn: string) => {
+    const current = kanbanLocalActivities.find(activity => activity.id === activityId);
+    if (!current || getActivityKanbanColumn(current.status) === nextColumn) return;
+    const prev = current.status || "Backlog";
+    const nextStatus = getActivityStatusForKanbanColumn(nextColumn);
+    setKanbanLocalActivities(items => items.map(activity => activity.id === activityId ? { ...activity, status: nextStatus } : activity));
+    kanbanActivityUpdateMutation.mutate({ activityId, status: nextStatus }, {
+      onError: () => setKanbanLocalActivities(items => items.map(activity => activity.id === activityId ? { ...activity, status: prev } : activity)),
+    });
+  };
+
+  const moveKanbanCard = (cardKey: string, nextColumn: string) => {
+    const [type, itemId] = cardKey.split(":");
+    if (!itemId) return;
+    if (type === "activity") {
+      moveKanbanActivity(itemId, nextColumn);
+      return;
+    }
+    moveKanbanTicket(itemId, nextColumn);
   };
 
   const sprint = sprintQuery.data;
@@ -350,11 +985,19 @@ function SprintDetail() {
     () => new Map(activities.map((activity) => [activity.id, activity])),
     [activities],
   );
+  useEffect(() => {
+    setKanbanLocalActivities(
+      sprintPlans
+        .map((plan) => activityMap.get(plan.activityId))
+        .filter((activity): activity is Activity => Boolean(activity)),
+    );
+  }, [activityMap, sprintPlans]);
+
   const userMap = useMemo(
     () =>
       new Map(
         users.map((user) => [
-          user.id,
+          String(user.id),
           user.name
           || [user.first_name, user.last_name].filter(Boolean).join(" ")
           || user.username
@@ -364,6 +1007,11 @@ function SprintDetail() {
       ),
     [users],
   );
+  const getUserName = (userId: string | number) =>
+    userMap.get(String(userId))
+    || participants.find((participant) => String(participant.userId) === String(userId))?.userName
+    || "Usuario";
+
   const tagNameSet = useMemo(
     () => new Set(activityTags.filter((tag) => tag.active).map((tag) => tag.name)),
     [activityTags],
@@ -408,6 +1056,74 @@ function SprintDetail() {
       })
       .sort((left, right) => left.title.localeCompare(right.title, "pt-BR"));
   }, [activities, allPlans, allTimeEntries, id]);
+  const allTicketsForPlanning = useMemo(() => {
+    return (Array.isArray(ticketsQuery.data)
+      ? ticketsQuery.data
+      : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as PlanningTicketItem[];
+  }, [ticketsQuery.data]);
+  const plannedTicketIds = useMemo(
+    () => (ticketPlansQuery.data ?? []).map((plan) => plan.ticketId),
+    [ticketPlansQuery.data],
+  );
+  const plannedActivityIds = useMemo(
+    () => sprintPlans.map((plan) => plan.activityId),
+    [sprintPlans],
+  );
+  const kanbanCards = useMemo<KanbanCard[]>(() => {
+    const ticketPlanByTicket = new Map((ticketPlansQuery.data ?? []).map((plan) => [plan.ticketId, plan]));
+    const activityById = new Map(kanbanLocalActivities.map((activity) => [activity.id, activity]));
+
+    const ticketCards = kanbanLocalTickets.map((ticket) => {
+      const plan = ticketPlanByTicket.get(ticket.id);
+      const responsibleIds = plan?.responsibleIds?.length
+        ? plan.responsibleIds.map(String)
+        : [
+            ...(ticket.technicians || []).map(String),
+            ...(ticket.responsible_technician ? [String(ticket.responsible_technician)] : []),
+          ];
+      return {
+        key: `ticket:${ticket.id}`,
+        type: "ticket" as const,
+        id: ticket.id,
+        status: ticket.status || "Triagem",
+        title: ticket.title,
+        code: ticket.code || ticket.id.slice(0, 8),
+        priority: ticket.priority,
+        subtitle: ticket.client_name || ticket.organization_name || "Chamado",
+        tags: ticket.tags || [],
+        responsibleIds,
+        hoursLabel: plan ? `${plan.plannedHours ?? 0}h` : `${ticket.est_hours || 0}h`,
+        metaLabel: ticket.sla || "Chamado",
+      };
+    });
+
+    const activityCards = sprintPlans.flatMap((plan) => {
+      const activity = activityById.get(plan.activityId) || activityMap.get(plan.activityId);
+      if (!activity) return [];
+      const responsibleIds = plan.responsibleIds?.length
+        ? plan.responsibleIds.map(String)
+        : [
+            ...(activity.assignees || []).map(String),
+            ...(activity.assignee ? [String(activity.assignee)] : []),
+          ];
+      return [{
+        key: `activity:${activity.id}`,
+        type: "activity" as const,
+        id: activity.id,
+        status: getActivityKanbanColumn(activity.status),
+        title: activity.title,
+        code: activity.ticket_code || activity.id.slice(0, 8),
+        priority: plan.priority || activity.priority,
+        subtitle: activity.project_name || activity.ticket_code || "Atividade",
+        tags: activity.tags || [],
+        responsibleIds,
+        hoursLabel: `${plan.plannedHours ?? activity.est_hours ?? 0}h`,
+        metaLabel: activity.status || "Backlog",
+      }];
+    });
+
+    return [...ticketCards, ...activityCards];
+  }, [activityMap, kanbanLocalActivities, kanbanLocalTickets, sprintPlans, ticketPlansQuery.data]);
 
   const totalPlannedHours = sumPlannedHours(sprintPlans);
   const sprintTimeEntries = allTimeEntries.filter((entry) => entry.sprintId === id);
@@ -739,6 +1455,7 @@ function SprintDetail() {
                   onClick={() => {
                     setUnplannedTicketRows([]);
                     setUnplannedActivityRows([]);
+                    setUnplannedExpandedRows(new Set());
                     setUnplannedTicketSearch("");
                     setUnplannedActivitySearch("");
                     setUnplannedTab("chamados");
@@ -966,7 +1683,7 @@ function SprintDetail() {
                         <p className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Horas planejadas por técnico</p>
                         <div className="space-y-3">
                           {techEntries.map(([uid, h]) => {
-                            const name = userMap.get(uid) || userMap.get(String(uid)) || uid;
+                            const name = getUserName(uid);
                             const pct = sprintCapacity > 0 ? Math.min(100, Math.round((h / sprintCapacity) * 100)) : 0;
                             const over = sprintCapacity > 0 && h > sprintCapacity;
                             return (
@@ -1006,14 +1723,14 @@ function SprintDetail() {
                           <th className="px-4 py-3 text-left font-medium w-24">Planejado</th>
                           <th className="px-4 py-3 text-left font-medium w-24">Realizado</th>
                           <th className="px-4 py-3 text-left font-medium w-32">Fim previsto</th>
-                          <th className="px-4 py-3 w-24" />
+                          <th className="px-4 py-3 w-64" />
                         </tr>
                       </thead>
                       <tbody>
                         {/* Ticket rows */}
                         {(ticketPlansQuery.data ?? []).map((tPlan) => {
                           const ticket = allTicketsForPlan.find((t) => t.id === tPlan.ticketId);
-                          const respNames = (tPlan.responsibleIds || []).map((uid) => userMap.get(String(uid)) || "Usuário").join(", ");
+                          const respNames = (tPlan.responsibleIds || []).map((uid) => getUserName(uid)).join(", ");
                           return (
                             <tr key={`ticket-${tPlan.id}`} className="border-b border-border last:border-0 hover:bg-muted/10 transition">
                               <td className="px-4 py-3">
@@ -1032,6 +1749,12 @@ function SprintDetail() {
                               <td className="px-4 py-3 text-xs text-muted-foreground">—</td>
                               <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(tPlan.plannedEndDate)}</td>
                               <td className="px-4 py-3">
+                                <div className="flex gap-1">
+                                  {ticket && (
+                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => openTicket(ticket.id, undefined, "conversa")}>
+                                      <MessageSquare className="h-3 w-3" /> Responder
+                                    </Button>
+                                  )}
                                 <ConfirmDelete
                                   trigger={
                                     <Button type="button" variant="outline" size="sm" className="h-7 gap-1 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive text-xs">
@@ -1042,6 +1765,7 @@ function SprintDetail() {
                                   description="Este chamado sairá do planejamento desta sprint."
                                   onConfirm={async () => { await deleteSprintTicketPlan(tPlan.id); ticketPlansQuery.refetch(); }}
                                 />
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1052,7 +1776,7 @@ function SprintDetail() {
                           const activity = activityMap.get(plan.activityId);
                           const relatedEntries = allTimeEntries.filter((e) => e.activityId === plan.activityId);
                           const planSummary = getSprintPlanExecutionSummary(plan, relatedEntries);
-                          const respNames = (plan.responsibleIds || []).map((uid) => userMap.get(uid) || "Usuário").join(", ");
+                          const respNames = (plan.responsibleIds || []).map((uid) => getUserName(uid)).join(", ");
                           return (
                             <tr key={`activity-${plan.id}`} className="border-b border-border last:border-0 hover:bg-muted/10 transition">
                               <td className="px-4 py-3">
@@ -1063,11 +1787,6 @@ function SprintDetail() {
                                   <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[plan.priority ?? ""] || ""}`}>{plan.priority}</Badge>
                                   <div className="min-w-0">
                                     <span className="font-medium">{activity?.title ?? plan.activityId}</span>
-                                    {activity && (
-                                      <button type="button" onClick={() => openActivity(activity.id)} className="ml-2 text-[10px] text-primary underline underline-offset-2">
-                                        abrir
-                                      </button>
-                                    )}
                                   </div>
                                 </div>
                               </td>
@@ -1078,6 +1797,11 @@ function SprintDetail() {
                               <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(plan.plannedEndDate)}</td>
                               <td className="px-4 py-3">
                                 <div className="flex gap-1">
+                                  {activity && (
+                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => openActivity(activity.id, undefined, "conversa")}>
+                                      <MessageSquare className="h-3 w-3" /> Responder
+                                    </Button>
+                                  )}
                                   <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => handleOpenEditPlan(plan)}>
                                     <Pencil className="h-3 w-3" /> Editar
                                   </Button>
@@ -1152,17 +1876,17 @@ function SprintDetail() {
         </>
       )}
       <span className="ml-auto text-xs text-muted-foreground">
-        {kanbanLocalTickets.length} chamado(s) nesta sprint
+        {kanbanCards.filter(card => card.type === "ticket").length} chamado(s) · {kanbanCards.filter(card => card.type === "activity").length} atividade(s)
       </span>
     </div>
 
     {/* Columns */}
     <div className="-mx-2 flex min-h-0 flex-1 gap-4 overflow-x-auto px-2 pb-4">
       {sprintKanbanCols.map(col => {
-        const colTickets = kanbanLocalTickets
-          .filter(t => (t.status || "Triagem") === col.name)
-          .filter(t => !kanbanFilterTech || (t.technicians || []).map(String).includes(kanbanFilterTech))
-          .filter(t => !kanbanFilterPriority || t.priority === kanbanFilterPriority);
+        const colCards = kanbanCards
+          .filter(card => card.status === col.name)
+          .filter(card => !kanbanFilterTech || card.responsibleIds.map(String).includes(kanbanFilterTech))
+          .filter(card => !kanbanFilterPriority || normalizeKanbanPriority(card.priority) === kanbanFilterPriority);
 
         return (
           <div
@@ -1172,52 +1896,59 @@ function SprintDetail() {
             onDragLeave={() => { if (kanbanActiveCol === col.name) setKanbanActiveCol(null); }}
             onDrop={e => {
               e.preventDefault();
-              const tid = e.dataTransfer.getData("text/plain") || kanbanDragId;
+              const cardKey = e.dataTransfer.getData("text/plain") || kanbanDragId;
               setKanbanActiveCol(null);
               setKanbanDragId(null);
-              if (tid) moveKanbanTicket(tid, col.name);
+              if (cardKey) moveKanbanCard(cardKey, col.name);
             }}
           >
             <div className="mb-3 flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <span className={`h-2 w-2 rounded-full ${col.accent}`} />
                 <span className="text-sm font-medium">{col.label}</span>
-                <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{colTickets.length}</span>
+                <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{colCards.length}</span>
               </div>
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-              {colTickets.map(card => {
-                const tPlan = (ticketPlansQuery.data ?? []).find(p => p.ticketId === card.id);
+              {colCards.map(card => {
+                const drawerList: ItemDrawerItem[] = colCards.map(item => ({ type: item.type, id: item.id }));
+                const openCard = () => {
+                  if (card.type === "activity") {
+                    openActivity(card.id, drawerList);
+                    return;
+                  }
+                  openTicket(card.id, drawerList);
+                };
+                const priorityLabel = normalizeKanbanPriority(card.priority);
                 return (
                   <div
-                    key={card.id}
+                    key={card.key}
                     draggable
-                    onDragStart={e => { setKanbanDragId(card.id); setKanbanActiveCol(col.name); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", card.id); }}
+                    onDragStart={e => { setKanbanDragId(card.key); setKanbanActiveCol(col.name); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", card.key); }}
                     onDragEnd={() => { setKanbanDragId(null); setKanbanActiveCol(null); }}
-                    className={`group rounded-xl border border-border bg-card/80 p-3 transition-all hover:border-primary/40 hover:shadow-glow ${kanbanDragId === card.id ? "opacity-60" : ""}`}
+                    className={`group rounded-xl border border-border bg-card/80 p-3 transition-all hover:border-primary/40 hover:shadow-glow ${kanbanDragId === card.key ? "opacity-60" : ""}`}
                   >
                     <div className="flex items-center justify-between">
                       <button type="button"
-                        onClick={() => {
-                          const list: ItemDrawerItem[] = colTickets.map(c => ({ type: "ticket" as const, id: c.id }));
-                          openTicket(card.id, list);
-                        }}
+                        onClick={openCard}
                         className="font-mono text-[10px] text-muted-foreground hover:text-primary">
-                        {card.code || card.id.slice(0, 8)}
+                        {card.code}
                       </button>
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${PRIORITY_COLORS[card.priority || "Média"] || ""}`}>
-                        {card.priority || "Média"}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${card.type === "activity" ? "bg-violet-500/15 text-violet-400 border-violet-500/30" : "bg-blue-500/15 text-blue-400 border-blue-500/30"}`}>
+                          {card.type === "activity" ? "Atividade" : "Chamado"}
+                        </span>
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${PRIORITY_COLORS[priorityLabel] || ""}`}>
+                          {priorityLabel}
+                        </span>
+                      </div>
                     </div>
                     <button type="button"
-                      onClick={() => {
-                        const list: ItemDrawerItem[] = colTickets.map(c => ({ type: "ticket" as const, id: c.id }));
-                        openTicket(card.id, list);
-                      }}
+                      onClick={openCard}
                       className="mt-1.5 block w-full text-left text-sm leading-snug hover:text-primary">
                       {card.title}
                     </button>
-                    {card.client_name && <p className="mt-1 text-[11px] text-muted-foreground">{card.client_name}</p>}
+                    {card.subtitle && <p className="mt-1 text-[11px] text-muted-foreground">{card.subtitle}</p>}
                     <div className="mt-2 flex flex-wrap gap-1">
                       {(card.tags || []).map(tag => (
                         <span key={tag} className="rounded border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
@@ -1225,19 +1956,19 @@ function SprintDetail() {
                     </div>
                     <div className="mt-3 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{card.sla || "8h"}</span>
+                        <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{card.metaLabel}</span>
                         <span className="inline-flex items-center gap-1"><MessageSquare className="h-3 w-3" />0</span>
                         <span className="inline-flex items-center gap-1"><Paperclip className="h-3 w-3" />0</span>
                       </div>
                       <span className="rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10px] text-accent">
-                        {tPlan ? `${tPlan.plannedHours ?? 0}h` : `${card.est_hours || 0}h`}
+                        {card.hoursLabel}
                       </span>
                     </div>
                     <label className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
                       <span className="shrink-0">Mover para</span>
                       <select
-                        value={card.status || "Triagem"}
-                        onChange={e => moveKanbanTicket(card.id, e.target.value)}
+                        value={card.status}
+                        onChange={e => moveKanbanCard(card.key, e.target.value)}
                         className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground outline-none transition-colors hover:border-primary/40 focus:border-primary/40"
                       >
                         {sprintKanbanCols.map(s => <option key={s.name} value={s.name}>{s.label}</option>)}
@@ -1246,7 +1977,7 @@ function SprintDetail() {
                   </div>
                 );
               })}
-              {colTickets.length === 0 && (
+              {colCards.length === 0 && (
                 <div className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
                   Solte um card aqui
                 </div>
@@ -1419,7 +2150,7 @@ function SprintDetail() {
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Carga por técnico</p>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                   {techEntries.map(([uid, h]) => {
-                    const name = userMap.get(uid) || userMap.get(String(uid)) || uid;
+                    const name = getUserName(uid);
                     const participantCapacity = wizardParticipantRows.find(r => r.userId === uid);
                     const indivCapacity = participantCapacity
                       ? Number(participantCapacity.hoursPerDay) * Number(participantCapacity.workingDays) * (Number(participantCapacity.availabilityFactor) / 100)
@@ -1579,7 +2310,30 @@ function SprintDetail() {
             })()}
 
             {/* ── STEP 2: Chamados ── */}
-            {wizardStep === 2 && (() => {
+            {wizardStep === 2 && (
+              <TicketPlanningSection
+                description="Adicione chamados que serao trabalhados nesta sprint e defina responsaveis e horas planejadas para cada um."
+                users={users}
+                tickets={allTicketsForPlanning}
+                rows={wizardTicketRows}
+                setRows={setWizardTicketRows}
+                search={wizardTicketSearch}
+                setSearch={setWizardTicketSearch}
+                expandedRows={expandedRows}
+                setExpandedRows={setExpandedRows}
+                emptyRowsLabel="Nenhum chamado adicionado ainda."
+                isLoading={ticketsQuery.isLoading}
+                onBeforeRemoveRow={async (row) => {
+                  if (!row.savedId) return;
+                  try {
+                    await deleteSprintTicketPlan(row.savedId);
+                  } catch {
+                    // ignore to keep the local editing flow responsive
+                  }
+                }}
+              />
+            )}
+            {false && (() => {
               type TicketItem = { id: string; code?: string; title?: string; status?: string; sprint?: string | null; priority?: string };
               const allTickets = (Array.isArray(ticketsQuery.data)
                 ? ticketsQuery.data
@@ -1795,7 +2549,30 @@ function SprintDetail() {
             })()}
 
             {/* ── STEP 3: Atividades de projetos ── */}
-            {wizardStep === 3 && (() => {
+            {wizardStep === 3 && (
+              <ActivityPlanningSection
+                description="Adicione atividades de projetos que serao executadas nesta sprint. Edite diretamente na tabela."
+                users={users}
+                activityOptions={planningOptions}
+                rows={wizardActivityRows}
+                setRows={setWizardActivityRows}
+                search={wizardActivitySearch}
+                setSearch={setWizardActivitySearch}
+                expandedRows={expandedRows}
+                setExpandedRows={setExpandedRows}
+                emptyRowsLabel="Nenhuma atividade adicionada ainda."
+                onBeforeRemoveRow={async (row) => {
+                  if (!row.savedId) return;
+                  try {
+                    await deleteSprintActivityPlan(row.savedId);
+                    await queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] });
+                  } catch {
+                    // ignore to keep the local editing flow responsive
+                  }
+                }}
+              />
+            )}
+            {false && (() => {
               const addedActivityIds = new Set(wizardActivityRows.map((r) => r.activityId));
               const availableActivities = planningOptions.filter((a) => !addedActivityIds.has(a.id));
               const actSearchLower = wizardActivitySearch.toLowerCase();
@@ -2271,12 +3048,55 @@ function SprintDetail() {
 
       {/* ─── Adicionar não planejados dialog ─── */}
       <Dialog open={unplannedOpen} onOpenChange={setUnplannedOpen}>
-        <DialogContent className="max-w-3xl glass-strong">
-          <DialogHeader>
+        <DialogContent className="max-h-[90vh] w-[1320px] max-w-[98vw] overflow-hidden p-0 glass-strong flex flex-col">
+          <div className="flex-shrink-0 border-b border-border px-6 pb-4 pt-5">
             <DialogTitle>Adicionar não planejados</DialogTitle>
             <DialogDescription>Adicione chamados ou atividades fora do planejamento original da sprint.</DialogDescription>
-          </DialogHeader>
+          </div>
 
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+            <Tabs value={unplannedTab} onValueChange={(v) => setUnplannedTab(v as "chamados" | "atividades")} className="space-y-4">
+              <TabsList className="border border-border bg-muted/40">
+                <TabsTrigger value="chamados">Chamados ({unplannedTicketRows.length})</TabsTrigger>
+                <TabsTrigger value="atividades">Atividades ({unplannedActivityRows.length})</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="chamados" className="mt-0">
+                <TicketPlanningSection
+                  description="Adicione chamados que serao trabalhados nesta sprint e defina responsaveis e horas planejadas para cada um."
+                  users={users}
+                  tickets={allTicketsForPlanning}
+                  rows={unplannedTicketRows}
+                  setRows={setUnplannedTicketRows}
+                  search={unplannedTicketSearch}
+                  setSearch={setUnplannedTicketSearch}
+                  expandedRows={unplannedExpandedRows}
+                  setExpandedRows={setUnplannedExpandedRows}
+                  emptyRowsLabel="Nenhum chamado adicionado ainda."
+                  excludedIds={plannedTicketIds}
+                  isLoading={ticketsQuery.isLoading}
+                />
+              </TabsContent>
+
+              <TabsContent value="atividades" className="mt-0">
+                <ActivityPlanningSection
+                  description="Adicione atividades de projetos que serao executadas nesta sprint. Edite diretamente na tabela."
+                  users={users}
+                  activityOptions={planningOptions}
+                  rows={unplannedActivityRows}
+                  setRows={setUnplannedActivityRows}
+                  search={unplannedActivitySearch}
+                  setSearch={setUnplannedActivitySearch}
+                  expandedRows={unplannedExpandedRows}
+                  setExpandedRows={setUnplannedExpandedRows}
+                  emptyRowsLabel="Nenhuma atividade adicionada ainda."
+                  excludedIds={plannedActivityIds}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {false && (
           <Tabs value={unplannedTab} onValueChange={(v) => setUnplannedTab(v as "chamados" | "atividades")}>
             <TabsList className="mb-4">
               <TabsTrigger value="chamados">Chamados ({unplannedTicketRows.length})</TabsTrigger>
@@ -2453,13 +3273,28 @@ function SprintDetail() {
               )}
             </TabsContent>
           </Tabs>
+          )}
 
-          <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <div className="flex-shrink-0 flex items-center justify-end gap-2 border-t border-border px-6 py-4">
             <Button variant="outline" onClick={() => setUnplannedOpen(false)} disabled={unplannedSaving}>Cancelar</Button>
             <Button
               disabled={unplannedSaving || (unplannedTicketRows.length === 0 && unplannedActivityRows.length === 0)}
               className="bg-gradient-primary text-white shadow-glow hover:opacity-90"
               onClick={async () => {
+                for (const row of unplannedTicketRows) {
+                  const ticket = allTicketsForPlanning.find((item) => item.id === row.ticketId);
+                  const label = ticket?.code ?? row.ticketId;
+                  if (!row.responsibleIds.length) { toast.error(`Chamado ${label}: adicione ao menos um responsavel.`); return; }
+                  if (!Number(row.plannedHours)) { toast.error(`Chamado ${label}: informe as horas planejadas.`); return; }
+                  if (!row.plannedEndDate) { toast.error(`Chamado ${label}: informe a previsao de termino.`); return; }
+                }
+                for (const row of unplannedActivityRows) {
+                  const activity = activities.find((item) => item.id === row.activityId);
+                  const label = activity?.title ?? row.activityId;
+                  if (!row.responsibleIds.length) { toast.error(`Atividade "${label}": adicione ao menos um responsavel.`); return; }
+                  if (!Number(row.plannedHours)) { toast.error(`Atividade "${label}": informe as horas planejadas.`); return; }
+                  if (!row.plannedEndDate) { toast.error(`Atividade "${label}": informe a previsao de termino.`); return; }
+                }
                 for (const row of unplannedTicketRows) {
                   if (!row.responsibleIds.length) { toast.error("Chamado sem responsável."); return; }
                   if (!Number(row.plannedHours)) { toast.error("Chamado sem horas planejadas."); return; }
@@ -2478,7 +3313,7 @@ function SprintDetail() {
                       storyPoints: row.storyPoints ? Number(row.storyPoints) : undefined,
                       plannedEndDate: row.plannedEndDate || "",
                       notes: row.notes,
-                      userHours: {},
+                      userHours: Object.fromEntries(Object.entries(row.userHours).map(([key, value]) => [key, Number(value) || 0])),
                       priority: row.priority || "Média",
                     }, "create");
                   }
@@ -2492,7 +3327,7 @@ function SprintDetail() {
                       storyPoints: row.storyPoints ? Number(row.storyPoints) : undefined,
                       plannedEndDate: row.plannedEndDate || "",
                       notes: row.notes,
-                      userHours: {},
+                      userHours: Object.fromEntries(Object.entries(row.userHours).map(([key, value]) => [key, Number(value) || 0])),
                       priority: row.priority || "Média",
                     }, "create");
                   }

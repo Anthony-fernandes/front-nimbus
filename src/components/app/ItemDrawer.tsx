@@ -27,9 +27,12 @@ import { listUsers } from "@/services/userService";
 import { listSprints } from "@/services/sprintService";
 import { buildTicketTimeline as _buildTicketTimeline } from "@/lib/tickets";
 import { formatTicketStatusLabel, formatPriorityLabel } from "@/lib/labels";
-import { useItemDrawer } from "@/context/ItemDrawerContext";
+import { useItemDrawer, type ActivityDrawerTab, type TicketDrawerTab } from "@/context/ItemDrawerContext";
 import type { Ticket, Activity } from "@/lib/types";
 import { formatDateTime } from "@/services/utils";
+import { createActivityTimelineComment, listActivityTimeline } from "@/services/activityTimelineService";
+
+const NO_SELECTION = "__none__";
 
 const TICKET_STATUSES = [
   "Triagem",
@@ -87,7 +90,7 @@ function CopyLinkButton({ url }: { url: string }) {
 }
 
 /* ─── Ticket drawer content ─── */
-function TicketDrawerContent({ id }: { id: string }) {
+function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialTab?: TicketDrawerTab }) {
   const queryClient = useQueryClient();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
@@ -207,7 +210,7 @@ function TicketDrawerContent({ id }: { id: string }) {
       {/* Body: main tabs + right sidebar */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
         {/* Main tabs */}
-        <Tabs defaultValue="info" className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <Tabs defaultValue={initialTab} className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="border-b border-border px-6">
             <TabsList className="h-9 rounded-none bg-transparent p-0 gap-1">
               <TabsTrigger value="info" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 text-xs">
@@ -258,12 +261,12 @@ function TicketDrawerContent({ id }: { id: string }) {
               </Field>
               <Field label="Sprint">
                 <Select
-                  value={String(ticket.sprint ?? "")}
-                  onValueChange={v => updateMutation.mutate({ sprint: v || null } as Partial<Ticket>)}
+                  value={ticket.sprint ? String(ticket.sprint) : NO_SELECTION}
+                  onValueChange={v => updateMutation.mutate({ sprint: v === NO_SELECTION ? null : v } as Partial<Ticket>)}
                 >
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="— sem sprint —" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="" className="text-xs">— sem sprint —</SelectItem>
+                    <SelectItem value={NO_SELECTION} className="text-xs">— sem sprint —</SelectItem>
                     {(sprintList as { id: string | number; name?: string; title?: string }[]).map(s => (
                       <SelectItem key={s.id} value={String(s.id)} className="text-xs">
                         {s.name ?? s.title ?? String(s.id)}
@@ -345,6 +348,7 @@ function TicketDrawerContent({ id }: { id: string }) {
               </ol>
             )}
           </TabsContent>
+
         </Tabs>
 
         {/* Right sidebar */}
@@ -399,7 +403,7 @@ function TicketDrawerContent({ id }: { id: string }) {
 }
 
 /* ─── Activity drawer content ─── */
-function ActivityDrawerContent({ id }: { id: string }) {
+function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initialTab?: ActivityDrawerTab }) {
   const queryClient = useQueryClient();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
@@ -410,7 +414,14 @@ function ActivityDrawerContent({ id }: { id: string }) {
     queryFn: () => getActivity(id),
   });
 
+  const { data: timelineRaw = [] } = useQuery({
+    queryKey: ["activity-timeline-drawer", id],
+    queryFn: () => listActivityTimeline(id),
+  });
+
   const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: listUsers });
+
+  const timelineEvents: import("@/lib/types").TicketTimelineEvent[] = Array.isArray(timelineRaw) ? timelineRaw : [];
 
   const updateMutation = useMutation({
     mutationFn: (patch: Partial<Activity>) => updateActivity(id, patch),
@@ -426,6 +437,11 @@ function ActivityDrawerContent({ id }: { id: string }) {
     if (titleDraft.trim() && activity && titleDraft.trim() !== activity.title) {
       updateMutation.mutate({ title: titleDraft.trim() });
     }
+  };
+
+  const publishComment = async (payload: { message: string; visibility: import("@/lib/types").TicketVisibility }) => {
+    await createActivityTimelineComment({ activity: id, message: payload.message, visibility: payload.visibility });
+    await queryClient.invalidateQueries({ queryKey: ["activity-timeline-drawer", id] });
   };
 
   useEffect(() => {
@@ -480,11 +496,17 @@ function ActivityDrawerContent({ id }: { id: string }) {
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <Tabs defaultValue="info" className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <Tabs defaultValue={initialTab} className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="border-b border-border px-6">
             <TabsList className="h-9 rounded-none bg-transparent p-0 gap-1">
               <TabsTrigger value="info" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 text-xs">
                 <Info className="h-3.5 w-3.5 mr-1" /> Informações
+              </TabsTrigger>
+              <TabsTrigger value="conversa" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 text-xs">
+                <MessageSquare className="h-3.5 w-3.5 mr-1" /> Conversa
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 text-xs">
+                <History className="h-3.5 w-3.5 mr-1" /> Historico
               </TabsTrigger>
             </TabsList>
           </div>
@@ -562,6 +584,37 @@ function ActivityDrawerContent({ id }: { id: string }) {
                   {activity.description}
                 </div>
               </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="conversa" className="flex-1 overflow-y-auto px-6 py-4 mt-0">
+            <TicketTimeline
+              events={timelineEvents}
+              title="Conversa da atividade"
+              emptyText="Nenhuma interacao registrada nesta atividade."
+              allowComposer
+              composerLabel="Nova resposta"
+              submitHelpText="Esse registro entra na timeline da atividade."
+              onCommentSubmit={publishComment}
+            />
+          </TabsContent>
+
+          <TabsContent value="historico" className="flex-1 overflow-y-auto px-6 py-4 mt-0">
+            {timelineEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum registro encontrado.</p>
+            ) : (
+              <ol className="relative border-l border-border pl-6 space-y-4">
+                {[...timelineEvents].reverse().map((ev, i) => (
+                  <li key={ev.id ?? i} className="relative">
+                    <span className="absolute -left-[25px] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
+                    <p className="text-xs font-medium leading-snug">{ev.message ?? ev.type ?? "Evento"}</p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {ev.author_name && `${ev.author_name} · `}
+                      {ev.created_at ? formatDateTime(ev.created_at) : ""}
+                    </p>
+                  </li>
+                ))}
+              </ol>
             )}
           </TabsContent>
         </Tabs>
@@ -657,8 +710,8 @@ export function ItemDrawer() {
 
         {/* Content */}
         <div className="min-h-0 flex-1 overflow-hidden">
-          {item?.type === "ticket" && <TicketDrawerContent id={item.id} />}
-          {item?.type === "activity" && <ActivityDrawerContent id={item.id} />}
+          {item?.type === "ticket" && <TicketDrawerContent key={`${item.id}-${item.initialTab ?? "info"}`} id={item.id} initialTab={item.initialTab} />}
+          {item?.type === "activity" && <ActivityDrawerContent key={`${item.id}-${item.initialTab ?? "info"}`} id={item.id} initialTab={item.initialTab} />}
         </div>
       </SheetContent>
     </Sheet>

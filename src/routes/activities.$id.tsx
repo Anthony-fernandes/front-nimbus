@@ -5,6 +5,7 @@ import {
   GitBranch,
   History,
   Link2,
+  MessageSquare,
   Pencil,
   Plus,
   TimerReset,
@@ -18,6 +19,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ActivityTimeEntryForm, toActivityTimeEntryFormData } from "@/components/forms/ActivityTimeEntryForm";
+import { TicketTimeline } from "@/components/tickets/TicketTimeline";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,10 +35,10 @@ import {
   getSprintPlanExecutionSummary,
 } from "@/lib/activityFlow";
 import { formatActivityStatusLabel, formatPriorityLabel } from "@/lib/labels";
-import type { ActivityTimeEntry } from "@/lib/types";
+import type { ActivityDependency, ActivityTimeEntry, TicketTimelineEvent, TicketVisibility } from "@/lib/types";
 import { deleteActivity, getActivity } from "@/services/activityService";
+import { createActivityTimelineComment, listActivityTimeline } from "@/services/activityTimelineService";
 import { listActivityDependencies, createActivityDependency, deleteActivityDependency } from "@/services/activityDependencyService";
-import type { ActivityDependency } from "@/lib/types";
 import {
   deleteActivityTimeEntry,
   listActivityTimeEntries,
@@ -101,6 +103,10 @@ function ActivityDetail() {
     queryKey: ["activity-dependencies", id],
     queryFn: () => listActivityDependencies(id),
   });
+  const timelineQuery = useQuery({
+    queryKey: ["activity-timeline", id],
+    queryFn: () => listActivityTimeline(id),
+  });
 
   const customFieldsQuery = useQuery({
     queryKey: ["activity-custom-fields"],
@@ -131,6 +137,7 @@ function ActivityDetail() {
   const sprints = sprintsQuery.data || [];
   const activityTags = activityTagsQuery.data || [];
   const generatedCosts = generatedCostsQuery.data || [];
+  const timeline: TicketTimelineEvent[] = timelineQuery.data || [];
   const calculateHourlyCost =
     typeof activity?.calculateHourlyCost === "boolean"
       ? activity.calculateHourlyCost
@@ -260,6 +267,18 @@ function ActivityDetail() {
     }
   };
 
+  const publishComment = async ({
+    message,
+    visibility,
+  }: {
+    message: string;
+    visibility: TicketVisibility;
+  }) => {
+    await createActivityTimelineComment({ activity: id, message, visibility });
+    await queryClient.invalidateQueries({ queryKey: ["activity-timeline", id] });
+    toast.success("Resposta registrada.");
+  };
+
   if (pathname !== `/activities/${id}`) {
     return <Outlet />;
   }
@@ -367,6 +386,10 @@ function ActivityDetail() {
                 <TabsTrigger value="overview">Visao geral</TabsTrigger>
                 <TabsTrigger value="time-entries">Apontamentos</TabsTrigger>
                 <TabsTrigger value="planning">Planejamento</TabsTrigger>
+                <TabsTrigger value="conversation">
+                  <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+                  Conversa
+                </TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
                 <TabsTrigger value="dependencies">Dependências</TabsTrigger>
                 <TabsTrigger value="custom-fields">Campos extras</TabsTrigger>
@@ -557,6 +580,18 @@ function ActivityDetail() {
                     );
                   })
                 )}
+              </TabsContent>
+
+              <TabsContent value="conversation" className="space-y-4">
+                <TicketTimeline
+                  events={timeline}
+                  title="Conversa da atividade"
+                  emptyText="Nenhuma interacao registrada nesta atividade."
+                  allowComposer
+                  composerLabel="Nova resposta"
+                  submitHelpText="Esse registro entra na timeline da atividade."
+                  onCommentSubmit={publishComment}
+                />
               </TabsContent>
 
               <TabsContent value="history">

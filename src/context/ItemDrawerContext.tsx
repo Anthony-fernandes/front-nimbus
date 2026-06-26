@@ -1,8 +1,11 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
+export type TicketDrawerTab = "info" | "conversa" | "historico";
+export type ActivityDrawerTab = "info" | "conversa" | "historico";
+
 export type ItemDrawerItem =
-  | { type: "ticket"; id: string }
-  | { type: "activity"; id: string };
+  | { type: "ticket"; id: string; initialTab?: TicketDrawerTab }
+  | { type: "activity"; id: string; initialTab?: ActivityDrawerTab };
 
 interface ItemDrawerState {
   item: ItemDrawerItem | null;
@@ -12,8 +15,8 @@ interface ItemDrawerState {
 
 interface ItemDrawerContextValue {
   state: ItemDrawerState;
-  openTicket: (id: string, list?: ItemDrawerItem[]) => void;
-  openActivity: (id: string, list?: ItemDrawerItem[]) => void;
+  openTicket: (id: string, list?: ItemDrawerItem[], initialTab?: TicketDrawerTab) => void;
+  openActivity: (id: string, list?: ItemDrawerItem[], initialTab?: ActivityDrawerTab) => void;
   goNext: () => void;
   goPrev: () => void;
   close: () => void;
@@ -29,8 +32,8 @@ export function ItemDrawerProvider({ children }: { children: ReactNode }) {
     setState({ item, list: list.length > 0 ? list : [item], index: idx >= 0 ? idx : 0 });
   };
 
-  const openTicket = (id: string, list?: ItemDrawerItem[]) => open({ type: "ticket", id }, list);
-  const openActivity = (id: string, list?: ItemDrawerItem[]) => open({ type: "activity", id }, list);
+  const openTicket = (id: string, list?: ItemDrawerItem[], initialTab?: TicketDrawerTab) => open({ type: "ticket", id, initialTab }, list);
+  const openActivity = (id: string, list?: ItemDrawerItem[], initialTab?: ActivityDrawerTab) => open({ type: "activity", id, initialTab }, list);
 
   const goNext = () =>
     setState(s => {
