@@ -708,20 +708,29 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
   );
 }
 
-/* ─── Header avatar strip: reads from React Query cache (no extra request) ─── */
+/* ─── Header avatar strip: subscribes to the same query key as the content ─── */
 function DrawerHeaderAvatars({ item }: { item: { type: "ticket" | "activity"; id: string } }) {
-  const queryClient = useQueryClient();
+  const { data: ticket } = useQuery({
+    queryKey: ["ticket-drawer", item.id],
+    queryFn: () => getTicket(item.id),
+    enabled: item.type === "ticket",
+    staleTime: Infinity,
+  });
+  const { data: activity } = useQuery({
+    queryKey: ["activity-drawer", item.id],
+    queryFn: () => getActivity(item.id),
+    enabled: item.type === "activity",
+    staleTime: Infinity,
+  });
 
   let names: string[] = [];
-  if (item.type === "ticket") {
-    const ticket = queryClient.getQueryData<import("@/lib/types").Ticket>(["ticket-drawer", item.id]);
-    const nameList = ticket?.technician_names ?? [];
-    const fallback = ticket?.responsible_technician_name;
+  if (item.type === "ticket" && ticket) {
+    const nameList = ticket.technician_names ?? [];
+    const fallback = ticket.responsible_technician_name;
     names = nameList.length ? nameList : fallback ? [fallback] : [];
-  } else {
-    const activity = queryClient.getQueryData<import("@/lib/types").Activity>(["activity-drawer", item.id]);
-    const nameList = activity?.assignee_names ?? [];
-    const fallback = activity?.assignee_name;
+  } else if (item.type === "activity" && activity) {
+    const nameList = activity.assignee_names ?? [];
+    const fallback = activity.assignee_name;
     names = nameList.length ? nameList : fallback ? [fallback] : [];
   }
 
