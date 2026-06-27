@@ -153,7 +153,7 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
     queryFn: () => listTicketTimeline(id),
   });
 
-  const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: listUsers });
+  const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: () => listUsers() });
   const { data: sprints = [] } = useQuery({
     queryKey: ["sprints-list"],
     queryFn: () => listSprints(),
@@ -474,7 +474,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
     queryFn: () => listActivityTimeline(id),
   });
 
-  const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: listUsers });
+  const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: () => listUsers() });
 
   const timelineEvents: import("@/lib/types").TicketTimelineEvent[] = Array.isArray(timelineRaw) ? timelineRaw : [];
 

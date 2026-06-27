@@ -60,7 +60,7 @@ function KanbanPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [updatesDialogItem, setUpdatesDialogItem] = useState<WorkItemUpdatesDialogItem | null>(null);
 
-  const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: listUsers });
+  const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: () => listUsers() });
 
   useEffect(() => {
     setLocalTickets(tickets);
