@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1084,10 +1084,9 @@ export function ItemDrawer() {
   }, [moreOpen]);
 
   return (
-    <Sheet open={open} onOpenChange={v => { if (!v) close(); }}>
-      <SheetContent
-        className="flex flex-col p-0 gap-0 w-[70vw] sm:max-w-none border-l border-border bg-background"
-        side="right"
+    <Dialog open={open} onOpenChange={v => { if (!v) close(); }}>
+      <DialogContent
+        className="flex flex-col p-0 gap-0 max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] border border-border bg-background rounded-2xl overflow-hidden [&>button]:hidden"
       >
         {/* Header */}
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5 bg-card/50">
@@ -1189,7 +1188,7 @@ export function ItemDrawer() {
             />
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
