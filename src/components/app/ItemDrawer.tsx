@@ -50,19 +50,19 @@ const TICKET_STATUSES = [
 const PRIORITIES = ["Crítica", "Alta", "Média", "Baixa"];
 
 const STATUS_COLORS: Record<string, string> = {
-  Triagem: "bg-muted text-muted-foreground",
-  "Em atendimento": "bg-primary/15 text-primary",
-  "Aguardando cliente": "bg-warning/15 text-warning",
-  "Validação": "bg-accent/15 text-accent",
-  Pausado: "bg-info/15 text-info",
-  Finalizado: "bg-success/15 text-success",
+  Triagem: "bg-muted text-muted-foreground border-border",
+  "Em atendimento": "bg-primary/20 text-primary border-primary/30",
+  "Aguardando cliente": "bg-warning/25 text-warning border-warning/30",
+  "Validação": "bg-accent/20 text-accent border-accent/30",
+  Pausado: "bg-info/20 text-info border-info/30",
+  Finalizado: "bg-success/20 text-success border-success/30",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  Crítica: "bg-destructive/15 text-destructive",
-  Alta: "bg-warning/15 text-warning",
-  Média: "bg-info/15 text-info",
-  Baixa: "bg-muted text-muted-foreground",
+  Crítica: "bg-destructive/20 text-destructive border-destructive/30",
+  Alta: "bg-warning/25 text-warning border-warning/30",
+  Média: "bg-info/20 text-info border-info/30",
+  Baixa: "bg-muted text-muted-foreground border-border",
 };
 
 /* ─── Helpers ─── */
@@ -187,7 +187,7 @@ function TicketResponsePanel({
   const comments = events.filter(e => e.type === "comment" || e.type === "comentario" || (!e.type && e.message));
 
   return (
-    <div className="flex h-full flex-col border-l border-border bg-card/30">
+    <div className="flex h-full flex-col border-l border-border bg-card">
       <Tabs defaultValue="resposta" className="flex flex-1 flex-col overflow-hidden">
         <div className="border-b border-border px-4 pt-3">
           <TabsList className="h-8 w-full rounded-none bg-transparent p-0 gap-4">
@@ -208,7 +208,7 @@ function TicketResponsePanel({
 
         {/* ── Resposta técnica ── */}
         <TabsContent value="resposta" className="flex-1 overflow-y-auto mt-0 p-4 space-y-4">
-          <div className="rounded-xl border border-border bg-muted/10 p-4 space-y-3">
+          <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
             <div>
               <p className="text-sm font-semibold text-foreground">Registrar resposta técnica</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -221,7 +221,7 @@ function TicketResponsePanel({
               onChange={e => setResponseText(e.target.value)}
               rows={4}
               placeholder="Descreva a resposta técnica, o que foi feito ou o que ainda falta."
-              className="resize-none bg-background/50 text-sm placeholder:text-muted-foreground/60 focus:border-primary"
+              className="resize-none bg-input text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary"
             />
 
             <div className="grid grid-cols-2 gap-3">
@@ -235,7 +235,7 @@ function TicketResponsePanel({
                   step="0.5"
                   value={responseHours}
                   onChange={e => setResponseHours(Number(e.target.value))}
-                  className="mt-1 w-full rounded-lg border border-border bg-background/50 px-3 py-1.5 text-sm outline-none focus:border-primary"
+                  className="mt-1 w-full rounded-lg border border-border bg-input px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary"
                 />
               </div>
               <div>
@@ -299,7 +299,7 @@ function TicketResponsePanel({
           ) : (
             <div className="space-y-2">
               {responses.map((ev, i) => (
-                <div key={ev.id ?? i} className="rounded-xl border border-border bg-muted/10 px-3 py-3">
+                <div key={ev.id ?? i} className="rounded-xl border border-border bg-muted/40 px-3 py-3">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <div className="flex items-center gap-1.5">
                       <Shield className="h-3 w-3 text-primary" />
@@ -316,14 +316,14 @@ function TicketResponsePanel({
 
         {/* ── Comentário ── */}
         <TabsContent value="comentario" className="flex-1 overflow-y-auto mt-0 p-4 space-y-4">
-          <div className="rounded-xl border border-border bg-muted/10 p-4 space-y-3">
+          <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-foreground">Novo comentário</p>
               <Select
                 value={commentVisibility}
                 onValueChange={v => setCommentVisibility(v as TicketVisibility)}
               >
-                <SelectTrigger className="h-7 w-40 text-xs bg-background/50">
+                <SelectTrigger className="h-7 w-40 text-xs bg-input">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -338,7 +338,7 @@ function TicketResponsePanel({
               onChange={e => setCommentText(e.target.value)}
               rows={5}
               placeholder="Escreva um comentário..."
-              className="resize-none bg-background/50 text-sm placeholder:text-muted-foreground/60 focus:border-primary"
+              className="resize-none bg-input text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary"
             />
 
             <div className="flex items-center justify-between">
@@ -369,7 +369,7 @@ function TicketResponsePanel({
           ) : (
             <div className="space-y-2">
               {comments.map((ev, i) => (
-                <div key={ev.id ?? i} className="rounded-xl border border-border bg-muted/10 px-3 py-3">
+                <div key={ev.id ?? i} className="rounded-xl border border-border bg-muted/40 px-3 py-3">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <div className="flex items-center gap-1.5">
                       {ev.visibility === "client"
@@ -529,11 +529,11 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
           {/* Detalhes */}
           <TabsContent value="info" className="flex-1 overflow-y-auto mt-0 px-5 py-4">
             {/* Campos principais em grid */}
-            <div className="rounded-xl border border-border bg-card/30 p-4 space-y-3">
+            <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Informações</p>
 
               {/* Resp. */}
-              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
                 <span className="w-24 shrink-0 text-xs text-muted-foreground">Resp.</span>
                 <div className="flex flex-1 items-center gap-2">
                   {techNames.length > 0 && <TechnicianAvatarGroup names={techNames} max={4} />}
@@ -556,7 +556,7 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
               </div>
 
               {/* Status */}
-              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
                 <span className="w-24 shrink-0 text-xs text-muted-foreground">Status</span>
                 <Select value={ticket.status ?? ""} onValueChange={v => updateMutation.mutate({ status: v })}>
                   <SelectTrigger className="h-7 flex-1 border-0 bg-transparent text-xs shadow-none focus:ring-0 p-0 gap-1">
@@ -569,14 +569,14 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
                   </SelectContent>
                 </Select>
                 {ticket.status && (
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${STATUS_COLORS[ticket.status] ?? "bg-muted text-muted-foreground"}`}>
+                  <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${STATUS_COLORS[ticket.status] ?? "bg-muted text-muted-foreground border-border"}`}>
                     {formatTicketStatusLabel(ticket.status)}
                   </span>
                 )}
               </div>
 
               {/* Prioridade */}
-              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
                 <span className="w-24 shrink-0 text-xs text-muted-foreground">Prioridade</span>
                 <Select value={ticket.priority ?? ""} onValueChange={v => updateMutation.mutate({ priority: v })}>
                   <SelectTrigger className="h-7 flex-1 border-0 bg-transparent text-xs shadow-none focus:ring-0 p-0 gap-1">
@@ -587,7 +587,7 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
                   </SelectContent>
                 </Select>
                 {ticket.priority && (
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${PRIORITY_COLORS[ticket.priority] ?? "bg-muted text-muted-foreground"}`}>
+                  <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${PRIORITY_COLORS[ticket.priority] ?? "bg-muted text-muted-foreground border-border"}`}>
                     {formatPriorityLabel(ticket.priority)}
                   </span>
                 )}
@@ -660,7 +660,7 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
 
             {/* Descrição */}
             {ticket.description && (
-              <div className="mt-3 rounded-xl border border-border bg-card/30 p-4">
+              <div className="mt-3 rounded-xl border border-border bg-muted/20 p-4">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Descrição</p>
                 <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{ticket.description}</p>
               </div>
@@ -668,7 +668,7 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
 
             {/* Tags */}
             {(ticket.tags ?? []).length > 0 && (
-              <div className="mt-3 rounded-xl border border-border bg-card/30 p-4">
+              <div className="mt-3 rounded-xl border border-border bg-muted/20 p-4">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Tags</p>
                 <div className="flex flex-wrap gap-1">
                   {(ticket.tags ?? []).map(tag => (
@@ -682,7 +682,7 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
           {/* Log de atividade */}
           <TabsContent value="historico" className="flex-1 overflow-y-auto mt-0 px-5 py-4">
             {timelineEvents.length === 0 ? (
-              <div className="rounded-xl border border-border bg-muted/10 px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-xl border border-border bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
                 Nenhum registro encontrado.
               </div>
             ) : (
@@ -690,7 +690,7 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
                 {[...timelineEvents].reverse().map((ev, i) => (
                   <li key={ev.id ?? i} className="relative">
                     <span className="absolute -left-[21px] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
-                    <div className="rounded-xl border border-border bg-muted/10 px-3 py-2.5">
+                    <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className="text-xs font-medium">{ev.author_name || "Sistema"}</span>
                         <span className="text-[10px] text-muted-foreground">{formatDateTime(ev.created_at)}</span>
@@ -721,7 +721,7 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
 /* ─── InfoRow helper ─── */
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+    <div className="rounded-lg border border-border bg-muted/50 px-3 py-2">
       <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
       <div className="text-xs text-foreground">{children}</div>
     </div>
@@ -829,11 +829,11 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
           </div>
 
           <TabsContent value="info" className="flex-1 overflow-y-auto mt-0 px-5 py-4">
-            <div className="rounded-xl border border-border bg-card/30 p-4 space-y-3">
+            <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Informações</p>
 
               {/* Responsável */}
-              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
                 <span className="w-24 shrink-0 text-xs text-muted-foreground">Resp.</span>
                 <div className="flex flex-1 items-center gap-2">
                   {assigneeNames.length > 0 && <TechnicianAvatarGroup names={assigneeNames} max={4} />}
@@ -856,7 +856,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
               </div>
 
               {/* Status */}
-              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
                 <span className="w-24 shrink-0 text-xs text-muted-foreground">Status</span>
                 <Select value={activity.status ?? ""} onValueChange={v => updateMutation.mutate({ status: v })}>
                   <SelectTrigger className="h-7 flex-1 border-0 bg-transparent text-xs shadow-none focus:ring-0 p-0 gap-1">
@@ -876,7 +876,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
               </div>
 
               {/* Prioridade */}
-              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
                 <span className="w-24 shrink-0 text-xs text-muted-foreground">Prioridade</span>
                 <Select value={activity.priority ?? ""} onValueChange={v => updateMutation.mutate({ priority: v })}>
                   <SelectTrigger className="h-7 flex-1 border-0 bg-transparent text-xs shadow-none focus:ring-0 p-0 gap-1">
@@ -927,7 +927,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
             </div>
 
             {activity.description && (
-              <div className="mt-3 rounded-xl border border-border bg-card/30 p-4">
+              <div className="mt-3 rounded-xl border border-border bg-muted/20 p-4">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Descrição</p>
                 <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{activity.description}</p>
               </div>
@@ -936,7 +936,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
 
           <TabsContent value="historico" className="flex-1 overflow-y-auto mt-0 px-5 py-4">
             {timelineEvents.length === 0 ? (
-              <div className="rounded-xl border border-border bg-muted/10 px-4 py-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-xl border border-border bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
                 Nenhum registro encontrado.
               </div>
             ) : (
@@ -944,7 +944,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
                 {[...timelineEvents].reverse().map((ev, i) => (
                   <li key={ev.id ?? i} className="relative">
                     <span className="absolute -left-[21px] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
-                    <div className="rounded-xl border border-border bg-muted/10 px-3 py-2.5">
+                    <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <span className="text-xs font-medium">{ev.author_name || "Sistema"}</span>
                         <span className="text-[10px] text-muted-foreground">{formatDateTime(ev.created_at)}</span>
@@ -960,7 +960,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
       </div>
 
       {/* Right panel: Comentário simples para atividades */}
-      <div className="w-72 shrink-0 border-l border-border bg-card/30 flex flex-col overflow-hidden">
+      <div className="w-72 shrink-0 border-l border-border bg-muted/20 flex flex-col overflow-hidden">
         <div className="border-b border-border px-4 pt-3 pb-0">
           <p className="text-xs font-semibold text-foreground pb-2">
             <MessageSquare className="inline h-3.5 w-3.5 mr-1.5 text-primary" />
@@ -972,7 +972,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
             <p className="text-center text-[12px] text-muted-foreground py-4">Nenhuma interação ainda.</p>
           ) : (
             timelineEvents.map((ev, i) => (
-              <div key={ev.id ?? i} className="rounded-xl border border-border bg-muted/10 px-3 py-2.5">
+              <div key={ev.id ?? i} className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className="text-xs font-medium">{ev.author_name || "Sistema"}</span>
                   <span className="text-[10px] text-muted-foreground">{formatDateTime(ev.created_at)}</span>
@@ -1086,10 +1086,10 @@ export function ItemDrawer() {
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) close(); }}>
       <DialogContent
-        className="flex flex-col p-0 gap-0 max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] border border-border bg-background rounded-2xl overflow-hidden [&>button]:hidden"
+        className="flex flex-col p-0 gap-0 max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] border border-border bg-background rounded-2xl overflow-hidden shadow-glow [&>button]:hidden"
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5 bg-card/50">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5 bg-muted/30">
           <div className="flex items-center gap-0.5">
             <button
               type="button"
