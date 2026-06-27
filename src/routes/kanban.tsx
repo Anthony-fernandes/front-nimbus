@@ -5,11 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import {
+  WorkItemUpdatesDialog,
+  type WorkItemUpdatesDialogItem,
+} from "@/components/app/WorkItemUpdatesDialog";
 import type { Ticket } from "@/lib/types";
 import { listTickets, updateTicket } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
-import { useItemDrawer } from "@/context/ItemDrawerContext";
-import type { ItemDrawerItem } from "@/context/ItemDrawerContext";
 
 const EMPTY_TICKETS: Ticket[] = [];
 
@@ -44,7 +46,6 @@ function initials(names?: string[]) {
 }
 
 function KanbanPage() {
-  const { openTicket } = useItemDrawer();
   const queryClient = useQueryClient();
   const { data: tickets = EMPTY_TICKETS } = useQuery({
     queryKey: ["kanban-tickets"],
@@ -57,6 +58,7 @@ function KanbanPage() {
   const [filterTech, setFilterTech] = useState<string>("");
   const [filterPriority, setFilterPriority] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [updatesDialogItem, setUpdatesDialogItem] = useState<WorkItemUpdatesDialogItem | null>(null);
 
   const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: listUsers });
 
@@ -112,6 +114,28 @@ function KanbanPage() {
         },
       },
     );
+  };
+
+  const openTicketUpdates = (ticket: Ticket) => {
+    setUpdatesDialogItem({
+      type: "ticket",
+      id: ticket.id,
+      code: ticket.code,
+      title: ticket.title,
+      status: ticket.status,
+      priority: ticket.priority,
+      typeLabel: ticket.type || "Chamado",
+      description: ticket.description,
+      responsibleNames: [
+        ticket.responsible_technician_name,
+        ...(ticket.technician_names || []),
+      ].filter(Boolean) as string[],
+      plannedHours: ticket.est_hours,
+      doneHours: ticket.done_hours,
+      sprintName: ticket.sprint_name,
+      plannedEndDate: ticket.due_at || undefined,
+      subtitle: ticket.client_name || ticket.organization_name || "Chamado",
+    });
   };
 
   return (
@@ -227,10 +251,7 @@ function KanbanPage() {
                     <div className="flex items-center justify-between">
                       <button
                         type="button"
-                        onClick={() => {
-                          const allItems: ItemDrawerItem[] = column.cards.map(c => ({ type: "ticket" as const, id: c.id }));
-                          openTicket(card.id, allItems);
-                        }}
+                        onClick={() => openTicketUpdates(card)}
                         className="text-[10px] font-mono text-muted-foreground hover:text-primary"
                       >
                         {card.code || card.id.slice(0, 8)}
@@ -243,10 +264,7 @@ function KanbanPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        const allItems: ItemDrawerItem[] = column.cards.map(c => ({ type: "ticket" as const, id: c.id }));
-                        openTicket(card.id, allItems);
-                      }}
+                      onClick={() => openTicketUpdates(card)}
                       className="mt-1.5 block w-full text-left text-sm leading-snug hover:text-primary"
                     >
                       {card.title}
@@ -311,6 +329,13 @@ function KanbanPage() {
           ))}
         </div>
       </div>
+      <WorkItemUpdatesDialog
+        open={Boolean(updatesDialogItem)}
+        item={updatesDialogItem}
+        onOpenChange={(open) => {
+          if (!open) setUpdatesDialogItem(null);
+        }}
+      />
     </AppShell>
   );
 }

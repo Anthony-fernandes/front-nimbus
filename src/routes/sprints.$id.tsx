@@ -18,9 +18,12 @@ import {
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
-import { useItemDrawer, type ItemDrawerItem } from "@/context/ItemDrawerContext";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
+import {
+  WorkItemUpdatesDialog,
+  type WorkItemUpdatesDialogItem,
+} from "@/components/app/WorkItemUpdatesDialog";
 import {
   SprintActivityPlanForm,
   toSprintActivityPlanFormData,
@@ -782,10 +785,10 @@ function ActivityPlanningSection({
 
 function SprintDetail() {
   const { id } = Route.useParams();
-  const { openTicket, openActivity } = useItemDrawer();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [updatesDialogItem, setUpdatesDialogItem] = useState<WorkItemUpdatesDialogItem | null>(null);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<SprintActivityPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
@@ -986,12 +989,16 @@ function SprintDetail() {
     [activities],
   );
   useEffect(() => {
+    const loadedActivities = activitiesQuery.data || [];
+    const loadedPlans = plansQuery.data || [];
+    const loadedActivityMap = new Map(loadedActivities.map((activity) => [activity.id, activity]));
+
     setKanbanLocalActivities(
-      sprintPlans
-        .map((plan) => activityMap.get(plan.activityId))
+      loadedPlans
+        .map((plan) => loadedActivityMap.get(plan.activityId))
         .filter((activity): activity is Activity => Boolean(activity)),
     );
-  }, [activityMap, sprintPlans]);
+  }, [activitiesQuery.data, plansQuery.data]);
 
   const userMap = useMemo(
     () =>
@@ -1011,6 +1018,12 @@ function SprintDetail() {
     userMap.get(String(userId))
     || participants.find((participant) => String(participant.userId) === String(userId))?.userName
     || "Usuario";
+
+  const getUniqueNames = (names: Array<string | null | undefined>) =>
+    Array.from(new Set(names.map((name) => name?.trim()).filter(Boolean))) as string[];
+
+  const getResponsibleNamesFromIds = (ids?: string[]) =>
+    ids?.length ? getUniqueNames(ids.map((uid) => getUserName(uid))) : [];
 
   const tagNameSet = useMemo(
     () => new Set(activityTags.filter((tag) => tag.active).map((tag) => tag.name)),
@@ -1124,6 +1137,97 @@ function SprintDetail() {
 
     return [...ticketCards, ...activityCards];
   }, [activityMap, kanbanLocalActivities, kanbanLocalTickets, sprintPlans, ticketPlansQuery.data]);
+
+  const openTicketUpdates = (ticket: PlanningTicketItem | Ticket, plan?: SprintTicketPlan) => {
+    const fullTicket = ticket as Ticket;
+    const responsibleNames = getResponsibleNamesFromIds(plan?.responsibleIds);
+    const fallbackResponsibleNames = getUniqueNames([
+      fullTicket.responsible_technician_name,
+      ...(fullTicket.technician_names || []),
+    ]);
+
+    setUpdatesDialogItem({
+      type: "ticket",
+      id: ticket.id,
+      code: fullTicket.code,
+      title: fullTicket.title,
+      status: fullTicket.status,
+      priority: plan?.priority || fullTicket.priority,
+      typeLabel: fullTicket.type || "Chamado",
+      description: fullTicket.description,
+      responsibleNames: responsibleNames.length ? responsibleNames : fallbackResponsibleNames,
+      plannedHours: plan?.plannedHours ?? fullTicket.est_hours,
+      doneHours: fullTicket.done_hours,
+      storyPoints: plan?.storyPoints,
+      sprintName: sprint?.name,
+      plannedEndDate: plan?.plannedEndDate || fullTicket.due_at || undefined,
+      subtitle: fullTicket.client_name || fullTicket.organization_name || "Chamado",
+    });
+  };
+
+  const openActivityUpdates = (activity: Activity, plan?: SprintActivityPlan, realizedHours?: number) => {
+    const responsibleNames = getResponsibleNamesFromIds(plan?.responsibleIds);
+    const fallbackResponsibleNames = getUniqueNames([
+      activity.assignee_name,
+      ...(activity.assignee_names || []),
+    ]);
+
+    setUpdatesDialogItem({
+      type: "activity",
+      id: activity.id,
+      code: activity.ticket_code || activity.id.slice(0, 8),
+      title: activity.title,
+      status: activity.status,
+      priority: plan?.priority || activity.priority,
+      typeLabel: activity.type || "Atividade",
+      description: activity.description,
+      responsibleNames: responsibleNames.length ? responsibleNames : fallbackResponsibleNames,
+      plannedHours: plan?.plannedHours ?? activity.est_hours,
+      doneHours: realizedHours ?? activity.done_hours,
+      storyPoints: plan?.storyPoints ?? activity.story_points,
+      sprintName: sprint?.name,
+      plannedEndDate: plan?.plannedEndDate || activity.due_at || undefined,
+      subtitle: activity.project_name || activity.ticket_code || "Atividade",
+    });
+  };
+
+  const openKanbanCardUpdates = (card: KanbanCard) => {
+    if (card.type === "activity") {
+      const activity = activityMap.get(card.id) || kanbanLocalActivities.find((item) => item.id === card.id);
+      const plan = sprintPlans.find((item) => item.activityId === card.id);
+      if (activity) {
+        const relatedEntries = allTimeEntries.filter((entry) => entry.activityId === card.id);
+        const summary = plan ? getSprintPlanExecutionSummary(plan, relatedEntries) : undefined;
+        openActivityUpdates(activity, plan, summary?.realizedHours);
+        return;
+      }
+    }
+
+    if (card.type === "ticket") {
+      const ticket =
+        kanbanLocalTickets.find((item) => item.id === card.id)
+        || (allTicketsForPlanning as Ticket[]).find((item) => item.id === card.id);
+      const plan = ticketPlansQuery.data?.find((item) => item.ticketId === card.id);
+      if (ticket) {
+        openTicketUpdates(ticket, plan);
+        return;
+      }
+    }
+
+    setUpdatesDialogItem({
+      type: card.type,
+      id: card.id,
+      code: card.code,
+      title: card.title,
+      status: card.status,
+      priority: card.priority,
+      typeLabel: card.type === "ticket" ? "Chamado" : "Atividade",
+      responsibleNames: getResponsibleNamesFromIds(card.responsibleIds),
+      plannedHours: card.hoursLabel,
+      sprintName: sprint?.name,
+      subtitle: card.subtitle,
+    });
+  };
 
   const totalPlannedHours = sumPlannedHours(sprintPlans);
   const sprintTimeEntries = allTimeEntries.filter((entry) => entry.sprintId === id);
@@ -1751,7 +1855,7 @@ function SprintDetail() {
                               <td className="px-4 py-3">
                                 <div className="flex gap-1">
                                   {ticket && (
-                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => openTicket(ticket.id, undefined, "conversa")}>
+                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => openTicketUpdates(ticket, tPlan)}>
                                       <MessageSquare className="h-3 w-3" /> Responder
                                     </Button>
                                   )}
@@ -1798,7 +1902,7 @@ function SprintDetail() {
                               <td className="px-4 py-3">
                                 <div className="flex gap-1">
                                   {activity && (
-                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => openActivity(activity.id, undefined, "conversa")}>
+                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => openActivityUpdates(activity, plan, planSummary.realizedHours)}>
                                       <MessageSquare className="h-3 w-3" /> Responder
                                     </Button>
                                   )}
@@ -1911,14 +2015,7 @@ function SprintDetail() {
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
               {colCards.map(card => {
-                const drawerList: ItemDrawerItem[] = colCards.map(item => ({ type: item.type, id: item.id }));
-                const openCard = () => {
-                  if (card.type === "activity") {
-                    openActivity(card.id, drawerList);
-                    return;
-                  }
-                  openTicket(card.id, drawerList);
-                };
+                const openCard = () => openKanbanCardUpdates(card);
                 const priorityLabel = normalizeKanbanPriority(card.priority);
                 return (
                   <div
@@ -2106,6 +2203,14 @@ function SprintDetail() {
 
 
       {/* ─── 3-step planning wizard ─── */}
+      <WorkItemUpdatesDialog
+        open={Boolean(updatesDialogItem)}
+        item={updatesDialogItem}
+        onOpenChange={(open) => {
+          if (!open) setUpdatesDialogItem(null);
+        }}
+      />
+
       <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) setWizardOpen(false); }}>
         <DialogContent className="max-w-[98vw] w-[1600px] glass-strong max-h-[90vh] flex flex-col overflow-hidden p-0">
           {/* wizard header + step indicators */}
