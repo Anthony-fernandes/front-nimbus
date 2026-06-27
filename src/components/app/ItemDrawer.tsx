@@ -11,6 +11,7 @@ import {
   History,
   Copy,
   Check,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,6 +67,52 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="flex flex-col gap-1">
       <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
       <div className="text-sm">{children}</div>
+    </div>
+  );
+}
+
+function getInitials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join("");
+}
+
+function TechnicianAvatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
+  const initials = getInitials(name);
+  const dim = size === "md" ? "h-8 w-8 text-xs" : "h-7 w-7 text-[11px]";
+  return (
+    <div
+      title={name}
+      className={`${dim} shrink-0 grid place-items-center rounded-full bg-gradient-primary font-semibold text-primary-foreground ring-2 ring-background`}
+    >
+      {initials}
+    </div>
+  );
+}
+
+function TechnicianAvatarGroup({ names, max = 3 }: { names: string[]; max?: number }) {
+  if (!names.length) return null;
+  const visible = names.slice(0, max);
+  const overflow = names.length - max;
+  return (
+    <div className="flex items-center">
+      {visible.map((name, i) => (
+        <div key={i} className={i > 0 ? "-ml-2" : ""}>
+          <TechnicianAvatar name={name} />
+        </div>
+      ))}
+      {overflow > 0 && (
+        <div
+          title={names.slice(max).join(", ")}
+          className="-ml-2 h-7 w-7 shrink-0 grid place-items-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground ring-2 ring-background"
+        >
+          +{overflow}
+        </div>
+      )}
     </div>
   );
 }
@@ -245,19 +292,27 @@ function TicketDrawerContent({ id, initialTab = "info" }: { id: string; initialT
                 </Select>
               </Field>
               <Field label="Responsável">
-                <Select
-                  value={String(ticket.responsible_technician ?? ticket.technicians?.[0] ?? "")}
-                  onValueChange={v => updateMutation.mutate({ responsible_technician: v } as Partial<Ticket>)}
-                >
-                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="— sem responsável —" /></SelectTrigger>
-                  <SelectContent>
-                    {users.map(u => (
-                      <SelectItem key={u.id} value={String(u.id)} className="text-xs">
-                        {u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  {(ticket.technician_names ?? (ticket.responsible_technician_name ? [ticket.responsible_technician_name] : [])).length > 0 && (
+                    <TechnicianAvatarGroup
+                      names={ticket.technician_names ?? (ticket.responsible_technician_name ? [ticket.responsible_technician_name] : [])}
+                      max={3}
+                    />
+                  )}
+                  <Select
+                    value={String(ticket.responsible_technician ?? ticket.technicians?.[0] ?? "")}
+                    onValueChange={v => updateMutation.mutate({ responsible_technician: v } as Partial<Ticket>)}
+                  >
+                    <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="— sem responsável —" /></SelectTrigger>
+                    <SelectContent>
+                      {users.map(u => (
+                        <SelectItem key={u.id} value={String(u.id)} className="text-xs">
+                          {u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </Field>
               <Field label="Sprint">
                 <Select
@@ -532,19 +587,27 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
                 </Select>
               </Field>
               <Field label="Responsável">
-                <Select
-                  value={String(activity.assignee ?? "")}
-                  onValueChange={v => updateMutation.mutate({ assignee: v } as Partial<Activity>)}
-                >
-                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="— sem responsável —" /></SelectTrigger>
-                  <SelectContent>
-                    {users.map(u => (
-                      <SelectItem key={u.id} value={String(u.id)} className="text-xs">
-                        {u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  {(activity.assignee_names ?? (activity.assignee_name ? [activity.assignee_name] : [])).length > 0 && (
+                    <TechnicianAvatarGroup
+                      names={activity.assignee_names ?? (activity.assignee_name ? [activity.assignee_name] : [])}
+                      max={3}
+                    />
+                  )}
+                  <Select
+                    value={String(activity.assignee ?? "")}
+                    onValueChange={v => updateMutation.mutate({ assignee: v } as Partial<Activity>)}
+                  >
+                    <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="— sem responsável —" /></SelectTrigger>
+                    <SelectContent>
+                      {users.map(u => (
+                        <SelectItem key={u.id} value={String(u.id)} className="text-xs">
+                          {u.name || [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </Field>
               <Field label="Story Points">
                 <input
@@ -645,10 +708,33 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
   );
 }
 
+/* ─── Header avatar strip: reads from React Query cache (no extra request) ─── */
+function DrawerHeaderAvatars({ item }: { item: { type: "ticket" | "activity"; id: string } }) {
+  const queryClient = useQueryClient();
+
+  let names: string[] = [];
+  if (item.type === "ticket") {
+    const ticket = queryClient.getQueryData<import("@/lib/types").Ticket>(["ticket-drawer", item.id]);
+    const nameList = ticket?.technician_names ?? [];
+    const fallback = ticket?.responsible_technician_name;
+    names = nameList.length ? nameList : fallback ? [fallback] : [];
+  } else {
+    const activity = queryClient.getQueryData<import("@/lib/types").Activity>(["activity-drawer", item.id]);
+    const nameList = activity?.assignee_names ?? [];
+    const fallback = activity?.assignee_name;
+    names = nameList.length ? nameList : fallback ? [fallback] : [];
+  }
+
+  if (!names.length) return null;
+  return <TechnicianAvatarGroup names={names} max={4} />;
+}
+
 /* ─── Main ItemDrawer ─── */
 export function ItemDrawer() {
   const { state, goNext, goPrev, close } = useItemDrawer();
   const { item, list, index } = state;
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   const open = item !== null;
   const canPrev = index > 0;
@@ -658,6 +744,15 @@ export function ItemDrawer() {
     ? `${window.location.origin}/${item.type === "ticket" ? "tickets" : "activities"}/${item.id}`
     : "";
 
+  useEffect(() => {
+    if (!moreOpen) return;
+    function handler(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [moreOpen]);
+
   return (
     <Sheet open={open} onOpenChange={v => { if (!v) close(); }}>
       <SheetContent
@@ -665,8 +760,9 @@ export function ItemDrawer() {
         side="right"
       >
         {/* Drawer header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-          <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
+          {/* Nav: prev/next */}
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={goPrev}
@@ -689,6 +785,13 @@ export function ItemDrawer() {
               <span className="ml-1 text-[11px] text-muted-foreground">{index + 1} / {list.length}</span>
             )}
           </div>
+
+          {/* Responsible avatars (from cache) */}
+          {item && <DrawerHeaderAvatars item={item} />}
+
+          <div className="flex-1" />
+
+          {/* Actions */}
           <div className="flex items-center gap-1">
             {pageUrl && <CopyLinkButton url={pageUrl} />}
             {item && (
@@ -702,6 +805,40 @@ export function ItemDrawer() {
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
+            <div ref={moreRef} className="relative">
+              <button
+                type="button"
+                title="Mais opções"
+                onClick={() => setMoreOpen(v => !v)}
+                className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+              {moreOpen && (
+                <div className="absolute right-0 top-9 z-50 min-w-[160px] rounded-xl border border-border bg-background py-1 shadow-xl">
+                  {pageUrl && (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      onClick={() => { void navigator.clipboard.writeText(pageUrl); setMoreOpen(false); }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copiar link
+                    </button>
+                  )}
+                  {item && (
+                    <a
+                      href={pageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      onClick={() => setMoreOpen(false)}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={close}>
               <X className="h-4 w-4" />
             </Button>
