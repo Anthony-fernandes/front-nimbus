@@ -1833,13 +1833,23 @@ function SprintDetail() {
                       <p className="text-sm text-muted-foreground text-center py-4">Nenhum técnico com horas planejadas.</p>
                     ) : technicianList.map(p => {
                       const plannedH = techPlannedHours[p.userId] || 0;
+                      const realizedH = allTimeEntries.filter(e => e.sprintId === id && String(e.collaboratorId) === p.userId).reduce((s, e) => s + toNumber(e.hours, 0), 0);
+                      const pct = plannedH > 0 ? Math.min(100, Math.round((realizedH / plannedH) * 100)) : 0;
+                      const over = realizedH > plannedH;
                       return (
-                        <div key={p.userId} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
-                            {(p.userName || "?")[0].toUpperCase()}
+                        <div key={p.userId} className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                              {(p.userName || "?")[0].toUpperCase()}
+                            </div>
+                            <span className="flex-1 text-sm font-medium truncate">{p.userName || p.userId}</span>
+                            <span className={`shrink-0 text-xs font-semibold ${over ? "text-destructive" : "text-muted-foreground"}`}>
+                              {formatHoursLabel(realizedH)} / {formatHoursLabel(plannedH)}
+                            </span>
                           </div>
-                          <span className="flex-1 text-sm font-medium truncate">{p.userName || p.userId}</span>
-                          <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatHoursLabel(plannedH)} planejadas</span>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                            <div className={`h-full rounded-full transition-all ${over ? "bg-destructive" : "bg-gradient-primary"}`} style={{ width: `${pct}%` }} />
+                          </div>
                         </div>
                       );
                     })}
