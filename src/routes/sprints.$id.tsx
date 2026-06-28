@@ -161,6 +161,74 @@ const PRIORITY_COLORS: Record<string, string> = {
   "Baixa": "bg-blue-500/15 text-blue-500 border-blue-500/30",
 };
 
+function SprintAvatarGroup({ names }: { names: string[] }) {
+  if (!names.length) return <span className="text-xs text-muted-foreground">—</span>;
+  return (
+    <div className="flex items-center">
+      {names.slice(0, 3).map((name, i) => {
+        const initials = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+        return (
+          <div key={i} title={name} className={`${i > 0 ? "-ml-2" : ""} h-7 w-7 grid place-items-center rounded-full bg-gradient-primary text-[11px] font-semibold text-primary-foreground ring-2 ring-background`}>
+            {initials}
+          </div>
+        );
+      })}
+      {names.length > 3 && (
+        <div className="-ml-2 h-7 w-7 grid place-items-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground ring-2 ring-background">
+          +{names.length - 3}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SPRINT_STATUS_COLORS: Record<string, string> = {
+  "Triagem": "bg-slate-500 text-white",
+  "Em atendimento": "bg-primary text-primary-foreground",
+  "Aguardando cliente": "bg-amber-500 text-white",
+  "Validação": "bg-purple-500 text-white",
+  "Pausado": "bg-sky-500 text-white",
+  "Finalizado": "bg-emerald-500 text-white",
+  "Concluída": "bg-emerald-500 text-white",
+  "Em andamento": "bg-primary text-primary-foreground",
+  "Pendente": "bg-slate-500 text-white",
+};
+
+const SPRINT_PRIORITY_COLORS: Record<string, string> = {
+  "Crítica": "bg-red-500 text-white",
+  "Alta": "bg-orange-500 text-white",
+  "Média": "bg-yellow-500 text-black",
+  "Baixa": "bg-blue-500 text-white",
+};
+
+const SPRINT_TYPE_COLORS: Record<string, string> = {
+  "Bug": "bg-red-600 text-white",
+  "Feature": "bg-violet-600 text-white",
+  "Melhoria": "bg-teal-600 text-white",
+  "Suporte": "bg-sky-600 text-white",
+  "Tarefa": "bg-indigo-600 text-white",
+  "Chamado": "bg-slate-600 text-white",
+  "Atividade": "bg-emerald-700 text-white",
+};
+
+function SprintStatusBadge({ status }: { status?: string }) {
+  const s = status ?? "";
+  const cls = SPRINT_STATUS_COLORS[s] ?? "bg-muted text-muted-foreground";
+  return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${cls}`}>{s || "—"}</span>;
+}
+
+function SprintPriorityBadge({ priority }: { priority?: string }) {
+  const p = priority ?? "";
+  const cls = SPRINT_PRIORITY_COLORS[p] ?? "bg-muted text-muted-foreground";
+  return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${cls}`}>{p || "—"}</span>;
+}
+
+function SprintTypeBadge({ type }: { type?: string }) {
+  const t = type ?? "";
+  const cls = SPRINT_TYPE_COLORS[t] ?? "bg-slate-600 text-white";
+  return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${cls}`}>{t || "—"}</span>;
+}
+
 const sprintKanbanCols = [
   { name: "Triagem", label: "Backlog", accent: "bg-muted-foreground" },
   { name: "Em atendimento", label: "Em progresso", accent: "bg-primary" },
@@ -1744,7 +1812,7 @@ function SprintDetail() {
             {(() => {
               const allTicketsForPlan = (Array.isArray(ticketsQuery.data)
                 ? ticketsQuery.data
-                : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as { id: string; code?: string; title?: string }[];
+                : (ticketsQuery.data as { results?: unknown[] } | undefined)?.results ?? []) as Ticket[];
 
               const totalRows = (ticketPlansQuery.data?.length ?? 0) + sprintPlans.length;
 
@@ -1819,57 +1887,66 @@ function SprintDetail() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-muted/40 border-b border-border text-xs text-muted-foreground">
-                          <th className="px-4 py-3 text-left font-medium w-20">Tipo</th>
-                          <th className="px-4 py-3 text-left font-medium">Item</th>
-                          <th className="px-4 py-3 text-left font-medium w-52">Responsáveis</th>
-                          <th className="px-4 py-3 text-left font-medium w-16">SP</th>
-                          <th className="px-4 py-3 text-left font-medium w-24">Planejado</th>
-                          <th className="px-4 py-3 text-left font-medium w-24">Realizado</th>
-                          <th className="px-4 py-3 text-left font-medium w-32">Fim previsto</th>
-                          <th className="px-4 py-3 w-64" />
+                        <tr className="border-b border-border bg-muted/50 text-xs text-muted-foreground">
+                          <th className="px-4 py-3 text-left font-medium">Tarefa</th>
+                          <th className="w-28 px-4 py-3 text-left font-medium">Resp.</th>
+                          <th className="w-36 px-4 py-3 text-left font-medium">Status</th>
+                          <th className="w-28 px-4 py-3 text-left font-medium">Prioridade</th>
+                          <th className="w-36 px-4 py-3 text-left font-medium">Tipo</th>
+                          <th className="w-28 px-4 py-3 text-right font-medium">Horas Planejadas</th>
+                          <th className="w-28 px-4 py-3 text-right font-medium">Horas Executadas</th>
+                          <th className="w-20 px-4 py-3" />
                         </tr>
                       </thead>
                       <tbody>
                         {/* Ticket rows */}
                         {(ticketPlansQuery.data ?? []).map((tPlan) => {
                           const ticket = allTicketsForPlan.find((t) => t.id === tPlan.ticketId);
-                          const respNames = (tPlan.responsibleIds || []).map((uid) => getUserName(uid)).join(", ");
+                          const respNames = getResponsibleNamesFromIds(tPlan.responsibleIds);
                           return (
-                            <tr key={`ticket-${tPlan.id}`} className="border-b border-border last:border-0 hover:bg-muted/10 transition">
+                            <tr
+                              key={`ticket-${tPlan.id}`}
+                              className="group border-b border-border/60 last:border-0 transition-colors hover:bg-muted/30 cursor-pointer"
+                              onClick={() => ticket && openTicketUpdates(ticket, tPlan)}
+                            >
                               <td className="px-4 py-3">
-                                <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-400">Chamado</span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[tPlan.priority ?? ""] || ""}`}>{tPlan.priority}</Badge>
-                                  <span className="font-mono text-xs text-muted-foreground shrink-0">{ticket?.code}</span>
-                                  <span className="font-medium">{ticket?.title ?? tPlan.ticketId}</span>
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="shrink-0 grid h-5 w-5 place-items-center rounded-full bg-primary/20 text-primary">
+                                    <MessageSquare className="h-3 w-3" />
+                                  </span>
+                                  {ticket?.code && (
+                                    <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{ticket.code}</span>
+                                  )}
+                                  <span className="truncate font-medium text-foreground">{ticket?.title ?? tPlan.ticketId}</span>
                                 </div>
                               </td>
-                              <td className="px-4 py-3 text-xs text-muted-foreground">{respNames || "—"}</td>
-                              <td className="px-4 py-3 text-xs font-medium">{tPlan.storyPoints ?? "—"}</td>
-                              <td className="px-4 py-3 text-xs font-semibold">{formatHoursLabel(tPlan.plannedHours ?? 0)}</td>
-                              <td className="px-4 py-3 text-xs text-muted-foreground">—</td>
-                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(tPlan.plannedEndDate)}</td>
                               <td className="px-4 py-3">
-                                <div className="flex gap-1">
-                                  {ticket && (
-                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => openTicketUpdates(ticket, tPlan)}>
-                                      <MessageSquare className="h-3 w-3" /> Responder
-                                    </Button>
-                                  )}
+                                <SprintAvatarGroup names={respNames} />
+                              </td>
+                              <td className="px-4 py-3">
+                                {ticket?.status ? (
+                                  <SprintStatusBadge status={ticket.status} />
+                                ) : <span className="text-xs text-muted-foreground">—</span>}
+                              </td>
+                              <td className="px-4 py-3">
+                                <SprintPriorityBadge priority={tPlan.priority ?? ticket?.priority ?? ""} />
+                              </td>
+                              <td className="px-4 py-3">
+                                <SprintTypeBadge type={ticket?.type ?? ticket?.category_name ?? "Chamado"} />
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm font-medium text-foreground">{formatHoursLabel(tPlan.plannedHours ?? 0)}</td>
+                              <td className="px-4 py-3 text-right text-sm text-muted-foreground">{ticket?.done_hours != null ? `${ticket.done_hours} h` : "—"}</td>
+                              <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                                 <ConfirmDelete
                                   trigger={
-                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive text-xs">
-                                      <Trash2 className="h-3 w-3" /> Remover
-                                    </Button>
+                                    <button type="button" className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive/50 hover:text-destructive">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
                                   }
                                   title="Remover planejamento?"
                                   description="Este chamado sairá do planejamento desta sprint."
                                   onConfirm={async () => { await deleteSprintTicketPlan(tPlan.id); ticketPlansQuery.refetch(); }}
                                 />
-                                </div>
                               </td>
                             </tr>
                           );
@@ -1880,46 +1957,48 @@ function SprintDetail() {
                           const activity = activityMap.get(plan.activityId);
                           const relatedEntries = allTimeEntries.filter((e) => e.activityId === plan.activityId);
                           const planSummary = getSprintPlanExecutionSummary(plan, relatedEntries);
-                          const respNames = (plan.responsibleIds || []).map((uid) => getUserName(uid)).join(", ");
+                          const respNames = getResponsibleNamesFromIds(plan.responsibleIds);
                           return (
-                            <tr key={`activity-${plan.id}`} className="border-b border-border last:border-0 hover:bg-muted/10 transition">
+                            <tr
+                              key={`activity-${plan.id}`}
+                              className="group border-b border-border/60 last:border-0 transition-colors hover:bg-muted/30 cursor-pointer"
+                              onClick={() => activity && openActivityUpdates(activity, plan, planSummary.realizedHours)}
+                            >
                               <td className="px-4 py-3">
-                                <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-400">Atividade</span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <Badge className={`shrink-0 text-[10px] border ${PRIORITY_COLORS[plan.priority ?? ""] || ""}`}>{plan.priority}</Badge>
-                                  <div className="min-w-0">
-                                    <span className="font-medium">{activity?.title ?? plan.activityId}</span>
-                                  </div>
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="shrink-0 grid h-5 w-5 place-items-center rounded-full bg-violet-500/20 text-violet-400">
+                                    <CheckCircle className="h-3 w-3" />
+                                  </span>
+                                  <span className="truncate font-medium text-foreground">{activity?.title ?? plan.activityId}</span>
                                 </div>
                               </td>
-                              <td className="px-4 py-3 text-xs text-muted-foreground">{respNames || "—"}</td>
-                              <td className="px-4 py-3 text-xs font-medium">{plan.storyPoints ?? "—"}</td>
-                              <td className="px-4 py-3 text-xs font-semibold">{formatHoursLabel(planSummary.plannedHours)}</td>
-                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatHoursLabel(planSummary.realizedHours)}</td>
-                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(plan.plannedEndDate)}</td>
                               <td className="px-4 py-3">
-                                <div className="flex gap-1">
-                                  {activity && (
-                                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => openActivityUpdates(activity, plan, planSummary.realizedHours)}>
-                                      <MessageSquare className="h-3 w-3" /> Responder
-                                    </Button>
-                                  )}
-                                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => handleOpenEditPlan(plan)}>
-                                    <Pencil className="h-3 w-3" /> Editar
-                                  </Button>
-                                  <ConfirmDelete
-                                    trigger={
-                                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive text-xs">
-                                        <Trash2 className="h-3 w-3" /> Remover
-                                      </Button>
-                                    }
-                                    title="Remover planejamento?"
-                                    description="Esta atividade sairá do planejamento desta sprint."
-                                    onConfirm={() => handleDeletePlan(plan)}
-                                  />
-                                </div>
+                                <SprintAvatarGroup names={respNames} />
+                              </td>
+                              <td className="px-4 py-3">
+                                {activity?.status ? (
+                                  <SprintStatusBadge status={activity.status} />
+                                ) : <span className="text-xs text-muted-foreground">—</span>}
+                              </td>
+                              <td className="px-4 py-3">
+                                <SprintPriorityBadge priority={plan.priority ?? activity?.priority ?? ""} />
+                              </td>
+                              <td className="px-4 py-3">
+                                <SprintTypeBadge type={activity?.type ?? "Atividade"} />
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm font-medium text-foreground">{formatHoursLabel(planSummary.plannedHours)}</td>
+                              <td className="px-4 py-3 text-right text-sm text-muted-foreground">{formatHoursLabel(planSummary.realizedHours)}</td>
+                              <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                                <ConfirmDelete
+                                  trigger={
+                                    <button type="button" className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive/50 hover:text-destructive">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  }
+                                  title="Remover planejamento?"
+                                  description="Esta atividade sairá do planejamento desta sprint."
+                                  onConfirm={() => handleDeletePlan(plan)}
+                                />
                               </td>
                             </tr>
                           );
