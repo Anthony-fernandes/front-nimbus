@@ -18,6 +18,7 @@ import {
   requestTicketChanges,
 } from "@/services/ticketApprovalService";
 import { listTickets } from "@/services/ticketService";
+import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/aprovacoes")({
   head: () => ({ meta: [{ title: "Aprovações · NimbusDesk" }] }),
@@ -184,7 +185,7 @@ function ApprovalCard({ ticket, onDecided }: { ticket: Ticket; onDecided: () => 
       onDecided();
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : "Não foi possível registrar a decisão.");
+      toast.error(parseApiError(error, "Não foi possível registrar a decisão."));
     },
   });
 

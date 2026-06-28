@@ -37,6 +37,7 @@ import {
   updatePosition,
 } from "@/services/orgService";
 import { listUsers } from "@/services/userService";
+import { parseApiError } from "@/services/utils";
 
 // ---------------------------------------------------------------------------
 // OrgChartTree — pure CSS/SVG org chart, no extra dependencies
@@ -270,9 +271,7 @@ function OrgPage() {
       await queryClient.invalidateQueries({ queryKey: ["departments"] });
       setDeptDialogOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Não foi possível salvar o departamento.",
-      );
+      toast.error(parseApiError(error, "Não foi possível salvar o departamento."));
     } finally {
       setDeptSaving(false);
     }
@@ -284,9 +283,7 @@ function OrgPage() {
       await queryClient.invalidateQueries({ queryKey: ["departments"] });
       toast.success("Departamento removido.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Não foi possível remover o departamento.",
-      );
+      toast.error(parseApiError(error, "Não foi possível remover o departamento."));
     }
   };
 
@@ -329,9 +326,7 @@ function OrgPage() {
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
       setPosDialogOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Não foi possível salvar o cargo.",
-      );
+      toast.error(parseApiError(error, "Não foi possível salvar o cargo."));
     } finally {
       setPosSaving(false);
     }
@@ -343,9 +338,7 @@ function OrgPage() {
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
       toast.success("Cargo removido.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Não foi possível remover o cargo.",
-      );
+      toast.error(parseApiError(error, "Não foi possível remover o cargo."));
     }
   };
 

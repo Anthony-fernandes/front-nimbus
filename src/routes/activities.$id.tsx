@@ -56,7 +56,7 @@ import {
   listSprintPlansByActivity,
 } from "@/services/sprintActivityPlanService";
 import { listSprints } from "@/services/sprintService";
-import { formatCurrency, formatDate, formatDateTime, toNumber } from "@/services/utils";
+import { formatCurrency, formatDate, formatDateTime, toNumber , parseApiError} from "@/services/utils";
 import { listUsers } from "@/services/userService";
 import { listActivityCustomFields, listActivityCustomValues, upsertActivityCustomValue } from "@/services/customFieldService";
 import { CustomFieldsSection } from "@/components/app/CustomFieldsSection";
@@ -241,7 +241,7 @@ function ActivityDetail() {
       setEntryDialogOpen(false);
       setEditingEntry(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o apontamento.");
+      toast.error(parseApiError(error, "Não foi possível salvar o apontamento."));
     } finally {
       setSavingEntry(false);
     }
@@ -263,7 +263,7 @@ function ActivityDetail() {
       ]);
       toast.success("Apontamento removido.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover o apontamento.");
+      toast.error(parseApiError(error, "Não foi possível remover o apontamento."));
     }
   };
 

@@ -29,7 +29,7 @@ import { getStoredUser } from "@/services/authService";
 import { listOrganizations } from "@/services/clientService";
 import { listDepartments, listPositions } from "@/services/orgService";
 import { listPermissionBlocks } from "@/services/permissionBlockService";
-import { maskCurrencyInput } from "@/services/utils";
+import { maskCurrencyInput , parseApiError} from "@/services/utils";
 import { listUsers, saveMember } from "@/services/userService";
 
 export type MemberFormData = {
@@ -451,7 +451,7 @@ export function MemberForm({
         navigate({ to: onCancelHref });
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar usuário");
+      toast.error(parseApiError(error, "Erro ao salvar usuário"));
     }
   };
 

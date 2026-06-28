@@ -29,6 +29,7 @@ import { listActivityTags } from "@/services/activityTagService";
 import { listProjects } from "@/services/projectService";
 import { linkActivityToTicket, listTickets } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
+import { parseApiError } from "@/services/utils";
 
 type SelectOption = {
   value: string;
@@ -317,7 +318,7 @@ export function ActivityForm({
       }
       navigate({ to: `/activities/${saved.id}` });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar atividade.");
+      toast.error(parseApiError(error, "Erro ao salvar atividade."));
     }
   };
 

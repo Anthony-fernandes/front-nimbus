@@ -153,6 +153,7 @@ import { listSprintActivityPlans } from "@/services/sprintActivityPlanService";
 import { listSprints } from "@/services/sprintService";
 import { listTickets } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
+import { parseApiError } from "@/services/utils";
 
 const DASHBOARDS_QUERY_KEY = ["dashboard-builder", "dashboards"] as const;
 const EMPTY_OPTION_VALUE = "__empty__";
@@ -557,8 +558,7 @@ export function DashboardHome({ screen = "viewer" }: { screen?: DashboardHomeScr
     try {
       await action();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Nao foi possivel concluir a acao.";
-      toast.error(message);
+      toast.error(parseApiError(error, "Não foi possível concluir a ação."));
     } finally {
       setPendingAction("");
     }

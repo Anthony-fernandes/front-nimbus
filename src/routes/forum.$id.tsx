@@ -189,8 +189,8 @@ function EditHistoryButton({ topicId, replyId, editCount }: { topicId?: string; 
                   {topicId && (edit as { old_title?: string }).old_title !== (edit as { new_title?: string }).new_title && (
                     <div className="px-3 py-2 border-b border-border/50 space-y-1">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Título</p>
-                      <p className="text-xs line-through text-red-400/70">{(edit as { old_title: string }).old_title}</p>
-                      <p className="text-xs text-green-400">{(edit as { new_title: string }).new_title}</p>
+                      <p className="text-xs line-through text-red-400/70">{(edit as unknown as { old_title: string }).old_title}</p>
+                      <p className="text-xs text-green-400">{(edit as unknown as { new_title: string }).new_title}</p>
                     </div>
                   )}
                   <div className="px-3 py-2 space-y-2">

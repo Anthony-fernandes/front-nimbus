@@ -53,7 +53,7 @@ import {
 } from "@/services/projectCostService";
 import { listTickets } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
-import { formatCurrency, formatDateSafe, toNumber } from "@/services/utils";
+import { formatCurrency, formatDateSafe, toNumber , parseApiError} from "@/services/utils";
 import { listProjectCustomFields, listProjectCustomValues, upsertProjectCustomValue } from "@/services/customFieldService";
 import { CustomFieldsSection } from "@/components/app/CustomFieldsSection";
 
@@ -285,7 +285,7 @@ function ProjectDetail() {
       await refreshProjectCosts();
       closeCostDialog();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar custo do projeto.");
+      toast.error(parseApiError(error, "Erro ao salvar custo do projeto."));
     } finally {
       setCostMutationPending(false);
     }
@@ -299,7 +299,7 @@ function ProjectDetail() {
       await refreshProjectCosts();
       toast.success("Lançamento de custo removido.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao excluir custo do projeto.");
+      toast.error(parseApiError(error, "Erro ao excluir custo do projeto."));
     } finally {
       setDeletingCostId(null);
     }
@@ -323,7 +323,7 @@ function ProjectDetail() {
       ]);
       toast.success(`${memberName} removido da equipe do projeto.`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao remover membro da equipe.");
+      toast.error(parseApiError(error, "Erro ao remover membro da equipe."));
     } finally {
       setRemovingMemberId(null);
     }
@@ -349,7 +349,7 @@ function ProjectDetail() {
       toast.success("Membros adicionados à equipe do projeto.");
       closeAddMembersDialog();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao adicionar membros à equipe.");
+      toast.error(parseApiError(error, "Erro ao adicionar membros à equipe."));
     } finally {
       setAddingMembersPending(false);
     }
@@ -414,7 +414,7 @@ function ProjectDetail() {
       closeAddMembersDialog();
     } catch (error) {
       queryClient.setQueryData(["project", id], previousProject);
-      toast.error(error instanceof Error ? error.message : "Erro ao adicionar membros à equipe.");
+      toast.error(parseApiError(error, "Erro ao adicionar membros à equipe."));
     } finally {
       setAddingMembersPending(false);
     }
@@ -448,7 +448,7 @@ function ProjectDetail() {
       ]);
     } catch (error) {
       queryClient.setQueryData(["project", id], previousProject);
-      toast.error(error instanceof Error ? error.message : "Erro ao atualizar etapa do projeto.");
+      toast.error(parseApiError(error, "Erro ao atualizar etapa do projeto."));
     } finally {
       setTogglingStageId(null);
     }

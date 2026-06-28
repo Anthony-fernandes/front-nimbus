@@ -21,6 +21,7 @@ import {
   getNotificationPreference,
   updateNotificationPreference,
 } from "@/services/notificationService";
+import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/notification-preferences")({
   head: () => ({ meta: [{ title: "Preferências de notificação · NimbusDesk" }] }),
@@ -53,9 +54,7 @@ function NotificationPreferencesPage() {
     mutationFn: () => updateNotificationPreference(form),
     onSuccess: () => toast.success("Preferências salvas."),
     onError: (error: unknown) =>
-      toast.error(
-        error instanceof Error ? error.message : "Não foi possível salvar as preferências.",
-      ),
+      toast.error(parseApiError(error, "Não foi possível salvar as preferências.")),
   });
 
   return (

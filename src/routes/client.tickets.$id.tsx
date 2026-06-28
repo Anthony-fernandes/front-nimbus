@@ -15,7 +15,7 @@ import { getUserClientId } from "@/lib/auth";
 import { getStoredUser } from "@/services/authService";
 import { createTicketTimelineComment, listTicketTimeline } from "@/services/ticketTimelineService";
 import { getTicket, transitionTicket } from "@/services/ticketService";
-import { formatDate, formatDateTime } from "@/services/utils";
+import { formatDate, formatDateTime , parseApiError} from "@/services/utils";
 
 export const Route = createFileRoute("/client/tickets/$id")({
   head: () => ({ meta: [{ title: "Detalhes do chamado · NimbusDesk" }] }),
@@ -87,7 +87,7 @@ function ClientTicketDetailPage() {
       ]);
       toast.success("Chamado atualizado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o chamado.");
+      toast.error(parseApiError(error, "Não foi possível atualizar o chamado."));
     }
   };
 

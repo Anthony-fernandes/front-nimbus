@@ -10,6 +10,7 @@ import type { User } from "@/lib/types";
 import { getHomeRoute, normalizeUser } from "@/lib/auth";
 import { api } from "@/services/api";
 import { setSession } from "@/services/session";
+import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar · NimbusDesk" }] }),
@@ -156,7 +157,7 @@ function LoginForm() {
             toast.success("Login realizado com sucesso");
             navigate({ to: getHomeRoute(user) });
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Código inválido");
+            toast.error(parseApiError(error, "Código inválido"));
           } finally {
             setLoading(false);
           }
@@ -320,7 +321,7 @@ function LoginForm() {
             throw error;
           }
         } catch (error) {
-          toast.error(error instanceof Error ? error.message : "Credenciais inválidas. Tente novamente.");
+          toast.error(parseApiError(error, "Credenciais inválidas. Tente novamente."));
         } finally {
           setLoading(false);
         }

@@ -53,6 +53,7 @@ import {
   formatTicketTypeLabel,
   formatUrgencyLabel,
 } from "@/lib/labels";
+import { parseApiError } from "@/services/utils";
 
 type SelectOption = {
   value: string;
@@ -610,7 +611,7 @@ export function TicketForm({
       toast.success(mode === "create" ? "Chamado criado com sucesso." : "Chamado atualizado.");
       navigate({ to: `/tickets/${saved.id}` });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar chamado.");
+      toast.error(parseApiError(error, "Erro ao salvar chamado."));
     }
   };
 

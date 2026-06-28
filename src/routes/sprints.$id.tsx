@@ -74,7 +74,7 @@ import {
   getSprintVelocity,
   saveSprintRetrospective,
 } from "@/services/sprintService";
-import { formatDate, toNumber } from "@/services/utils";
+import { formatDate, toNumber , parseApiError} from "@/services/utils";
 import { listUsers } from "@/services/userService";
 import { api } from "@/services/api";
 import { BurndownChart } from "@/components/dashboard/Charts";
@@ -1572,7 +1572,7 @@ function SprintDetail() {
       setPlanDialogOpen(false);
       setEditingPlan(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o planejamento.");
+      toast.error(parseApiError(error, "Não foi possível salvar o planejamento."));
     } finally {
       setSavingPlan(false);
     }
@@ -1588,7 +1588,7 @@ function SprintDetail() {
       ]);
       toast.success("Planejamento removido.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível remover o planejamento.");
+      toast.error(parseApiError(error, "Não foi possível remover o planejamento."));
     }
   };
 

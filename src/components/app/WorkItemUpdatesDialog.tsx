@@ -30,7 +30,7 @@ import {
   createTicketTimelineComment,
   listTicketTimeline,
 } from "@/services/ticketTimelineService";
-import { formatDateTime } from "@/services/utils";
+import { formatDateTime , parseApiError} from "@/services/utils";
 import { useTheme } from "@/hooks/useTheme";
 
 export type WorkItemUpdatesDialogItem = {
@@ -480,7 +480,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
       await refreshAfterSubmit();
       toast.success("Resposta tecnica registrada.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel registrar a resposta.");
+      toast.error(parseApiError(error, "Não foi possível registrar a resposta."));
     } finally {
       setSubmittingResponse(false);
     }
@@ -502,7 +502,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
       await refreshAfterSubmit();
       toast.success("Comentario adicionado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel adicionar o comentario.");
+      toast.error(parseApiError(error, "Não foi possível adicionar o comentário."));
     } finally {
       setSubmittingComment(false);
     }

@@ -22,7 +22,7 @@ import { formatProjectStatusLabel } from "@/lib/labels";
 import type { ProjectStage } from "@/lib/types";
 import { listOrganizations } from "@/services/clientService";
 import { saveProject } from "@/services/projectService";
-import { formatDate } from "@/services/utils";
+import { formatDate , parseApiError} from "@/services/utils";
 import { listUsers } from "@/services/userService";
 
 type SelectOption = {
@@ -200,7 +200,7 @@ export function ProjectForm({
       toast.success(mode === "create" ? "Projeto criado" : "Projeto atualizado");
       navigate({ to: onCancelHref });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar projeto");
+      toast.error(parseApiError(error, "Erro ao salvar projeto"));
     }
   };
 

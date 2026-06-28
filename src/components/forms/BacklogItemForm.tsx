@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { parseApiError } from "@/services/utils";
 
 export function BacklogItemForm({ onCancelHref = "/backlog" }: { onCancelHref?: string }) {
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ export function BacklogItemForm({ onCancelHref = "/backlog" }: { onCancelHref?: 
       toast.success("Item adicionado ao backlog");
       navigate({ to: onCancelHref });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar item");
+      toast.error(parseApiError(error, "Erro ao salvar item"));
     }
   };
 

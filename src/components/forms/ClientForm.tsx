@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { listOrganizations, saveClient } from "@/services/clientService";
+import { parseApiError } from "@/services/utils";
 
 export type ClientFormData = {
   name: string;
@@ -98,7 +99,7 @@ export function ClientForm({
       toast.success(mode === "create" ? "Organização cadastrada" : "Organização atualizada");
       navigate({ to: onCancelHref });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar organização");
+      toast.error(parseApiError(error, "Erro ao salvar organização"));
     }
   };
 

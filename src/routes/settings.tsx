@@ -62,6 +62,7 @@ import {
   deleteCustomField,
   type TicketCustomField,
 } from "@/services/customFieldService";
+import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Configurações - Nimbus" }] }),
@@ -190,7 +191,7 @@ function SettingsPage() {
       setSelectedId(saved.id);
       toast.success(selectedStatus ? "Status atualizado." : "Status criado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o status.");
+      toast.error(parseApiError(error, "Não foi possível salvar o status."));
     } finally {
       setSaving(false);
     }
@@ -220,7 +221,7 @@ function SettingsPage() {
       setSelectedTagId(saved.id);
       toast.success(selectedTag ? "Tag atualizada." : "Tag criada.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar a tag.");
+      toast.error(parseApiError(error, "Não foi possível salvar a tag."));
     } finally {
       setSavingTag(false);
     }
@@ -245,7 +246,7 @@ function SettingsPage() {
       }
       toast.success("Status removido.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover o status.");
+      toast.error(parseApiError(error, "Não foi possível remover o status."));
     }
   };
 
@@ -263,7 +264,7 @@ function SettingsPage() {
       }
       toast.success("Tag removida.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel remover a tag.");
+      toast.error(parseApiError(error, "Não foi possível remover a tag."));
     }
   };
 
@@ -825,7 +826,7 @@ function MfaSection() {
       setSetupCode("");
       setSetupOpen(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel carregar configuração MFA.");
+      toast.error(parseApiError(error, "Não foi possível carregar a configuração MFA."));
     } finally {
       setLoadingSetup(false);
     }
@@ -841,7 +842,7 @@ function MfaSection() {
       setSetupCode("");
       await queryClient.invalidateQueries({ queryKey: ["mfa-status"] });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Código invalido. Tente novamente.");
+      toast.error(parseApiError(error, "Código inválido. Tente novamente."));
     } finally {
       setConfirming(false);
     }
@@ -856,7 +857,7 @@ function MfaSection() {
       setDisableCode("");
       await queryClient.invalidateQueries({ queryKey: ["mfa-status"] });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Código invalido. Tente novamente.");
+      toast.error(parseApiError(error, "Código inválido. Tente novamente."));
     } finally {
       setDisabling(false);
     }

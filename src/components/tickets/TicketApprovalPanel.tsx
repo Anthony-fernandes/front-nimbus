@@ -39,6 +39,7 @@ import {
   rejectTicket,
   requestTicketChanges,
 } from "@/services/ticketApprovalService";
+import { parseApiError } from "@/services/utils";
 
 const APPROVAL_BADGE: Record<string, string> = {
   "Aguardando Aprovacao": "bg-warning/15 text-warning",
@@ -111,7 +112,7 @@ export function TicketApprovalPanel({
       refresh();
     },
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Não foi possível registrar a decisão."),
+      toast.error(parseApiError(error, "Não foi possível registrar a decisão.")),
   });
 
   if (approvalStatus === "Nao requerido" && !ticket.converted_activity) {
@@ -322,7 +323,7 @@ function ConvertDialog({
       onConverted();
     },
     onError: (error: unknown) =>
-      toast.error(error instanceof Error ? error.message : "Não foi possível converter o chamado."),
+      toast.error(parseApiError(error, "Não foi possível converter o chamado.")),
   });
 
   return (

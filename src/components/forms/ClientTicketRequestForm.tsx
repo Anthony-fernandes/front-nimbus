@@ -12,6 +12,7 @@ import { getUserClientId, getUserDisplayName } from "@/lib/auth";
 import type { TicketAttachment, User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
 import { createClientTicketRequest } from "@/services/ticketService";
+import { parseApiError } from "@/services/utils";
 
 type ClientTicketFormData = {
   title: string;
@@ -80,9 +81,7 @@ export function ClientTicketRequestForm() {
       toast.success("Chamado aberto com sucesso.");
       navigate({ to: "/client/tickets" });
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Nao foi possivel abrir o chamado.",
-      );
+      toast.error(parseApiError(error, "Não foi possível abrir o chamado."));
     } finally {
       setSaving(false);
     }

@@ -33,6 +33,7 @@ import {
   listPermissionBlocks,
   updatePermissionBlock,
 } from "@/services/permissionBlockService";
+import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/permission-blocks")({
   head: () => ({ meta: [{ title: "Blocos de permissões · Nimbus" }] }),
@@ -160,7 +161,7 @@ function PermissionBlocksPage() {
       setSelectedId(null);
       setFormData(emptyForm);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o bloco.");
+      toast.error(parseApiError(error, "Não foi possível salvar o bloco."));
     } finally {
       setSaving(false);
     }
@@ -181,7 +182,7 @@ function PermissionBlocksPage() {
       }
       toast.success("Bloco removido.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível remover o bloco.");
+      toast.error(parseApiError(error, "Não foi possível remover o bloco."));
     }
   };
 

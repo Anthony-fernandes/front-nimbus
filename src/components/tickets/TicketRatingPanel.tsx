@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Ticket, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { rateTicket } from "@/services/ticketService";
-import { formatDateTime } from "@/services/utils";
+import { formatDateTime , parseApiError} from "@/services/utils";
 
 const CLOSED_STATUSES = [
   "Resolvido",
@@ -53,9 +53,7 @@ export function TicketRatingPanel({
       refresh();
     },
     onError: (error: unknown) =>
-      toast.error(
-        error instanceof Error ? error.message : "Nao foi possivel enviar a avaliacao.",
-      ),
+      toast.error(parseApiError(error, "Não foi possível enviar a avaliação.")),
   });
 
   if (alreadyRated) {

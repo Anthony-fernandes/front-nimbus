@@ -26,6 +26,7 @@ import {
   listTicketCategories,
   saveTicketCategory,
 } from "@/services/ticketCategoryService";
+import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/ticket-categories")({
   head: () => ({ meta: [{ title: "Categorias de chamado · NimbusDesk" }] }),
@@ -102,7 +103,7 @@ function TicketCategoriesPage() {
       setSelectedId(null);
       toast.success(selectedCategory ? "Categoria atualizada." : "Categoria criada.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível salvar a categoria.");
+      toast.error(parseApiError(error, "Não foi possível salvar a categoria."));
     } finally {
       setSaving(false);
     }
@@ -120,7 +121,7 @@ function TicketCategoriesPage() {
       if (selectedId === category.id) setSelectedId(null);
       toast.success("Categoria removida.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível remover a categoria.");
+      toast.error(parseApiError(error, "Não foi possível remover a categoria."));
     }
   };
 

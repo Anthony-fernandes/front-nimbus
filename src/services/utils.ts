@@ -1,3 +1,34 @@
+import type { AxiosError } from "axios";
+
+/**
+ * Extracts a user-friendly error message from an API error.
+ * Never exposes raw technical messages or stack traces.
+ */
+export function parseApiError(error: unknown, fallback: string): string {
+  if (!error || typeof error !== "object") return fallback;
+
+  const axiosError = error as AxiosError<Record<string, unknown>>;
+  const data = axiosError.response?.data;
+
+  if (!data) return fallback;
+
+  // Check top-level message fields
+  if (typeof data.detail === "string" && data.detail) return data.detail;
+  if (typeof data.message === "string" && data.message) return data.message;
+  if (typeof data.error === "string" && data.error) return data.error;
+
+  // Field-level validation errors: { field_name: ["error text"] }
+  if (typeof data === "object" && !Array.isArray(data)) {
+    const fieldErrors = Object.entries(data)
+      .filter(([, v]) => Array.isArray(v) || typeof v === "string")
+      .map(([, v]) => (Array.isArray(v) ? v.join(", ") : String(v)))
+      .filter(Boolean);
+    if (fieldErrors.length > 0) return fieldErrors.join(". ");
+  }
+
+  return fallback;
+}
+
 export function toNumber(value: string | number | undefined | null, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;

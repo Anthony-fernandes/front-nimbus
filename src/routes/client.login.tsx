@@ -10,6 +10,7 @@ import type { User } from "@/lib/types";
 import { normalizeUser, normalizeUserRole } from "@/lib/auth";
 import { api } from "@/services/api";
 import { setSession } from "@/services/session";
+import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/client/login")({
   head: () => ({ meta: [{ title: "Portal do cliente · Entrar · NimbusDesk" }] }),
@@ -103,7 +104,7 @@ function ClientLoginForm() {
             toast.success("Login realizado com sucesso");
             navigate({ to: "/client" });
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Código inválido");
+            toast.error(parseApiError(error, "Código inválido"));
           } finally {
             setLoading(false);
           }
@@ -202,7 +203,7 @@ function ClientLoginForm() {
           }
         } catch (error) {
           if (!accessError) {
-            toast.error(error instanceof Error ? error.message : "Não foi possível entrar");
+            toast.error(parseApiError(error, "Não foi possível entrar"));
           }
         } finally {
           setLoading(false);

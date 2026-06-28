@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { TicketTimelineEvent, TicketVisibility } from "@/lib/types";
-import { formatDateTime } from "@/services/utils";
+import { formatDateTime , parseApiError} from "@/services/utils";
 
 export function TicketTimeline({
   events,
@@ -57,7 +57,7 @@ export function TicketTimeline({
       await onCommentSubmit({ message: message.trim(), visibility });
       setMessage("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel publicar a resposta.");
+      toast.error(parseApiError(error, "Não foi possível publicar a resposta."));
     } finally {
       setSubmitting(false);
     }

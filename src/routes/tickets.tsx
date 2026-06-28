@@ -98,6 +98,7 @@ import { listTicketCategories } from "@/services/ticketCategoryService";
 import { listTickets, transitionTicket } from "@/services/ticketService";
 import { listTicketWorkflowStatuses } from "@/services/ticketWorkflowService";
 import { listUsers } from "@/services/userService";
+import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/tickets")({
   head: () => ({ meta: [{ title: "Chamados · Nimbus" }] }),
@@ -399,7 +400,7 @@ function TicketsPage() {
       toast.success(preparedAction.successMessage);
       setDialogState(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o chamado.");
+      toast.error(parseApiError(error, "Não foi possível atualizar o chamado."));
     } finally {
       setWorkflowSaving(false);
     }
