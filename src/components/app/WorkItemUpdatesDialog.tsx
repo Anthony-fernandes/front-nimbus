@@ -262,11 +262,11 @@ function getLogDescriptor(event: TicketTimelineEvent) {
   return { field: event.type || "Comentario", from: "-", to: message, kind: "text" as const };
 }
 
-function FieldBox({ label, children, wide = false }: { label: string; children: React.ReactNode; wide?: boolean }) {
+function FieldBox({ label, children, wide = false, noPadding = false }: { label: string; children: React.ReactNode; wide?: boolean; noPadding?: boolean }) {
   return (
     <div className={wide ? "md:col-span-2" : undefined}>
       <div className="mb-1.5 text-xs font-semibold text-muted-foreground">{label}</div>
-      <div className="flex min-h-10 items-center rounded-md border border-border bg-muted/40 px-3 text-sm text-foreground">
+      <div className={`flex min-h-10 items-stretch overflow-hidden rounded-md border border-border bg-muted/40 text-sm text-foreground ${noPadding ? "" : "px-3"}`}>
         {children}
       </div>
     </div>
@@ -586,18 +586,18 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
                           ))}
                         </div>
                       </FieldBox>
-                      <FieldBox label="Status">
-                        <span className={`grid h-full min-h-8 w-full place-items-center rounded text-sm font-semibold ${getStatusTone(status)}`}>
+                      <FieldBox label="Status" noPadding>
+                        <span className={`grid w-full place-items-center text-sm font-semibold ${getStatusTone(status)}`}>
                           {status}
                         </span>
                       </FieldBox>
-                      <FieldBox label="Prioridade">
-                        <span className={`grid h-full min-h-8 w-full place-items-center rounded text-sm font-semibold ${getPriorityTone(priority)}`}>
+                      <FieldBox label="Prioridade" noPadding>
+                        <span className={`grid w-full place-items-center text-sm font-semibold ${getPriorityTone(priority)}`}>
                           {priority}
                         </span>
                       </FieldBox>
-                      <FieldBox label="Tipo">
-                        <span className="grid h-full min-h-8 w-full place-items-center rounded bg-accent text-sm font-semibold text-accent-foreground">
+                      <FieldBox label="Tipo" noPadding>
+                        <span className="grid w-full place-items-center bg-accent text-sm font-semibold text-accent-foreground">
                           {typeLabel}
                         </span>
                       </FieldBox>
