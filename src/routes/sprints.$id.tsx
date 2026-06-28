@@ -229,11 +229,11 @@ function SprintTypeBadge({ type }: { type?: string }) {
   return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${cls}`}>{t || "—"}</span>;
 }
 
-function SprintFieldBox({ label, children, noPadding = false, wide = false }: { label: string; children: React.ReactNode; noPadding?: boolean; wide?: boolean }) {
+function SprintFieldBox({ label, children, noPadding = false, wide = false, left = false }: { label: string; children: React.ReactNode; noPadding?: boolean; wide?: boolean; left?: boolean }) {
   return (
     <div className={wide ? "md:col-span-2" : undefined}>
       <div className="mb-1.5 text-xs font-semibold text-muted-foreground">{label}</div>
-      <div className={`flex min-h-10 items-stretch overflow-hidden rounded-md border border-border bg-muted/40 text-sm text-foreground ${noPadding ? "" : "px-3 items-center"}`}>
+      <div className={`flex min-h-10 items-stretch overflow-hidden rounded-md border border-border bg-muted/40 text-sm text-foreground ${noPadding ? "" : `px-3 items-center ${left ? "" : "justify-center"}`}`}>
         {children}
       </div>
     </div>
@@ -1747,7 +1747,7 @@ function SprintDetail() {
                         {formatSprintStatusLabel(sprint.status || "Planejada")}
                       </span>
                     </SprintFieldBox>
-                    <SprintFieldBox label="Responsável">
+                    <SprintFieldBox label="Responsável" left>
                       <div className="flex items-center gap-2">
                         {sprint.lead_name ? (
                           <>
@@ -1828,38 +1828,18 @@ function SprintDetail() {
                   <div className="flex items-center justify-between border-b border-border px-5 py-4">
                     <h3 className="text-lg font-semibold text-foreground">Capacidade por técnico</h3>
                   </div>
-                  <div className="p-4 space-y-3">
+                  <div className="p-4 space-y-2">
                     {technicianList.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">Nenhum técnico com horas planejadas.</p>
                     ) : technicianList.map(p => {
                       const plannedH = techPlannedHours[p.userId] || 0;
-                      const realizedH = allTimeEntries.filter(e => e.sprintId === id && String(e.collaboratorId) === p.userId).reduce((s, e) => s + toNumber(e.hours, 0), 0);
-                      const balance = p.capacity - plannedH;
-                      const pct = p.capacity > 0 ? Math.min(999, Math.round((plannedH / p.capacity) * 100)) : 0;
-                      const over = plannedH > p.capacity;
                       return (
-                        <div key={p.userId} className={`rounded-xl border p-4 space-y-3 ${over ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/20"}`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-primary text-[10px] font-semibold text-primary-foreground">
-                                {(p.userName || "?")[0].toUpperCase()}
-                              </div>
-                              <span className="text-sm font-semibold truncate">{p.userName || p.userId}</span>
-                            </div>
-                            {over && <span className="text-[10px] font-semibold text-destructive">SOBRECARGA</span>}
+                        <div key={p.userId} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-primary text-[11px] font-semibold text-primary-foreground">
+                            {(p.userName || "?")[0].toUpperCase()}
                           </div>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                            <span className="text-muted-foreground">Capacidade</span><span className="font-medium text-right">{formatHoursLabel(p.capacity)}</span>
-                            <span className="text-muted-foreground">Planejado</span><span className={`font-medium text-right ${over ? "text-destructive" : ""}`}>{formatHoursLabel(plannedH)}</span>
-                            <span className="text-muted-foreground">Executado</span><span className="font-medium text-right">{formatHoursLabel(realizedH)}</span>
-                            <span className="text-muted-foreground">Saldo</span><span className={`font-semibold text-right ${balance < 0 ? "text-destructive" : "text-success"}`}>{balance < 0 ? "-" : "+"}{formatHoursLabel(Math.abs(balance))}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                              <div className={`h-full rounded-full transition-all ${over ? "bg-destructive" : "bg-gradient-primary"}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                            </div>
-                            <p className="text-[10px] text-right text-muted-foreground">{pct}% utilizado</p>
-                          </div>
+                          <span className="flex-1 text-sm font-medium truncate">{p.userName || p.userId}</span>
+                          <span className="shrink-0 text-xs font-semibold text-muted-foreground">{formatHoursLabel(plannedH)} planejadas</span>
                         </div>
                       );
                     })}
