@@ -229,6 +229,25 @@ function SprintTypeBadge({ type }: { type?: string }) {
   return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${cls}`}>{t || "—"}</span>;
 }
 
+function SprintFieldBox({ label, children, noPadding = false, wide = false }: { label: string; children: React.ReactNode; noPadding?: boolean; wide?: boolean }) {
+  return (
+    <div className={wide ? "md:col-span-2" : undefined}>
+      <div className="mb-1.5 text-xs font-semibold text-muted-foreground">{label}</div>
+      <div className={`flex min-h-10 items-stretch overflow-hidden rounded-md border border-border bg-muted/40 text-sm text-foreground ${noPadding ? "" : "px-3 items-center"}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const SPRINT_OVERVIEW_STATUS: Record<string, string> = {
+  "Planejada": "bg-muted text-muted-foreground",
+  "Em andamento": "bg-primary text-primary-foreground",
+  "Concluída": "bg-success text-success-foreground",
+  "Cancelada": "bg-destructive text-destructive-foreground",
+  "Pausada": "bg-warning text-warning-foreground",
+};
+
 const sprintKanbanCols = [
   { name: "Triagem", label: "Backlog", accent: "bg-muted-foreground" },
   { name: "Em atendimento", label: "Em progresso", accent: "bg-primary" },
@@ -1694,116 +1713,139 @@ function SprintDetail() {
             <TabsTrigger value="velocity">Velocidade</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-5">
-            {/* Sprint goal */}
-            <div className="glass rounded-2xl p-5 shadow-card">
-              <h3 className="mb-2 text-sm font-semibold">Objetivo da sprint</h3>
-              <p className="text-sm text-muted-foreground">{sprint.goal || "Nenhum objetivo informado."}</p>
-            </div>
-
-            {/* Per-technician capacity panel */}
-            {participants.length > 0 && (
-              <div className="glass rounded-2xl p-5 shadow-card space-y-4">
-                <h3 className="text-sm font-semibold">Capacidade por técnico</h3>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {participants.map(p => {
-                    const plannedH = techPlannedHours[p.userId] || 0;
-                    const realizedH = (() => {
-                      return allTimeEntries
-                        .filter(e => e.sprintId === id && String(e.collaboratorId) === p.userId)
-                        .reduce((s, e) => s + toNumber(e.hours, 0), 0);
-                    })();
-                    const balance = p.capacity - plannedH;
-                    const pct = p.capacity > 0 ? Math.min(999, Math.round((plannedH / p.capacity) * 100)) : 0;
-                    const over = plannedH > p.capacity;
-                    return (
-                      <div key={p.id} className={`rounded-xl border p-4 space-y-3 ${over ? "border-destructive/40 bg-destructive/5" : "border-border bg-card/40"}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-primary text-[10px] font-semibold text-primary-foreground">
-                              {(p.userName || "?")[0].toUpperCase()}
-                            </div>
-                            <span className="text-sm font-semibold truncate">{p.userName || p.userId}</span>
-                          </div>
-                          {over && <span className="text-[10px] font-semibold text-destructive">SOBRECARGA</span>}
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                          <span className="text-muted-foreground">Capacidade</span><span className="font-medium text-right">{formatHoursLabel(p.capacity)}</span>
-                          <span className="text-muted-foreground">Planejado</span><span className={`font-medium text-right ${over ? "text-destructive" : ""}`}>{formatHoursLabel(plannedH)}</span>
-                          <span className="text-muted-foreground">Executado</span><span className="font-medium text-right">{formatHoursLabel(realizedH)}</span>
-                          <span className="text-muted-foreground">Saldo</span><span className={`font-semibold text-right ${balance < 0 ? "text-destructive" : "text-success"}`}>{balance < 0 ? "-" : "+"}{formatHoursLabel(Math.abs(balance))}</span>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                            <div className={`h-full rounded-full transition-all ${over ? "bg-destructive" : "bg-gradient-primary"}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                          </div>
-                          <p className="text-[10px] text-right text-muted-foreground">{pct}% utilizado</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-5 lg:grid-cols-3">
-              {/* Left: capacity + indicators */}
-              <div className="lg:col-span-2 space-y-4">
-                {/* Capacity bar */}
-                <div className="glass rounded-2xl p-5 shadow-card space-y-3">
-                  <h3 className="text-sm font-semibold">Capacidade x planejamento</h3>
-                  <div className="space-y-2 text-sm">
-                    <SummaryLine label="Capacidade da sprint" value={formatHoursLabel(toNumber(sprint.capacity, 0))} />
-                    <SummaryLine label="Total planejado" value={formatHoursLabel(totalPlannedHours)} />
-                    <SummaryLine label="Saldo de capacidade" value={formatHoursLabel(Math.max(0, toNumber(sprint.capacity, 0) - totalPlannedHours))} />
-                  </div>
-                  {toNumber(sprint.capacity, 0) > 0 && (
-                    <div className="space-y-1">
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className={`h-full rounded-full transition-all ${capacityUtilization > 100 ? "bg-destructive" : "bg-gradient-primary"}`}
-                          style={{ width: `${Math.min(100, capacityUtilization)}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground text-right">{capacityUtilization}% utilizado</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="glass rounded-2xl p-5 shadow-card">
-                  <h3 className="mb-3 text-sm font-semibold">Indicadores da sprint</h3>
-                  <div className="space-y-2 text-sm">
-                    <SummaryLine label="Chamados planejados" value={String(ticketPlansQuery.data?.length ?? 0)} />
-                    <SummaryLine label="Atividades planejadas" value={String(sprintPlans.length)} />
-                    <SummaryLine label="Atividades estouradas" value={String(overrunPlans)} />
-                    <SummaryLine label="Apontamentos nesta sprint" value={String(sprintTimeEntries.length)} />
-                    <SummaryLine label="Total realizado" value={formatHoursLabel(totalRealizedHours)} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: details */}
+          <TabsContent value="overview">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
+              {/* ── Left column ── */}
               <div className="space-y-4">
-                <div className="glass rounded-2xl p-5 shadow-card">
-                  <h3 className="mb-3 text-sm font-semibold">Detalhes</h3>
-                  <dl className="space-y-2 text-sm">
-                    {([
-                      ["Responsável", sprint.lead_name || "-"],
-                      ["Status", formatSprintStatusLabel(sprint.status || "Planejada")],
-                      ["Início", formatDate(sprint.start_at)],
-                      ["Fim", formatDate(sprint.end_at)],
-                      ["Capacidade", formatHoursLabel(toNumber(sprint.capacity, 0))],
-                      ["Horas planejadas", formatHoursLabel(totalPlannedHours)],
-                    ] as [string, string][]).map(([label, value]) => (
-                      <div key={label} className="flex items-center justify-between gap-3">
-                        <dt className="text-xs text-muted-foreground">{label}</dt>
-                        <dd className="text-right font-medium">{value}</dd>
+                {/* Details card */}
+                <div className="rounded-lg border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                    <h3 className="text-lg font-semibold text-foreground">Detalhes da sprint</h3>
+                  </div>
+                  <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+                    <SprintFieldBox label="Status" noPadding>
+                      <span className={`grid w-full place-items-center text-sm font-semibold ${SPRINT_OVERVIEW_STATUS[formatSprintStatusLabel(sprint.status || "Planejada")] ?? "bg-muted text-muted-foreground"}`}>
+                        {formatSprintStatusLabel(sprint.status || "Planejada")}
+                      </span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Responsável">
+                      <div className="flex items-center gap-2">
+                        {sprint.lead_name ? (
+                          <>
+                            <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gradient-primary text-[10px] font-bold text-primary-foreground">
+                              {sprint.lead_name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()}
+                            </div>
+                            <span>{sprint.lead_name}</span>
+                          </>
+                        ) : <span className="text-muted-foreground">—</span>}
                       </div>
-                    ))}
-                  </dl>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Capacidade">
+                      <span className="font-medium">{formatHoursLabel(toNumber(sprint.capacity, 0))}</span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Início">
+                      <span>{formatDate(sprint.start_at)}</span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Fim">
+                      <span>{formatDate(sprint.end_at)}</span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Horas planejadas">
+                      <span className="font-medium">{formatHoursLabel(totalPlannedHours)}</span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Total realizado">
+                      <span className="font-medium">{formatHoursLabel(totalRealizedHours)}</span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Chamados planejados">
+                      <span className="font-medium">{ticketPlansQuery.data?.length ?? 0}</span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Atividades planejadas">
+                      <span className="font-medium">{sprintPlans.length}</span>
+                    </SprintFieldBox>
+                  </div>
                 </div>
-                <InfoPanel icon={TrendingUp} text={`Total realizado nesta sprint: ${formatHoursLabel(totalRealizedHours)}.`} />
-                <InfoPanel icon={TimerReset} text={overrunPlans > 0 ? `${overrunPlans} atividade(s) estouraram o planejado nesta sprint.` : "Nenhuma atividade estourou o planejado nesta sprint."} />
+
+                {/* Objetivo */}
+                <div className="rounded-lg border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                    <h3 className="text-lg font-semibold text-foreground">Objetivo da sprint</h3>
+                  </div>
+                  <div className="min-h-[80px] whitespace-pre-wrap px-5 py-4 text-sm leading-relaxed text-foreground/80">
+                    {sprint.goal || "Nenhum objetivo informado."}
+                  </div>
+                </div>
+
+                {/* Indicadores */}
+                <div className="rounded-lg border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                    <h3 className="text-lg font-semibold text-foreground">Indicadores</h3>
+                  </div>
+                  <div className="grid gap-4 p-5 sm:grid-cols-2">
+                    <SprintFieldBox label="Atividades estouradas">
+                      <span className={`font-semibold ${overrunPlans > 0 ? "text-destructive" : "text-success"}`}>{overrunPlans}</span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Apontamentos na sprint">
+                      <span className="font-medium">{sprintTimeEntries.length}</span>
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Saldo de capacidade">
+                      {(() => { const saldo = toNumber(sprint.capacity, 0) - totalPlannedHours; return <span className={`font-semibold ${saldo < 0 ? "text-destructive" : "text-success"}`}>{saldo < 0 ? "-" : "+"}{formatHoursLabel(Math.abs(saldo))}</span>; })()}
+                    </SprintFieldBox>
+                    <SprintFieldBox label="Utilização">
+                      {toNumber(sprint.capacity, 0) > 0 ? (
+                        <div className="flex w-full items-center gap-3">
+                          <div className="flex-1 h-2 overflow-hidden rounded-full bg-muted">
+                            <div className={`h-full rounded-full transition-all ${capacityUtilization > 100 ? "bg-destructive" : "bg-gradient-primary"}`} style={{ width: `${Math.min(100, capacityUtilization)}%` }} />
+                          </div>
+                          <span className={`shrink-0 text-xs font-semibold ${capacityUtilization > 100 ? "text-destructive" : "text-foreground"}`}>{capacityUtilization}%</span>
+                        </div>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </SprintFieldBox>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Right column: technicians ── */}
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border bg-card">
+                  <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                    <h3 className="text-lg font-semibold text-foreground">Capacidade por técnico</h3>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {participants.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum participante cadastrado.</p>
+                    ) : participants.map(p => {
+                      const plannedH = techPlannedHours[p.userId] || 0;
+                      const realizedH = allTimeEntries.filter(e => e.sprintId === id && String(e.collaboratorId) === p.userId).reduce((s, e) => s + toNumber(e.hours, 0), 0);
+                      const balance = p.capacity - plannedH;
+                      const pct = p.capacity > 0 ? Math.min(999, Math.round((plannedH / p.capacity) * 100)) : 0;
+                      const over = plannedH > p.capacity;
+                      return (
+                        <div key={p.id} className={`rounded-xl border p-4 space-y-3 ${over ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/20"}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-primary text-[10px] font-semibold text-primary-foreground">
+                                {(p.userName || "?")[0].toUpperCase()}
+                              </div>
+                              <span className="text-sm font-semibold truncate">{p.userName || p.userId}</span>
+                            </div>
+                            {over && <span className="text-[10px] font-semibold text-destructive">SOBRECARGA</span>}
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                            <span className="text-muted-foreground">Capacidade</span><span className="font-medium text-right">{formatHoursLabel(p.capacity)}</span>
+                            <span className="text-muted-foreground">Planejado</span><span className={`font-medium text-right ${over ? "text-destructive" : ""}`}>{formatHoursLabel(plannedH)}</span>
+                            <span className="text-muted-foreground">Executado</span><span className="font-medium text-right">{formatHoursLabel(realizedH)}</span>
+                            <span className="text-muted-foreground">Saldo</span><span className={`font-semibold text-right ${balance < 0 ? "text-destructive" : "text-success"}`}>{balance < 0 ? "-" : "+"}{formatHoursLabel(Math.abs(balance))}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                              <div className={`h-full rounded-full transition-all ${over ? "bg-destructive" : "bg-gradient-primary"}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                            </div>
+                            <p className="text-[10px] text-right text-muted-foreground">{pct}% utilizado</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>
