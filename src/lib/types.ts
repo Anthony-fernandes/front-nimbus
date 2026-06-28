@@ -581,10 +581,40 @@ export type PermissionBlock = {
   updated_at?: string;
 };
 
+export type Team = {
+  id: string;
+  name: string;
+  description?: string;
+  leader?: string | null;
+  leader_name?: string;
+  status?: string;
+  color?: string;
+  icon?: string;
+  default_capacity?: number;
+  settings?: Record<string, unknown>;
+  member_count?: number;
+  members?: TeamMember[];
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type TeamMember = {
+  id: string;
+  team: string;
+  user: string;
+  user_name?: string;
+  user_email?: string;
+  role?: string;
+  default_hours_per_day?: number;
+  default_capacity?: number;
+  created_at?: string;
+};
+
 export type Sprint = {
   id: string;
   name: string;
   goal?: string;
+  observations?: string;
   project?: string | null;
   project_name?: string;
   lead?: string | null;
@@ -704,10 +734,19 @@ export type SprintParticipant = {
   sprintId: string;
   userId: string;
   userName?: string;
+  teamId?: string | null;
+  teamName?: string | null;
+  inclusionMode?: "team" | "manual";
   hoursPerDay: number;
   workingDays: number;
   availabilityFactor: number;
   capacity: number;
+  storyPointsPlanned?: number;
+  storyPointsCompleted?: number;
+  hoursPlanned?: number;
+  hoursExecuted?: number;
+  isAvailable?: boolean;
+  notes?: string;
   createdAt?: string;
 };
 

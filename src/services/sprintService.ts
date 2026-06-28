@@ -32,13 +32,11 @@ export async function saveSprint(data: SprintFormData, mode: "create" | "edit", 
 
   const payload = {
     name: data.name,
-    project: data.project || null,
-    lead: data.lead || null,
     goal: data.goal || "",
+    observations: data.observations || "",
     status: data.status || "Planejada",
     start_at: toDateOrNull(data.startAt),
     end_at: toDateOrNull(data.endAt),
-    capacity: toNumber(data.capacity, 0),
   };
 
   return mode === "edit" ? updateSprint(sprintId!, payload) : createSprint(payload);
@@ -47,13 +45,11 @@ export async function saveSprint(data: SprintFormData, mode: "create" | "edit", 
 export function toSprintFormData(sprint: Sprint): Partial<SprintFormData> {
   return {
     name: sprint.name,
-    project: sprint.project || "",
-    lead: sprint.lead || "",
     startAt: sprint.start_at || "",
     endAt: sprint.end_at || "",
     goal: sprint.goal || "",
+    observations: sprint.observations || "",
     status: sprint.status || "Planejada",
-    capacity: String(sprint.capacity ?? 0),
   };
 }
 
