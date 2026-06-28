@@ -7,7 +7,7 @@ export const Route = createFileRoute("/equipes/nova")({
   head: () => ({ meta: [{ title: "Nova equipe · NimbusDesk" }] }),
   component: () => (
     <AppShell>
-      <div className="max-w-5xl space-y-5">
+      <div className="space-y-5">
         <PageHeader
           crumbs={[{ label: "Equipes", to: "/equipes" }, { label: "Nova" }]}
           title="Nova equipe"

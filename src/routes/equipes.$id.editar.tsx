@@ -18,7 +18,7 @@ function EditarEquipe() {
 
   return (
     <AppShell>
-      <div className="max-w-5xl space-y-5">
+      <div className="space-y-5">
         <PageHeader
           crumbs={[{ label: "Equipes", to: "/equipes" }, { label: team?.name ?? id, to: `/equipes/${id}` }, { label: "Editar" }]}
           title="Editar equipe"
