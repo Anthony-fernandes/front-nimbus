@@ -1316,6 +1316,25 @@ function SprintDetail() {
     });
   };
 
+  // Merge registered participants with users who have planned hours in this sprint
+  const technicianList = useMemo(() => {
+    const list: { userId: string; userName: string; capacity: number }[] = [];
+    const seen = new Set<string>();
+    for (const p of participants) {
+      seen.add(String(p.userId));
+      list.push({ userId: String(p.userId), userName: p.userName || p.userId, capacity: p.capacity });
+    }
+    for (const uid of Object.keys(techPlannedHours)) {
+      if (!seen.has(uid)) {
+        seen.add(uid);
+        const user = users.find(u => String(u.id) === uid);
+        const name = user ? (user.name || [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || uid) : uid;
+        list.push({ userId: uid, userName: name, capacity: 0 });
+      }
+    }
+    return list;
+  }, [participants, techPlannedHours, users]);
+
   const totalPlannedHours = sumPlannedHours(sprintPlans);
   const sprintTimeEntries = allTimeEntries.filter((entry) => entry.sprintId === id);
   const totalRealizedHours = sumRealizedHours(sprintTimeEntries);
@@ -1722,7 +1741,7 @@ function SprintDetail() {
                   <div className="flex items-center justify-between border-b border-border px-5 py-4">
                     <h3 className="text-lg font-semibold text-foreground">Detalhes da sprint</h3>
                   </div>
-                  <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid items-start gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
                     <SprintFieldBox label="Status" noPadding>
                       <span className={`grid w-full place-items-center text-sm font-semibold ${SPRINT_OVERVIEW_STATUS[formatSprintStatusLabel(sprint.status || "Planejada")] ?? "bg-muted text-muted-foreground"}`}>
                         {formatSprintStatusLabel(sprint.status || "Planejada")}
@@ -1810,16 +1829,16 @@ function SprintDetail() {
                     <h3 className="text-lg font-semibold text-foreground">Capacidade por técnico</h3>
                   </div>
                   <div className="p-4 space-y-3">
-                    {participants.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum participante cadastrado.</p>
-                    ) : participants.map(p => {
+                    {technicianList.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum técnico com horas planejadas.</p>
+                    ) : technicianList.map(p => {
                       const plannedH = techPlannedHours[p.userId] || 0;
                       const realizedH = allTimeEntries.filter(e => e.sprintId === id && String(e.collaboratorId) === p.userId).reduce((s, e) => s + toNumber(e.hours, 0), 0);
                       const balance = p.capacity - plannedH;
                       const pct = p.capacity > 0 ? Math.min(999, Math.round((plannedH / p.capacity) * 100)) : 0;
                       const over = plannedH > p.capacity;
                       return (
-                        <div key={p.id} className={`rounded-xl border p-4 space-y-3 ${over ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/20"}`}>
+                        <div key={p.userId} className={`rounded-xl border p-4 space-y-3 ${over ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/20"}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-primary text-[10px] font-semibold text-primary-foreground">
