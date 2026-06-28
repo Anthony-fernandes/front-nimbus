@@ -100,6 +100,12 @@ function getInternalMenu(user: User | null | undefined) {
       visible: hasPermission(user, "sprints.view"),
     },
     {
+      title: "Equipes",
+      url: "/equipes",
+      icon: UsersRound,
+      visible: hasAnyPermission(user, ["sprints.view", "users.view", "users.manage"]),
+    },
+    {
       title: "Kanban",
       url: "/kanban",
       icon: Columns3,

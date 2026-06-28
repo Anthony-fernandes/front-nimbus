@@ -32,6 +32,7 @@ import { Route as HelpRouteImport } from './routes/help'
 import { Route as ForumCategoriesRouteImport } from './routes/forum-categories'
 import { Route as ForumRouteImport } from './routes/forum'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as EquipesRouteImport } from './routes/equipes'
 import { Route as EmailTemplatesRouteImport } from './routes/email-templates'
 import { Route as DoubtsRouteImport } from './routes/doubts'
 import { Route as DashboardBuilderRouteImport } from './routes/dashboard-builder'
@@ -63,6 +64,8 @@ import { Route as KnowledgeNewRouteImport } from './routes/knowledge.new'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as ForumModerationRouteImport } from './routes/forum.moderation'
 import { Route as ForumIdRouteImport } from './routes/forum.$id'
+import { Route as EquipesNovaRouteImport } from './routes/equipes.nova'
+import { Route as EquipesIdRouteImport } from './routes/equipes.$id'
 import { Route as DoubtsReportsRouteImport } from './routes/doubts.reports'
 import { Route as DoubtsIdRouteImport } from './routes/doubts.$id'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
@@ -86,6 +89,7 @@ import { Route as ProjectsIdEditRouteImport } from './routes/projects.$id.edit'
 import { Route as KnowledgeIdEditRouteImport } from './routes/knowledge.$id.edit'
 import { Route as ForumUsersIdRouteImport } from './routes/forum.users.$id'
 import { Route as ForumTagsTagRouteImport } from './routes/forum.tags.$tag'
+import { Route as EquipesIdEditarRouteImport } from './routes/equipes.$id.editar'
 import { Route as ClientsIdEditRouteImport } from './routes/clients.$id.edit'
 import { Route as ClientTicketsNewRouteImport } from './routes/client.tickets.new'
 import { Route as ClientTicketsIdRouteImport } from './routes/client.tickets.$id'
@@ -207,6 +211,11 @@ const ForumRoute = ForumRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipesRoute = EquipesRouteImport.update({
+  id: '/equipes',
+  path: '/equipes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmailTemplatesRoute = EmailTemplatesRouteImport.update({
@@ -364,6 +373,16 @@ const ForumIdRoute = ForumIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ForumRoute,
 } as any)
+const EquipesNovaRoute = EquipesNovaRouteImport.update({
+  id: '/nova',
+  path: '/nova',
+  getParentRoute: () => EquipesRoute,
+} as any)
+const EquipesIdRoute = EquipesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => EquipesRoute,
+} as any)
 const DoubtsReportsRoute = DoubtsReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -479,6 +498,11 @@ const ForumTagsTagRoute = ForumTagsTagRouteImport.update({
   path: '/tags/$tag',
   getParentRoute: () => ForumRoute,
 } as any)
+const EquipesIdEditarRoute = EquipesIdEditarRouteImport.update({
+  id: '/editar',
+  path: '/editar',
+  getParentRoute: () => EquipesIdRoute,
+} as any)
 const ClientsIdEditRoute = ClientsIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -529,6 +553,7 @@ export interface FileRoutesByFullPath {
   '/dashboard-builder': typeof DashboardBuilderRoute
   '/doubts': typeof DoubtsRouteWithChildren
   '/email-templates': typeof EmailTemplatesRoute
+  '/equipes': typeof EquipesRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
   '/forum-categories': typeof ForumCategoriesRoute
@@ -566,6 +591,8 @@ export interface FileRoutesByFullPath {
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/doubts/reports': typeof DoubtsReportsRoute
+  '/equipes/$id': typeof EquipesIdRouteWithChildren
+  '/equipes/nova': typeof EquipesNovaRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/moderation': typeof ForumModerationRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
@@ -591,6 +618,7 @@ export interface FileRoutesByFullPath {
   '/client/tickets/$id': typeof ClientTicketsIdRoute
   '/client/tickets/new': typeof ClientTicketsNewRoute
   '/clients/$id/edit': typeof ClientsIdEditRoute
+  '/equipes/$id/editar': typeof EquipesIdEditarRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/forum/users/$id': typeof ForumUsersIdRoute
   '/knowledge/$id/edit': typeof KnowledgeIdEditRoute
@@ -615,6 +643,7 @@ export interface FileRoutesByTo {
   '/dashboard-builder': typeof DashboardBuilderRoute
   '/doubts': typeof DoubtsRouteWithChildren
   '/email-templates': typeof EmailTemplatesRoute
+  '/equipes': typeof EquipesRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
   '/forum-categories': typeof ForumCategoriesRoute
@@ -652,6 +681,8 @@ export interface FileRoutesByTo {
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/doubts/reports': typeof DoubtsReportsRoute
+  '/equipes/$id': typeof EquipesIdRouteWithChildren
+  '/equipes/nova': typeof EquipesNovaRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/moderation': typeof ForumModerationRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
@@ -677,6 +708,7 @@ export interface FileRoutesByTo {
   '/client/tickets/$id': typeof ClientTicketsIdRoute
   '/client/tickets/new': typeof ClientTicketsNewRoute
   '/clients/$id/edit': typeof ClientsIdEditRoute
+  '/equipes/$id/editar': typeof EquipesIdEditarRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/forum/users/$id': typeof ForumUsersIdRoute
   '/knowledge/$id/edit': typeof KnowledgeIdEditRoute
@@ -702,6 +734,7 @@ export interface FileRoutesById {
   '/dashboard-builder': typeof DashboardBuilderRoute
   '/doubts': typeof DoubtsRouteWithChildren
   '/email-templates': typeof EmailTemplatesRoute
+  '/equipes': typeof EquipesRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/forum': typeof ForumRouteWithChildren
   '/forum-categories': typeof ForumCategoriesRoute
@@ -739,6 +772,8 @@ export interface FileRoutesById {
   '/clients/new': typeof ClientsNewRoute
   '/doubts/$id': typeof DoubtsIdRoute
   '/doubts/reports': typeof DoubtsReportsRoute
+  '/equipes/$id': typeof EquipesIdRouteWithChildren
+  '/equipes/nova': typeof EquipesNovaRoute
   '/forum/$id': typeof ForumIdRoute
   '/forum/moderation': typeof ForumModerationRoute
   '/knowledge/$id': typeof KnowledgeIdRouteWithChildren
@@ -764,6 +799,7 @@ export interface FileRoutesById {
   '/client/tickets/$id': typeof ClientTicketsIdRoute
   '/client/tickets/new': typeof ClientTicketsNewRoute
   '/clients/$id/edit': typeof ClientsIdEditRoute
+  '/equipes/$id/editar': typeof EquipesIdEditarRoute
   '/forum/tags/$tag': typeof ForumTagsTagRoute
   '/forum/users/$id': typeof ForumUsersIdRoute
   '/knowledge/$id/edit': typeof KnowledgeIdEditRoute
@@ -790,6 +826,7 @@ export interface FileRouteTypes {
     | '/dashboard-builder'
     | '/doubts'
     | '/email-templates'
+    | '/equipes'
     | '/forgot-password'
     | '/forum'
     | '/forum-categories'
@@ -827,6 +864,8 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/doubts/$id'
     | '/doubts/reports'
+    | '/equipes/$id'
+    | '/equipes/nova'
     | '/forum/$id'
     | '/forum/moderation'
     | '/knowledge/$id'
@@ -852,6 +891,7 @@ export interface FileRouteTypes {
     | '/client/tickets/$id'
     | '/client/tickets/new'
     | '/clients/$id/edit'
+    | '/equipes/$id/editar'
     | '/forum/tags/$tag'
     | '/forum/users/$id'
     | '/knowledge/$id/edit'
@@ -876,6 +916,7 @@ export interface FileRouteTypes {
     | '/dashboard-builder'
     | '/doubts'
     | '/email-templates'
+    | '/equipes'
     | '/forgot-password'
     | '/forum'
     | '/forum-categories'
@@ -913,6 +954,8 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/doubts/$id'
     | '/doubts/reports'
+    | '/equipes/$id'
+    | '/equipes/nova'
     | '/forum/$id'
     | '/forum/moderation'
     | '/knowledge/$id'
@@ -938,6 +981,7 @@ export interface FileRouteTypes {
     | '/client/tickets/$id'
     | '/client/tickets/new'
     | '/clients/$id/edit'
+    | '/equipes/$id/editar'
     | '/forum/tags/$tag'
     | '/forum/users/$id'
     | '/knowledge/$id/edit'
@@ -962,6 +1006,7 @@ export interface FileRouteTypes {
     | '/dashboard-builder'
     | '/doubts'
     | '/email-templates'
+    | '/equipes'
     | '/forgot-password'
     | '/forum'
     | '/forum-categories'
@@ -999,6 +1044,8 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/doubts/$id'
     | '/doubts/reports'
+    | '/equipes/$id'
+    | '/equipes/nova'
     | '/forum/$id'
     | '/forum/moderation'
     | '/knowledge/$id'
@@ -1024,6 +1071,7 @@ export interface FileRouteTypes {
     | '/client/tickets/$id'
     | '/client/tickets/new'
     | '/clients/$id/edit'
+    | '/equipes/$id/editar'
     | '/forum/tags/$tag'
     | '/forum/users/$id'
     | '/knowledge/$id/edit'
@@ -1049,6 +1097,7 @@ export interface RootRouteChildren {
   DashboardBuilderRoute: typeof DashboardBuilderRoute
   DoubtsRoute: typeof DoubtsRouteWithChildren
   EmailTemplatesRoute: typeof EmailTemplatesRoute
+  EquipesRoute: typeof EquipesRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ForumRoute: typeof ForumRouteWithChildren
   ForumCategoriesRoute: typeof ForumCategoriesRoute
@@ -1244,6 +1293,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equipes': {
+      id: '/equipes'
+      path: '/equipes'
+      fullPath: '/equipes'
+      preLoaderRoute: typeof EquipesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/email-templates': {
@@ -1463,6 +1519,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForumIdRouteImport
       parentRoute: typeof ForumRoute
     }
+    '/equipes/nova': {
+      id: '/equipes/nova'
+      path: '/nova'
+      fullPath: '/equipes/nova'
+      preLoaderRoute: typeof EquipesNovaRouteImport
+      parentRoute: typeof EquipesRoute
+    }
+    '/equipes/$id': {
+      id: '/equipes/$id'
+      path: '/$id'
+      fullPath: '/equipes/$id'
+      preLoaderRoute: typeof EquipesIdRouteImport
+      parentRoute: typeof EquipesRoute
+    }
     '/doubts/reports': {
       id: '/doubts/reports'
       path: '/reports'
@@ -1623,6 +1693,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/forum/tags/$tag'
       preLoaderRoute: typeof ForumTagsTagRouteImport
       parentRoute: typeof ForumRoute
+    }
+    '/equipes/$id/editar': {
+      id: '/equipes/$id/editar'
+      path: '/editar'
+      fullPath: '/equipes/$id/editar'
+      preLoaderRoute: typeof EquipesIdEditarRouteImport
+      parentRoute: typeof EquipesIdRoute
     }
     '/clients/$id/edit': {
       id: '/clients/$id/edit'
@@ -1791,6 +1868,31 @@ const DoubtsRouteChildren: DoubtsRouteChildren = {
 
 const DoubtsRouteWithChildren =
   DoubtsRoute._addFileChildren(DoubtsRouteChildren)
+
+interface EquipesIdRouteChildren {
+  EquipesIdEditarRoute: typeof EquipesIdEditarRoute
+}
+
+const EquipesIdRouteChildren: EquipesIdRouteChildren = {
+  EquipesIdEditarRoute: EquipesIdEditarRoute,
+}
+
+const EquipesIdRouteWithChildren = EquipesIdRoute._addFileChildren(
+  EquipesIdRouteChildren,
+)
+
+interface EquipesRouteChildren {
+  EquipesIdRoute: typeof EquipesIdRouteWithChildren
+  EquipesNovaRoute: typeof EquipesNovaRoute
+}
+
+const EquipesRouteChildren: EquipesRouteChildren = {
+  EquipesIdRoute: EquipesIdRouteWithChildren,
+  EquipesNovaRoute: EquipesNovaRoute,
+}
+
+const EquipesRouteWithChildren =
+  EquipesRoute._addFileChildren(EquipesRouteChildren)
 
 interface ForumRouteChildren {
   ForumIdRoute: typeof ForumIdRoute
@@ -1987,6 +2089,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardBuilderRoute: DashboardBuilderRoute,
   DoubtsRoute: DoubtsRouteWithChildren,
   EmailTemplatesRoute: EmailTemplatesRoute,
+  EquipesRoute: EquipesRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ForumRoute: ForumRouteWithChildren,
   ForumCategoriesRoute: ForumCategoriesRoute,
@@ -2023,13 +2126,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
