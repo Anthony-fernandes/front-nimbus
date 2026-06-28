@@ -32,6 +32,7 @@ import { listUsers } from "@/services/userService";
 import { listSprints } from "@/services/sprintService";
 import { formatTicketStatusLabel, formatPriorityLabel } from "@/lib/labels";
 import { useItemDrawer, type ActivityDrawerTab, type TicketDrawerTab } from "@/context/ItemDrawerContext";
+import { useTheme } from "@/hooks/useTheme";
 import type { Ticket, Activity, TicketTimelineEvent, TicketVisibility } from "@/lib/types";
 import { formatDateTime } from "@/services/utils";
 import { createActivityTimelineComment, listActivityTimeline } from "@/services/activityTimelineService";
@@ -1062,6 +1063,15 @@ function DrawerHeaderAvatars({ item }: { item: { type: "ticket" | "activity"; id
 /* ─── Main ItemDrawer ─── */
 export function ItemDrawer() {
   const { state, goNext, goPrev, close } = useItemDrawer();
+  const { config: themeConfig } = useTheme();
+  const themeClass =
+    themeConfig.mode === "light"
+      ? "light"
+      : themeConfig.mode === "dark"
+        ? "dark"
+        : themeConfig.base === "light"
+          ? "light"
+          : "dark";
   const { item, list, index } = state;
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -1086,7 +1096,7 @@ export function ItemDrawer() {
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) close(); }}>
       <DialogContent
-        className="flex flex-col p-0 gap-0 max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] border border-border bg-background rounded-2xl overflow-hidden shadow-glow [&>button]:hidden"
+        className={`flex flex-col p-0 gap-0 max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] border border-border bg-background rounded-2xl overflow-hidden shadow-glow [&>button]:hidden ${themeClass}`}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5 bg-muted/30">
