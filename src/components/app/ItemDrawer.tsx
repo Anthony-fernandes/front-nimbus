@@ -794,7 +794,7 @@ function ActivityDrawerContent({ id, initialTab = "info" }: { id: string; initia
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="shrink-0 border-b border-border px-5 py-3">
           <div className="mb-1">
-            <Badge className="bg-violet-500/10 text-violet-500 border-violet-500/20 text-[10px]">Atividade</Badge>
+            <Badge className="bg-accent/10 text-accent border-accent/20 text-[10px]">Atividade</Badge>
           </div>
           {editingTitle ? (
             <input
@@ -1014,7 +1014,7 @@ function ActivityCommentComposer({ onSubmit }: { onSubmit: (p: { message: string
         onChange={e => setText(e.target.value)}
         rows={3}
         placeholder="Adicionar comentário..."
-        className="resize-none bg-background/50 text-sm placeholder:text-muted-foreground/60"
+        className="resize-none bg-input text-sm placeholder:text-muted-foreground/60"
       />
       <Button
         size="sm"
