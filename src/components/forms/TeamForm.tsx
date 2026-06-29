@@ -9,6 +9,18 @@ import {
   UserPlus,
   Users,
   Zap,
+  // icon picker icons
+  Rocket, Code2, Database, Globe, Layout, Layers, Server,
+  ShieldCheck, Cpu, Bug, GitBranch, Terminal, Wifi, Lock,
+  Wrench, Settings, BarChart3, LineChart, PieChart, TrendingUp,
+  HeartPulse, Stethoscope, FlaskConical, Microscope, Atom,
+  BookOpen, GraduationCap, Library, Newspaper, Pencil,
+  Camera, Music, Gamepad2, Brush, Film,
+  Package, Truck, ShoppingCart, Store, CreditCard,
+  Building2, Home, Map, Navigation, Compass,
+  PhoneCall, Mail, MessageSquare, Bell, Send,
+  Sun, Moon, Star, Sparkles, Flame,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +58,68 @@ const PRESET_COLORS = [
   "#6366f1", "#8b5cf6", "#ec4899", "#ef4444",
   "#f97316", "#eab308", "#22c55e", "#14b8a6",
   "#0ea5e9", "#64748b",
+];
+
+type IconEntry = { key: string; icon: LucideIcon };
+
+const ICON_LIST: IconEntry[] = [
+  { key: "Users", icon: Users },
+  { key: "Rocket", icon: Rocket },
+  { key: "Code2", icon: Code2 },
+  { key: "Database", icon: Database },
+  { key: "Globe", icon: Globe },
+  { key: "Layout", icon: Layout },
+  { key: "Layers", icon: Layers },
+  { key: "Server", icon: Server },
+  { key: "ShieldCheck", icon: ShieldCheck },
+  { key: "Cpu", icon: Cpu },
+  { key: "Bug", icon: Bug },
+  { key: "GitBranch", icon: GitBranch },
+  { key: "Terminal", icon: Terminal },
+  { key: "Wifi", icon: Wifi },
+  { key: "Lock", icon: Lock },
+  { key: "Wrench", icon: Wrench },
+  { key: "Settings", icon: Settings },
+  { key: "BarChart3", icon: BarChart3 },
+  { key: "LineChart", icon: LineChart },
+  { key: "PieChart", icon: PieChart },
+  { key: "TrendingUp", icon: TrendingUp },
+  { key: "HeartPulse", icon: HeartPulse },
+  { key: "Stethoscope", icon: Stethoscope },
+  { key: "FlaskConical", icon: FlaskConical },
+  { key: "Microscope", icon: Microscope },
+  { key: "Atom", icon: Atom },
+  { key: "BookOpen", icon: BookOpen },
+  { key: "GraduationCap", icon: GraduationCap },
+  { key: "Library", icon: Library },
+  { key: "Newspaper", icon: Newspaper },
+  { key: "Pencil", icon: Pencil },
+  { key: "Camera", icon: Camera },
+  { key: "Music", icon: Music },
+  { key: "Gamepad2", icon: Gamepad2 },
+  { key: "Brush", icon: Brush },
+  { key: "Film", icon: Film },
+  { key: "Package", icon: Package },
+  { key: "Truck", icon: Truck },
+  { key: "ShoppingCart", icon: ShoppingCart },
+  { key: "Store", icon: Store },
+  { key: "CreditCard", icon: CreditCard },
+  { key: "Building2", icon: Building2 },
+  { key: "Home", icon: Home },
+  { key: "Map", icon: Map },
+  { key: "Navigation", icon: Navigation },
+  { key: "Compass", icon: Compass },
+  { key: "PhoneCall", icon: PhoneCall },
+  { key: "Mail", icon: Mail },
+  { key: "MessageSquare", icon: MessageSquare },
+  { key: "Bell", icon: Bell },
+  { key: "Send", icon: Send },
+  { key: "Sun", icon: Sun },
+  { key: "Moon", icon: Moon },
+  { key: "Star", icon: Star },
+  { key: "Sparkles", icon: Sparkles },
+  { key: "Flame", icon: Flame },
+  { key: "Zap", icon: Zap },
 ];
 
 const empty: TeamFormData = {
@@ -98,7 +172,11 @@ export function TeamForm({
   }));
 
   const leaderName = leaderOptions.find((o) => o.value === data.leader)?.label;
-  const teamIcon = data.icon || initials(data.name || "?");
+
+  // icon can be a lucide key (e.g. "Rocket") or custom text sigla
+  const selectedIconEntry = ICON_LIST.find((e) => e.key === data.icon);
+  const SelectedIconComponent = selectedIconEntry?.icon ?? null;
+  const teamIconLabel = !data.icon ? initials(data.name || "?") : selectedIconEntry ? null : data.icon;
 
   async function handleAddMember(userId: string, userName: string) {
     if (mode === "edit" && entityId) {
@@ -316,7 +394,7 @@ export function TeamForm({
           <div className="p-5 space-y-4">
             <div className="flex items-center gap-3">
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-sm font-bold text-white shadow-md" style={{ backgroundColor: data.color }}>
-                {teamIcon}
+                {SelectedIconComponent ? <SelectedIconComponent className="h-5 w-5 text-white" /> : teamIconLabel}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-foreground truncate">{data.name || <span className="italic text-muted-foreground/60">Nome não preenchido</span>}</p>
@@ -370,15 +448,28 @@ export function TeamForm({
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Ícone / Sigla</p>
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold text-white shadow" style={{ backgroundColor: data.color }}>
-                  {teamIcon}
-                </div>
-                <div className="flex-1">
-                  <Input maxLength={3} placeholder={initials(data.name || "?") || "AB"} value={data.icon} onChange={(e) => set("icon", e.target.value.toUpperCase())} />
-                  <p className="mt-1 text-[10px] text-muted-foreground">Até 3 caracteres exibidos no avatar.</p>
-                </div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Ícone da equipe</p>
+              <div className="grid grid-cols-7 gap-1.5 max-h-48 overflow-y-auto pr-0.5">
+                {/* "Nenhum" — uses initials */}
+                <button
+                  type="button"
+                  title="Usar sigla"
+                  onClick={() => set("icon", "")}
+                  className={`grid h-8 w-8 place-items-center rounded-lg border text-[9px] font-bold transition-all ${!data.icon ? "border-primary ring-1 ring-primary bg-primary/10 text-primary" : "border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-primary/5"}`}
+                >
+                  {initials(data.name || "AB") || "AB"}
+                </button>
+                {ICON_LIST.map(({ key, icon: Icon }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    title={key}
+                    onClick={() => set("icon", key)}
+                    className={`grid h-8 w-8 place-items-center rounded-lg border transition-all ${data.icon === key ? "border-primary ring-1 ring-primary bg-primary/10 text-primary" : "border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-primary/5"}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </button>
+                ))}
               </div>
             </div>
           </div>
