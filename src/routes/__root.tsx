@@ -17,12 +17,13 @@ import { ErrorBoundary } from "@/components/app/ErrorBoundary";
 import { ItemDrawerProvider } from "@/context/ItemDrawerContext";
 import { ItemDrawer } from "@/components/app/ItemDrawer";
 import { API_BASE_URL } from "@/services/api";
-import { getAccessToken, isAuthenticated } from "@/services/session";
+import { getAccessToken, getStoredUser, isAuthenticated } from "@/services/session";
+import { updateUser } from "@/services/userService";
 import {
   ThemeContext,
   applyTheme,
   loadThemeConfig,
-  saveThemeConfig,
+  loadThemeFromUser,
   type ThemeConfig,
 } from "@/hooks/useTheme";
 
@@ -204,8 +205,14 @@ function GlobalNotificationSocket() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [themeConfig, setThemeConfig] = useState<ThemeConfig>(() => {
+    // Apply user's stored theme on first render
+    const storedUser = getStoredUser();
+    if (storedUser?.theme_config && Object.keys(storedUser.theme_config).length > 0) {
+      const cfg = loadThemeConfig();
+      loadThemeFromUser(storedUser as { theme_config?: Record<string, unknown> });
+      return cfg;
+    }
     const cfg = loadThemeConfig();
-    // Apply on first render (only runs client-side)
     if (typeof document !== "undefined") applyTheme(cfg);
     return cfg;
   });
@@ -213,7 +220,11 @@ function RootComponent() {
   const handleSetConfig = (config: ThemeConfig) => {
     setThemeConfig(config);
     applyTheme(config);
-    saveThemeConfig(config);
+    // Persist to user profile in the background
+    const storedUser = getStoredUser();
+    if (storedUser?.id) {
+      updateUser(String(storedUser.id), { theme_config: config as unknown as Record<string, unknown> }).catch(() => {});
+    }
   };
 
   const toasterTheme = themeConfig.mode === "light" || (themeConfig.mode === "custom" && themeConfig.base === "light")

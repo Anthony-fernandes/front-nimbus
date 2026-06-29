@@ -137,8 +137,7 @@ function OnboardingPage() {
   }
 
   function finish() {
-    localStorage.setItem("onboarding_done", "true");
-    toast.success("Configuração concluída! Bem-vindo ao Nimbus.");
+    toast.success("Configuração concluída! Bem-vindo ao NimbusDesk.");
     void navigate({ to: "/" });
   }
 

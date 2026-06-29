@@ -17,29 +17,18 @@ const DEFAULT_CONFIG: ThemeConfig = {
   base: "dark",
 };
 
-const STORAGE_KEY = "nimbus-theme";
-
 export function loadThemeConfig(): ThemeConfig {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...DEFAULT_CONFIG, ...JSON.parse(raw) as Partial<ThemeConfig> };
-  } catch {
-    // ignore
-  }
   return DEFAULT_CONFIG;
 }
 
-export function saveThemeConfig(config: ThemeConfig) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-}
+// no-op kept for call-site compatibility; localStorage is no longer used
+export function saveThemeConfig(_config: ThemeConfig) {}
 
 // Load theme from a user object returned by the API and apply it.
-// Call this after login so the DB config overrides the local cache.
 export function loadThemeFromUser(user: { theme_config?: Record<string, unknown> | null }) {
   if (!user.theme_config || Object.keys(user.theme_config).length === 0) return;
   try {
     const config = { ...DEFAULT_CONFIG, ...(user.theme_config as Partial<ThemeConfig>) };
-    saveThemeConfig(config);
     if (typeof document !== "undefined") applyTheme(config);
   } catch {
     // ignore
