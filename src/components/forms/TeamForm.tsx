@@ -434,30 +434,37 @@ export function TeamForm({
             </div>
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="p-5 space-y-5">
+            {/* Color */}
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Cor da equipe</p>
-              <div className="flex flex-wrap gap-2">
+              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cor</p>
+              <div className="flex flex-wrap gap-2.5">
                 {PRESET_COLORS.map((c) => (
                   <button key={c} type="button" onClick={() => set("color", c)}
-                    className={`h-7 w-7 rounded-full transition-all ${data.color === c ? "ring-2 ring-offset-2 ring-primary scale-110" : "opacity-70 hover:opacity-100 hover:scale-105"}`}
+                    className={`h-8 w-8 rounded-full transition-all ${data.color === c ? "ring-2 ring-offset-2 ring-white/60 scale-110 shadow-lg" : "opacity-60 hover:opacity-100 hover:scale-105"}`}
                     style={{ backgroundColor: c }} />
                 ))}
+                {/* custom color */}
+                <label className="relative h-8 w-8 cursor-pointer rounded-full border-2 border-dashed border-border hover:border-primary/60 transition-colors grid place-items-center" title="Cor personalizada">
+                  <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+                  <input type="color" value={data.color} onChange={(e) => set("color", e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full rounded-full" />
+                </label>
               </div>
-              <Input type="color" value={data.color} onChange={(e) => set("color", e.target.value)} className="mt-2 h-8 w-full cursor-pointer" />
             </div>
 
+            {/* Icon picker */}
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Ícone da equipe</p>
-              <div className="grid grid-cols-7 gap-1.5 max-h-48 overflow-y-auto pr-0.5">
-                {/* "Nenhum" — uses initials */}
+              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ícone</p>
+              <div className="grid grid-cols-6 gap-2 max-h-56 overflow-y-auto">
+                {/* Reset to initials */}
                 <button
                   type="button"
-                  title="Usar sigla"
+                  title="Usar iniciais"
                   onClick={() => set("icon", "")}
-                  className={`grid h-8 w-8 place-items-center rounded-lg border text-[9px] font-bold transition-all ${!data.icon ? "border-primary ring-1 ring-primary bg-primary/10 text-primary" : "border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-primary/5"}`}
+                  className={`relative flex h-10 w-full items-center justify-center rounded-xl border text-[11px] font-bold transition-all col-span-1 ${!data.icon ? "border-primary bg-primary/15 text-primary shadow-sm" : "border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-muted/60"}`}
                 >
                   {initials(data.name || "AB") || "AB"}
+                  {!data.icon && <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />}
                 </button>
                 {ICON_LIST.map(({ key, icon: Icon }) => (
                   <button
@@ -465,9 +472,10 @@ export function TeamForm({
                     type="button"
                     title={key}
                     onClick={() => set("icon", key)}
-                    className={`grid h-8 w-8 place-items-center rounded-lg border transition-all ${data.icon === key ? "border-primary ring-1 ring-primary bg-primary/10 text-primary" : "border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-primary/5"}`}
+                    className={`relative flex h-10 w-full items-center justify-center rounded-xl border transition-all ${data.icon === key ? "border-primary bg-primary/15 text-primary shadow-sm" : "border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"}`}
                   >
-                    <Icon className="h-3.5 w-3.5" />
+                    <Icon className="h-4.5 w-4.5" />
+                    {data.icon === key && <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />}
                   </button>
                 ))}
               </div>
