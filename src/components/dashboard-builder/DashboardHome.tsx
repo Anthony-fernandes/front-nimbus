@@ -3649,7 +3649,7 @@ function FunnelView({
 
 function AvgResolutionTimeKPI() {
   const query = useQuery({
-    queryKey: ["dashboard-ticket-status-donut"],
+    queryKey: ["tickets-report"],
     queryFn: () => getTicketsReport(),
   });
 
@@ -3683,7 +3683,7 @@ function AvgResolutionTimeKPI() {
 
 function SlaRateKPI() {
   const query = useQuery({
-    queryKey: ["dashboard-ticket-status-donut"],
+    queryKey: ["tickets-report"],
     queryFn: () => getTicketsReport(),
   });
 
@@ -3736,7 +3736,7 @@ const STATUS_DONUT_COLORS = [
 
 function TicketStatusDonut() {
   const query = useQuery({
-    queryKey: ["dashboard-ticket-status-donut"],
+    queryKey: ["tickets-report"],
     queryFn: () => getTicketsReport(),
   });
 
