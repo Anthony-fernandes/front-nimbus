@@ -89,7 +89,7 @@ import { listTicketCategories } from "@/services/ticketCategoryService";
 import { listTicketTimeline, createTicketTimelineComment } from "@/services/ticketTimelineService";
 import { listTicketRelations, createTicketRelation, deleteTicketRelation, listTicketStatusHistory, reopenTicket } from "@/services/ticketRelationService";
 import type { TicketRelation, TicketStatusHistoryEntry } from "@/lib/types";
-import { convertTicketToKb, listKnowledgeCategories } from "@/services/knowledgeService";
+import { convertTicketToKb, listKnowledgeArticles, listKnowledgeCategories } from "@/services/knowledgeService";
 import { deleteTicket, getTicket, listTicketAttachments, transitionTicket, uploadTicketAttachment } from "@/services/ticketService";
 import { listTicketWorkflowStatuses } from "@/services/ticketWorkflowService";
 import { listUsers } from "@/services/userService";
@@ -208,6 +208,13 @@ function TicketDetail() {
     enabled: canViewTickets,
   });
 
+  const ticket = ticketQuery.data;
+  const kbSuggestionsQuery = useQuery({
+    queryKey: ["kb-suggestions", ticket?.category],
+    queryFn: () => listKnowledgeArticles({ category: ticket?.category, page_size: 5, status: "PUBLISHED" }),
+    enabled: !!ticket?.category,
+  });
+
   const uploadMutation = useMutation({
     mutationFn: (file: File) => uploadTicketAttachment(id, file),
     onSuccess: () => {
@@ -245,7 +252,6 @@ function TicketDetail() {
     );
   }
 
-  const ticket = ticketQuery.data;
   const activities = activitiesQuery.data || [];
   const categories = categoriesQuery.data || [];
   const sprints = sprintsQuery.data || [];
@@ -865,6 +871,30 @@ function TicketDetail() {
                 </div>
               </div>
             </SectionCard>
+
+            {kbSuggestionsQuery.data && (kbSuggestionsQuery.data as { results?: unknown[] }).results?.length ? (
+              <SectionCard
+                title="Artigos sugeridos"
+                description="Artigos da base de conhecimento relacionados a esta categoria."
+              >
+                <div className="space-y-2">
+                  {((kbSuggestionsQuery.data as { results?: { id: string; title: string; summary?: string; category_name?: string }[] }).results ?? []).map((article) => (
+                    <Link
+                      key={article.id}
+                      to="/knowledge/$id"
+                      params={{ id: article.id }}
+                      className="flex items-start gap-3 rounded-xl border border-border bg-muted/10 px-4 py-3 transition-colors hover:border-primary/40 group"
+                    >
+                      <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary/60 group-hover:text-primary transition-colors" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium group-hover:text-primary transition-colors">{article.title}</p>
+                        {article.summary && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{article.summary}</p>}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </SectionCard>
+            ) : null}
 
             <TicketTimeline events={timeline} allowComposer onCommentSubmit={publishComment} />
 

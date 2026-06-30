@@ -51,7 +51,7 @@ import {
   sendChatFile,
   sendChatMessage,
   updateChatMessage,
-} from "@/services/knowledgeService";
+} from "@/services/chatService";
 import { getAccessToken, getStoredUser } from "@/services/session";
 import { listUsers } from "@/services/userService";
 import { getUserDisplayName } from "@/lib/auth";
