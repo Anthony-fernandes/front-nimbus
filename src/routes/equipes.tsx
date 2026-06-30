@@ -65,60 +65,60 @@ function EquipesPage() {
                   <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</h2>
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {filtered.map((team) => {
-              const memberCount = team.member_count ?? team.members?.length ?? 0;
-              const icon = team.icon || (team.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join(""));
-              return (
-                <Link key={team.id} to="/equipes/$id" params={{ id: team.id }}
-                  className="glass rounded-2xl p-5 shadow-card space-y-4 hover:border-primary/30 border border-border transition-colors group animate-fade-in-up">
-                  {/* Team header */}
-                  <div className="flex items-start gap-3">
-                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white shadow" style={{ backgroundColor: team.color || "#6366f1" }}>
-                      {icon}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{team.name}</p>
-                      {team.leader_name && <p className="text-xs text-muted-foreground truncate">Líder: {team.leader_name}</p>}
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${team.status === "Ativa" ? "bg-success/15 text-success" : team.status === "Inativa" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}>
-                        {team.status || "Ativa"}
-                      </span>
-                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${tipo === "grupo" ? "bg-amber-500/10 text-amber-400" : "bg-primary/10 text-primary"}`}>
-                        {tipo === "grupo" ? "Grupo" : "Equipe"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  {team.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">{team.description}</p>
-                  )}
-
-                  {/* Member avatars */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {(team.members ?? []).slice(0, 5).map((m, i) => {
-                        const name = m.user_name || String(m.user);
-                        const ini = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
-                        return (
-                          <div key={m.id} title={name}
-                            className={`${i > 0 ? "-ml-2" : ""} grid h-7 w-7 place-items-center rounded-full bg-gradient-primary text-[9px] font-bold text-primary-foreground ring-2 ring-background`}>
-                            {ini}
+                      const memberCount = team.member_count ?? team.members?.length ?? 0;
+                      const icon = team.icon || (team.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join(""));
+                      return (
+                        <Link key={team.id} to="/equipes/$id" params={{ id: team.id }}
+                          className="glass rounded-2xl p-5 shadow-card space-y-4 hover:border-primary/30 border border-border transition-colors group animate-fade-in-up">
+                          {/* Team header */}
+                          <div className="flex items-start gap-3">
+                            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white shadow" style={{ backgroundColor: team.color || "#6366f1" }}>
+                              {icon}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{team.name}</p>
+                              {team.leader_name && <p className="text-xs text-muted-foreground truncate">Líder: {team.leader_name}</p>}
+                            </div>
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${team.status === "Ativa" ? "bg-success/15 text-success" : team.status === "Inativa" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}>
+                                {team.status || "Ativa"}
+                              </span>
+                              <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${tipo === "grupo" ? "bg-amber-500/10 text-amber-400" : "bg-primary/10 text-primary"}`}>
+                                {tipo === "grupo" ? "Grupo" : "Equipe"}
+                              </span>
+                            </div>
                           </div>
-                        );
-                      })}
-                      {memberCount > 5 && (
-                        <div className="-ml-2 grid h-7 w-7 place-items-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-background">
-                          +{memberCount - 5}
-                        </div>
-                      )}
-                      {memberCount === 0 && <span className="text-xs text-muted-foreground">Sem membros</span>}
-                    </div>
-                    <span className="text-xs text-muted-foreground">{memberCount} membro{memberCount !== 1 ? "s" : ""}</span>
-                  </div>
-                </Link>
-              );
-            })}
+
+                          {/* Description */}
+                          {team.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">{team.description}</p>
+                          )}
+
+                          {/* Member avatars */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              {(team.members ?? []).slice(0, 5).map((m, i) => {
+                                const name = m.user_name || String(m.user);
+                                const ini = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+                                return (
+                                  <div key={m.id} title={name}
+                                    className={`${i > 0 ? "-ml-2" : ""} grid h-7 w-7 place-items-center rounded-full bg-gradient-primary text-[9px] font-bold text-primary-foreground ring-2 ring-background`}>
+                                    {ini}
+                                  </div>
+                                );
+                              })}
+                              {memberCount > 5 && (
+                                <div className="-ml-2 grid h-7 w-7 place-items-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-background">
+                                  +{memberCount - 5}
+                                </div>
+                              )}
+                              {memberCount === 0 && <span className="text-xs text-muted-foreground">Sem membros</span>}
+                            </div>
+                            <span className="text-xs text-muted-foreground">{memberCount} membro{memberCount !== 1 ? "s" : ""}</span>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               );

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -6,6 +6,8 @@ import {
   Briefcase,
   Building2,
   ExternalLink,
+  Eye,
+  EyeOff,
   Flag,
   Pencil,
   Plus,
@@ -126,6 +128,21 @@ function SettingsPage() {
   });
 
   const [passwordForm, setPasswordForm] = useState({ senha_atual: "", nova_senha: "", confirmar_senha: "" });
+  const [showPwd, setShowPwd] = useState({ atual: false, nova: false, confirmar: false });
+
+  const passwordStrength = useCallback((pwd: string) => {
+    if (!pwd) return null;
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (pwd.length >= 12) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    if (score <= 1) return { label: "Fraca", color: "bg-destructive", cls: "text-destructive", w: "w-1/4" };
+    if (score <= 2) return { label: "Regular", color: "bg-warning", cls: "text-warning", w: "w-2/4" };
+    if (score <= 3) return { label: "Boa", color: "bg-blue-500", cls: "text-blue-400", w: "w-3/4" };
+    return { label: "Forte", color: "bg-success", cls: "text-success", w: "w-full" };
+  }, []);
   const passwordMutation = useMutation({
     mutationFn: () => changePassword(passwordForm.senha_atual, passwordForm.nova_senha),
     onSuccess: () => {
@@ -460,99 +477,189 @@ function SettingsPage() {
 
         {activeTab === "perfil" ? (
           <div className="max-w-xl space-y-5">
-          <div className="glass rounded-2xl shadow-card p-6 space-y-5">
-            <div>
-              <h2 className="font-semibold">Meu perfil</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Informações pessoais da sua conta.</p>
+            {/* Avatar + identidade */}
+            <div className="glass rounded-2xl shadow-card p-6">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 shrink-0 rounded-2xl bg-gradient-primary grid place-items-center shadow-glow">
+                  <span className="text-xl font-bold text-primary-foreground">
+                    {[currentUser?.first_name, currentUser?.last_name].filter(Boolean).map((n) => n![0].toUpperCase()).join("") || currentUser?.username?.[0]?.toUpperCase() || "?"}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-lg leading-tight truncate">
+                    {[currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(" ") || currentUser?.username}
+                  </p>
+                  <p className="text-sm text-muted-foreground truncate">{currentUser?.email}</p>
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    {currentUser?.is_superuser && (
+                      <span className="rounded-full bg-violet-500/15 text-violet-400 px-2 py-0.5 text-[10px] font-semibold">Superadmin</span>
+                    )}
+                    {currentUser?.is_staff && !currentUser?.is_superuser && (
+                      <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-semibold">Staff</span>
+                    )}
+                    {(currentUser as { role?: string } | null)?.role && (
+                      <span className="rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-[10px] font-medium">
+                        {(currentUser as { role?: string }).role}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Dados pessoais */}
+            <div className="glass rounded-2xl shadow-card p-6 space-y-5">
+              <div>
+                <h2 className="font-semibold">Informações pessoais</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Dados visíveis para outros membros da equipe.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {(
+                  [
+                    { key: "first_name", label: "Nome" },
+                    { key: "last_name", label: "Sobrenome" },
+                  ] as const
+                ).map(({ key, label }) => (
+                  <div key={key} className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">{label}</Label>
+                    <Input
+                      value={profileForm[key]}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
               {(
                 [
-                  { key: "first_name", label: "Nome" },
-                  { key: "last_name", label: "Sobrenome" },
+                  { key: "email", label: "E-mail", type: "email" },
+                  { key: "phone", label: "Telefone", type: "tel" },
+                  { key: "job_title", label: "Cargo / Título", type: "text" },
                 ] as const
-              ).map(({ key, label }) => (
-                <div key={key} className="space-y-1">
-                  <Label>{label}</Label>
+              ).map(({ key, label, type }) => (
+                <div key={key} className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">{label}</Label>
                   <Input
+                    type={type}
                     value={profileForm[key]}
                     onChange={(e) => setProfileForm((prev) => ({ ...prev, [key]: e.target.value }))}
                   />
                 </div>
               ))}
+              <Button
+                onClick={() => profileMutation.mutate()}
+                disabled={profileMutation.isPending}
+                className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+              >
+                {profileMutation.isPending ? "Salvando..." : "Salvar alterações"}
+              </Button>
             </div>
-            {(
-              [
-                { key: "email", label: "E-mail", type: "email" },
-                { key: "phone", label: "Telefone", type: "tel" },
-                { key: "job_title", label: "Cargo / Título", type: "text" },
-              ] as const
-            ).map(({ key, label, type }) => (
-              <div key={key} className="space-y-1">
-                <Label>{label}</Label>
-                <Input
-                  type={type}
-                  value={profileForm[key]}
-                  onChange={(e) => setProfileForm((prev) => ({ ...prev, [key]: e.target.value }))}
-                />
-              </div>
-            ))}
-            <Button
-              onClick={() => profileMutation.mutate()}
-              disabled={profileMutation.isPending}
-              className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-            >
-              {profileMutation.isPending ? "Salvando..." : "Salvar perfil"}
-            </Button>
-          </div>
 
-          <div className="glass rounded-2xl shadow-card p-6 space-y-4">
-            <div>
-              <h3 className="font-semibold">Alterar senha</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Redefina a senha da sua conta.</p>
+            {/* Segurança / Senha */}
+            <div className="glass rounded-2xl shadow-card p-6 space-y-5">
+              <div>
+                <h3 className="font-semibold">Segurança</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Altere sua senha de acesso.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Senha atual</Label>
+                <div className="relative">
+                  <Input
+                    type={showPwd.atual ? "text" : "password"}
+                    value={passwordForm.senha_atual}
+                    onChange={(e) => setPasswordForm((prev) => ({ ...prev, senha_atual: e.target.value }))}
+                    className="pr-10"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((p) => ({ ...p, atual: !p.atual }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPwd.atual ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Nova senha</Label>
+                <div className="relative">
+                  <Input
+                    type={showPwd.nova ? "text" : "password"}
+                    value={passwordForm.nova_senha}
+                    onChange={(e) => setPasswordForm((prev) => ({ ...prev, nova_senha: e.target.value }))}
+                    className="pr-10"
+                    placeholder="Mínimo 8 caracteres"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((p) => ({ ...p, nova: !p.nova }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPwd.nova ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {passwordStrength(passwordForm.nova_senha) && (() => {
+                  const s = passwordStrength(passwordForm.nova_senha)!;
+                  return (
+                    <div className="space-y-1 pt-1">
+                      <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${s.color} ${s.w}`} />
+                      </div>
+                      <p className={`text-[10px] font-medium ${s.cls}`}>Senha {s.label.toLowerCase()}</p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Confirmar nova senha</Label>
+                <div className="relative">
+                  <Input
+                    type={showPwd.confirmar ? "text" : "password"}
+                    value={passwordForm.confirmar_senha}
+                    onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmar_senha: e.target.value }))}
+                    className={`pr-10 ${passwordForm.confirmar_senha && passwordForm.nova_senha !== passwordForm.confirmar_senha ? "border-destructive/60" : ""}`}
+                    placeholder="Repita a nova senha"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd((p) => ({ ...p, confirmar: !p.confirmar }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPwd.confirmar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {passwordForm.confirmar_senha && passwordForm.nova_senha !== passwordForm.confirmar_senha && (
+                  <p className="text-[10px] text-destructive">As senhas não coincidem</p>
+                )}
+              </div>
+
+              <Button
+                onClick={() => {
+                  if (passwordForm.nova_senha.length < 8) {
+                    toast.error("A nova senha deve ter no mínimo 8 caracteres.");
+                    return;
+                  }
+                  if (passwordForm.nova_senha !== passwordForm.confirmar_senha) {
+                    toast.error("As senhas não coincidem.");
+                    return;
+                  }
+                  if (!passwordForm.senha_atual) {
+                    toast.error("Informe a senha atual.");
+                    return;
+                  }
+                  passwordMutation.mutate();
+                }}
+                disabled={passwordMutation.isPending}
+                className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+              >
+                {passwordMutation.isPending ? "Alterando..." : "Alterar senha"}
+              </Button>
             </div>
-            <div className="space-y-1">
-              <Label>Senha atual</Label>
-              <Input
-                type="password"
-                value={passwordForm.senha_atual}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, senha_atual: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Nova senha</Label>
-              <Input
-                type="password"
-                value={passwordForm.nova_senha}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, nova_senha: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Confirmar nova senha</Label>
-              <Input
-                type="password"
-                value={passwordForm.confirmar_senha}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmar_senha: e.target.value }))}
-              />
-            </div>
-            <Button
-              onClick={() => {
-                if (passwordForm.nova_senha !== passwordForm.confirmar_senha) {
-                  toast.error("As senhas não coincidem.");
-                  return;
-                }
-                if (!passwordForm.senha_atual || !passwordForm.nova_senha) {
-                  toast.error("Preencha todos os campos de senha.");
-                  return;
-                }
-                passwordMutation.mutate();
-              }}
-              disabled={passwordMutation.isPending}
-              className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-            >
-              {passwordMutation.isPending ? "Salvando..." : "Alterar senha"}
-            </Button>
-          </div>
           </div>
         ) : null}
 

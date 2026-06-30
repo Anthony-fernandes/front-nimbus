@@ -424,14 +424,13 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
   const [responseTime, setResponseTime] = useState(editing?.response_time ?? "8h");
   const [client, setClient] = useState((editing as { client?: string } | null)?.client ?? "");
 
-  // Reset on open
-  useState(() => {
+  useEffect(() => {
     setName(editing?.name ?? "");
     setPriority(editing?.priority ?? "");
     setCategory(editing?.category ?? "");
     setResponseTime(editing?.response_time ?? "8h");
     setClient((editing as { client?: string } | null)?.client ?? "");
-  });
+  }, [editing]);
 
   const { data: organizations = [] } = useQuery({
     queryKey: ["form-organizations"],
