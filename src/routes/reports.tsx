@@ -195,17 +195,27 @@ function ReportsPage() {
           </div>
         )}
 
-        {/* Reopen rate summary */}
-        {ticketsReportQuery.data && (ticketsReportQuery.data.reopen_count ?? 0) > 0 && (
-          <div className="glass rounded-xl p-4 flex items-center gap-6">
-            <div>
+        {/* Reopen rate + CSAT summary */}
+        {ticketsReportQuery.data && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="glass rounded-xl p-4">
               <div className="text-xs text-muted-foreground">Chamados reabertos</div>
-              <div className="text-2xl font-semibold text-warning">{ticketsReportQuery.data.reopen_count}</div>
+              <div className="text-2xl font-semibold text-warning mt-1">{ticketsReportQuery.data.reopen_count ?? 0}</div>
             </div>
-            <div>
+            <div className="glass rounded-xl p-4">
               <div className="text-xs text-muted-foreground">Taxa de reabertura</div>
-              <div className="text-2xl font-semibold">{ticketsReportQuery.data.reopen_rate?.toFixed(1) ?? "0"}%</div>
+              <div className="text-2xl font-semibold mt-1">{ticketsReportQuery.data.reopen_rate?.toFixed(1) ?? "0"}%</div>
             </div>
+            <div className="glass rounded-xl p-4">
+              <div className="text-xs text-muted-foreground">Média de reaberturas</div>
+              <div className="text-2xl font-semibold mt-1">{ticketsReportQuery.data.avg_reopens?.toFixed(1) ?? "—"}</div>
+            </div>
+            {ticketsReportQuery.data.avg_csat != null && (
+              <div className="glass rounded-xl p-4">
+                <div className="text-xs text-muted-foreground">CSAT médio</div>
+                <div className="text-2xl font-semibold text-warning mt-1">{"★".repeat(Math.round(ticketsReportQuery.data.avg_csat))} {ticketsReportQuery.data.avg_csat.toFixed(1)}/5</div>
+              </div>
+            )}
           </div>
         )}
 

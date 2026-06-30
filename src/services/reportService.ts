@@ -8,6 +8,8 @@ export interface TicketsReport {
   sla_met_rate?: number | null;
   reopen_count?: number;
   reopen_rate?: number;
+  avg_reopens?: number;
+  avg_csat?: number | null;
   by_status: { status: string; count: number }[];
   by_priority: { priority: string; count: number }[];
   by_category: { category: string; count: number }[];

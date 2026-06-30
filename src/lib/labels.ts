@@ -17,9 +17,17 @@ function resolveLabel(
 
 export function formatTicketTypeLabel(value?: string | null) {
   return resolveLabel(value, {
-    SOLICITACAO: "Solicitacao",
-    DUVIDA: "Duvida",
-    MUDANCA: "Mudanca",
+    SOLICITACAO: "Solicitação",
+    DUVIDA: "Dúvida",
+    MUDANCA: "Mudança",
+    MUDANÇA: "Mudança",
+    REQUISIÇÃO: "Requisição",
+    REQUISICAO: "Requisição",
+    INCIDENTE: "Incidente",
+    PROBLEMA: "Problema",
+    OUTRO: "Outro",
+    ERRO: "Erro",
+    MELHORIA: "Melhoria",
   });
 }
 

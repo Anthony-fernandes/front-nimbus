@@ -133,7 +133,7 @@ const empty: TicketFormData = {
   contactResponsiblePhone: "",
   category: "",
   categoryId: "",
-  type: "Solicitacao",
+  type: "Incidente",
   priority: "Pendente",
   impact: "Pendente",
   urgency: "Media",
@@ -548,7 +548,7 @@ export function TicketForm({
       categoryId: category.id,
       category: category.name,
       type:
-        current.type && current.type !== "Solicitacao"
+        current.type && current.type !== "Incidente"
           ? current.type
           : defaults.type,
       priority:

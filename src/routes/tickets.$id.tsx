@@ -681,7 +681,7 @@ function TicketDetail() {
                   <div className="flex items-center gap-1.5 text-sm font-medium">
                     {ticket.type === "Incidente" && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
                     {ticket.type === "Problema" && <Wrench className="h-3.5 w-3.5 text-warning" />}
-                    {ticket.type === "Mudanca" && <ArrowRightLeft className="h-3.5 w-3.5 text-primary" />}
+                    {ticket.type === "Mudança" && <ArrowRightLeft className="h-3.5 w-3.5 text-primary" />}
                     {(!ticket.type || ticket.type === "Requisicao" || ticket.type === "Solicitação") && <Clock2 className="h-3.5 w-3.5 text-muted-foreground" />}
                     {ticket.type || "Solicitação"}
                   </div>

@@ -8,18 +8,15 @@ import type {
 } from "@/lib/types";
 
 export const CLIENT_TICKET_TYPE_OPTIONS = [
-  "Solicitacao",
-  "Erro",
   "Incidente",
-  "Duvida",
-  "Melhoria",
-  "Outros",
+  "Requisição",
+  "Problema",
+  "Mudança",
+  "Outro",
 ] as const;
 
 export const INTERNAL_TICKET_TYPE_OPTIONS = [
   ...CLIENT_TICKET_TYPE_OPTIONS,
-  "Problema",
-  "Mudanca",
 ] as const;
 
 export const TICKET_PRIORITY_OPTIONS = [
@@ -143,7 +140,7 @@ export function canTicketReturnToService(status?: string | null) {
 
 export function getCategoryDefaults(category?: Partial<TicketCategory> | null) {
   return {
-    type: category?.default_type || "Solicitacao",
+    type: category?.default_type || "Incidente",
     priority: category?.default_priority || "Pendente",
     impact: category?.default_impact || "Pendente",
     team: category?.default_team || "",
