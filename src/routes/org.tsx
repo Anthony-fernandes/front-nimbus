@@ -428,8 +428,17 @@ function OrgPage() {
                         <td className="px-2 py-3 text-muted-foreground">
                           {dept.manager_name || "—"}
                         </td>
-                        <td className="px-2 py-3 text-muted-foreground">
-                          {dept.member_count ?? "—"}
+                        <td className="px-2 py-3">
+                          {(dept.member_count ?? 0) > 0 ? (
+                            <a
+                              href={`/teams?dept=${dept.id}`}
+                              className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                            >
+                              {dept.member_count} membro{dept.member_count !== 1 ? "s" : ""}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </td>
                         <td className="px-2 py-3">
                           <span
@@ -491,6 +500,7 @@ function OrgPage() {
                 <thead>
                   <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
                     <th className="px-4 py-2.5 text-left font-medium">Nome</th>
+                    <th className="px-2 py-2.5 text-left font-medium">Usuários</th>
                     <th className="px-2 py-2.5 text-left font-medium">Aprovação automática</th>
                     <th className="px-2 py-2.5 text-left font-medium">Status</th>
                     {canManage && (
@@ -516,9 +526,19 @@ function OrgPage() {
                       >
                         <td className="px-4 py-3">
                           <div className="font-medium">{pos.name}</div>
+                          {pos.description && (
+                            <div className="text-xs text-muted-foreground">{pos.description}</div>
+                          )}
                         </td>
                         <td className="px-2 py-3 text-muted-foreground">
-                          {pos.auto_approval ? "Sim" : "Não"}
+                          {(pos.user_count ?? 0) > 0
+                            ? `${pos.user_count} usuário${pos.user_count !== 1 ? "s" : ""}`
+                            : "—"}
+                        </td>
+                        <td className="px-2 py-3 text-muted-foreground">
+                          {pos.auto_approval ? (
+                            <span className="rounded-md bg-success/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-success">Sim</span>
+                          ) : "Não"}
                         </td>
                         <td className="px-2 py-3">
                           <span

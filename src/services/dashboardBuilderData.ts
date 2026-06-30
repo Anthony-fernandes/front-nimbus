@@ -251,7 +251,7 @@ export function buildFilterOptions(context: DashboardDataContext): DashboardFilt
     ],
     team: uniqueOptions(
       context.tickets.map((ticket) => ticket.team || ""),
-      context.users.map((user) => user.technical_group || user.specialty || ""),
+      context.users.map((user) => user.specialty || ""),
       sprintContexts.map((sprint) => sprint.team || ""),
     ),
     sprint: context.sprints
@@ -838,7 +838,7 @@ function createUserCapacityDataset(
       return {
         id: user.id,
         name: getUserDisplayName(user),
-        role: user.technical_group || user.specialty || user.job_title || "Sem funcao",
+        role: user.specialty || user.job_title || "Sem funcao",
         capacity,
         used,
         occupancy,
@@ -1052,7 +1052,7 @@ function applyProjectFilters(rows: Project[], filters: DashboardFilterState) {
 function applyUserFilters(rows: User[], filters: DashboardFilterState) {
   return rows.filter((user) => {
     if (filters.team) {
-      const role = user.technical_group || user.specialty || user.job_title || "";
+      const role = user.specialty || user.job_title || "";
       if (normalizeComparisonValue(role) !== normalizeComparisonValue(filters.team)) {
         return false;
       }
@@ -1154,7 +1154,7 @@ function getUserDisplayName(user?: Partial<User> | null, fallback = "Colaborador
 }
 
 function resolveUserRole(user?: User | null) {
-  return user?.technical_group || user?.specialty || user?.job_title || "";
+  return user?.specialty || user?.job_title || "";
 }
 
 function shortenLabel(value: string) {

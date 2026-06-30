@@ -43,7 +43,6 @@ export type MemberFormData = {
   jobTitle: string;
   specialty: string;
   hourlyCost: string;
-  group: string;
   availableHours: string;
   status: "Ativo" | "Inativo";
   password: string;
@@ -70,7 +69,6 @@ const empty: MemberFormData = {
   jobTitle: "",
   specialty: "",
   hourlyCost: "0,00",
-  group: "",
   availableHours: "40",
   status: "Ativo",
   password: "",
@@ -90,17 +88,6 @@ const ROLE_OPTIONS: Array<{ value: AppUserRole; label: string }> = [
   { value: "ADMIN", label: "Administrador" },
   { value: "TECHNICIAN", label: "Tecnico" },
   { value: "CLIENT", label: "Cliente" },
-];
-
-const GROUP_OPTIONS = [
-  "Backend",
-  "Frontend",
-  "DevOps",
-  "Design",
-  "QA",
-  "Suporte",
-  "Produto",
-  "Comercial",
 ];
 
 const ROLES_WITH_REQUIRED_ORGANIZATION = new Set<AppUserRole>(["CLIENT"]);
@@ -616,27 +603,6 @@ export function MemberForm({
                   className="pl-10"
                 />
               </div>
-            </Field>
-            <Field
-              label="Grupo/equipe"
-              hint={data.role === "TECHNICIAN" ? "Recomendado para tecnicos." : undefined}
-            >
-              <Select
-                value={data.group || "__none__"}
-                onValueChange={(value) => set("group", value === "__none__" ? "" : value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar grupo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhum</SelectItem>
-                  {GROUP_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </Field>
             <Field label="Horas disponiveis (semana)">
               <Input

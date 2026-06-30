@@ -472,7 +472,7 @@ export type User = {
   hourly_cost?: number;
   total_hours?: number;
   used_hours?: number;
-  technical_group?: string;
+  teams_data?: { id: string; name: string; color?: string }[];
   permission_blocks?: string[];
   permission_blocks_data?: PermissionBlock[];
   granted_permissions?: PermissionMap;
@@ -514,6 +514,7 @@ export type Position = {
   name: string;
   description?: string;
   auto_approval?: boolean;
+  user_count?: number;
   active?: boolean;
   created_at?: string;
   updated_at?: string;

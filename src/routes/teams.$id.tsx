@@ -121,7 +121,7 @@ function MemberDetail() {
               {name}
             </span>
           }
-          subtitle={`${getRoleLabel(user.role)}${user.job_title ? ` · ${user.job_title}` : ""}${user.specialty || user.technical_group ? ` · ${user.specialty || user.technical_group}` : ""}`}
+          subtitle={`${getRoleLabel(user.role)}${user.job_title ? ` · ${user.job_title}` : ""}${user.specialty ? ` · ${user.specialty}` : ""}`}
           badges={
             <span className="rounded bg-success/15 px-2 py-1 text-[11px] text-success">
               {user.is_active === false ? "Inativo" : "Ativo"}
