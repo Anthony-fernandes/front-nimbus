@@ -7,9 +7,11 @@ import {
   Bookmark,
   Check,
   CheckCheck,
+  ChevronDown,
   Clock,
   Eye,
   Filter,
+  Flag,
   MoreHorizontal,
   Pause,
   Pencil,
@@ -17,6 +19,7 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  Tag,
   Tags,
   UserRoundCheck,
   X,
@@ -133,7 +136,7 @@ type TicketWorkflowDialogState = {
   actionId: TicketWorkflowActionId;
 } | null;
 
-type BulkActionType = "technician" | "status" | "priority" | null;
+type BulkActionType = "technician" | "status" | "priority" | "category" | null;
 
 const TICKET_PRIORITY_BULK_OPTIONS = ["Critica", "Alta", "Media", "Baixa", "Pendente"];
 
@@ -331,6 +334,7 @@ function TicketsPage() {
         technician: "responsible_technician",
         status: "status",
         priority: "priority",
+        category: "category",
       };
       const field = fieldMap[bulkAction!];
       await Promise.all(
@@ -959,92 +963,94 @@ function TicketsPage() {
 
         {/* Bulk action bar */}
         {selectedIds.size > 0 ? (
-          <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-border bg-background/95 px-5 py-3 shadow-card backdrop-blur">
-            <span className="text-sm font-medium text-muted-foreground">
-              {selectedIds.size} selecionado(s)
-            </span>
+          <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-2xl border border-border bg-background/95 px-4 py-2.5 shadow-xl backdrop-blur-md">
+            {/* Count badge */}
+            <div className="mr-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground">
+              {selectedIds.size}
+            </div>
+            <span className="mr-2 text-xs text-muted-foreground">selecionado(s)</span>
             <div className="h-4 w-px bg-border" />
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-xs"
-              disabled={bulkSaving}
-              onClick={() => {
-                setBulkAction("status");
-                setBulkValue("Finalizado");
-              }}
-            >
-              <Check className="h-3.5 w-3.5" /> Fechar selecionados
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-xs"
-              onClick={() => setBulkAction("technician")}
-            >
-              <UserRoundCheck className="h-3.5 w-3.5" /> Atribuir técnico
-            </Button>
+
+            {/* Atribuir técnico */}
             <Button
               size="sm"
               variant="ghost"
-              className="gap-1.5 text-xs text-muted-foreground"
+              className="gap-1.5 text-xs"
+              disabled={bulkSaving}
+              onClick={() => { setBulkAction("technician"); setBulkValue(""); }}
+            >
+              <UserRoundCheck className="h-3.5 w-3.5" /> Técnico
+            </Button>
+
+            {/* Alterar prioridade */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5 text-xs"
+              disabled={bulkSaving}
+              onClick={() => { setBulkAction("priority"); setBulkValue(""); }}
+            >
+              <Flag className="h-3.5 w-3.5" /> Prioridade
+            </Button>
+
+            {/* Alterar status */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5 text-xs"
+              disabled={bulkSaving}
+              onClick={() => { setBulkAction("status"); setBulkValue(""); }}
+            >
+              <ChevronDown className="h-3.5 w-3.5" /> Status
+            </Button>
+
+            {/* Alterar categoria */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5 text-xs"
+              disabled={bulkSaving}
+              onClick={() => { setBulkAction("category"); setBulkValue(""); }}
+            >
+              <Tag className="h-3.5 w-3.5" /> Categoria
+            </Button>
+
+            <div className="h-4 w-px bg-border" />
+
+            {/* Fechar chamados */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5 text-xs text-green-600 hover:bg-green-500/10 hover:text-green-600"
+              disabled={bulkSaving}
+              onClick={() => { setBulkAction("status"); setBulkValue("Finalizado"); }}
+            >
+              <CheckCheck className="h-3.5 w-3.5" /> Fechar
+            </Button>
+
+            {/* Cancelar seleção */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1 text-xs text-muted-foreground"
               onClick={clearSelection}
             >
-              <X className="h-3.5 w-3.5" /> Cancelar seleção
+              <X className="h-3.5 w-3.5" />
             </Button>
           </div>
         ) : null}
 
-        {/* Bulk close confirmation */}
+        {/* Bulk assign technician */}
         <Dialog
-          open={bulkAction === "status" && bulkValue === "Finalizado"}
-          onOpenChange={(open) => {
-            if (!open) {
-              setBulkAction(null);
-              setBulkValue("");
-            }
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Fechar chamados selecionados</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Tem certeza que deseja fechar {selectedIds.size} chamado(s)? O status será alterado para "Finalizado".
-            </p>
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setBulkAction(null);
-                  setBulkValue("");
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button disabled={bulkSaving} onClick={applyBulkAction}>
-                {bulkSaving ? "Salvando..." : "Confirmar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Bulk assign technician dialog */}
-        <Dialog
-          open={bulkAction === "technician" && bulkValue === ""}
-          onOpenChange={(open) => {
-            if (!open) {
-              setBulkAction(null);
-              setBulkValue("");
-            }
-          }}
+          open={bulkAction === "technician"}
+          onOpenChange={(open) => { if (!open) { setBulkAction(null); setBulkValue(""); } }}
         >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Atribuir técnico</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground mb-2">
-              Selecione o técnico para atribuir aos {selectedIds.size} chamado(s) selecionado(s).
+              Selecione o técnico para os {selectedIds.size} chamado(s) selecionado(s).
             </p>
             <Select onValueChange={(val) => setBulkValue(val)}>
               <SelectTrigger>
@@ -1059,17 +1065,137 @@ function TicketsPage() {
               </SelectContent>
             </Select>
             <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setBulkAction(null);
-                  setBulkValue("");
-                }}
-              >
-                Cancelar
-              </Button>
+              <Button variant="ghost" onClick={() => { setBulkAction(null); setBulkValue(""); }}>Cancelar</Button>
               <Button disabled={bulkSaving || !bulkValue} onClick={applyBulkAction}>
                 {bulkSaving ? "Salvando..." : "Atribuir"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk change priority */}
+        <Dialog
+          open={bulkAction === "priority"}
+          onOpenChange={(open) => { if (!open) { setBulkAction(null); setBulkValue(""); } }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Alterar prioridade</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground mb-2">
+              Selecione a nova prioridade para os {selectedIds.size} chamado(s).
+            </p>
+            <Select onValueChange={(val) => setBulkValue(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar prioridade..." />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  { value: "Critica", label: "🔴 Crítica" },
+                  { value: "Alta", label: "🟠 Alta" },
+                  { value: "Media", label: "🟡 Média" },
+                  { value: "Baixa", label: "🟢 Baixa" },
+                ].map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => { setBulkAction(null); setBulkValue(""); }}>Cancelar</Button>
+              <Button disabled={bulkSaving || !bulkValue} onClick={applyBulkAction}>
+                {bulkSaving ? "Salvando..." : "Aplicar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk change status (generic) */}
+        <Dialog
+          open={bulkAction === "status" && bulkValue === ""}
+          onOpenChange={(open) => { if (!open) { setBulkAction(null); setBulkValue(""); } }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Alterar status</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground mb-2">
+              Selecione o novo status para os {selectedIds.size} chamado(s).
+            </p>
+            <Select onValueChange={(val) => setBulkValue(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar status..." />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "Triagem",
+                  "Aguardando atendimento",
+                  "Em atendimento",
+                  "Aguardando cliente",
+                  "Validacao",
+                  "Pausado",
+                  "Cancelado",
+                  "Finalizado",
+                ].map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => { setBulkAction(null); setBulkValue(""); }}>Cancelar</Button>
+              <Button disabled={bulkSaving || !bulkValue} onClick={applyBulkAction}>
+                {bulkSaving ? "Salvando..." : "Aplicar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk change category */}
+        <Dialog
+          open={bulkAction === "category"}
+          onOpenChange={(open) => { if (!open) { setBulkAction(null); setBulkValue(""); } }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Alterar categoria</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground mb-2">
+              Selecione a nova categoria para os {selectedIds.size} chamado(s).
+            </p>
+            <Select onValueChange={(val) => setBulkValue(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar categoria..." />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat: { id: string; name: string }) => (
+                  <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => { setBulkAction(null); setBulkValue(""); }}>Cancelar</Button>
+              <Button disabled={bulkSaving || !bulkValue} onClick={applyBulkAction}>
+                {bulkSaving ? "Salvando..." : "Aplicar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk close confirmation */}
+        <Dialog
+          open={bulkAction === "status" && bulkValue === "Finalizado"}
+          onOpenChange={(open) => { if (!open) { setBulkAction(null); setBulkValue(""); } }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Fechar chamados</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja fechar {selectedIds.size} chamado(s)? O status será alterado para "Finalizado".
+            </p>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => { setBulkAction(null); setBulkValue(""); }}>Cancelar</Button>
+              <Button disabled={bulkSaving} onClick={applyBulkAction}>
+                {bulkSaving ? "Salvando..." : "Fechar chamados"}
               </Button>
             </DialogFooter>
           </DialogContent>
