@@ -58,7 +58,7 @@ import { listProjectCustomFields, listProjectCustomValues, upsertProjectCustomVa
 import { CustomFieldsSection } from "@/components/app/CustomFieldsSection";
 
 export const Route = createFileRoute("/projects/$id")({
-  head: () => ({ meta: [{ title: "Detalhes do projeto - Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Detalhes do projeto - NimbusDesk" }] }),
   component: ProjectDetail,
 });
 

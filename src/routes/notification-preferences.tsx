@@ -24,7 +24,7 @@ import {
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/notification-preferences")({
-  head: () => ({ meta: [{ title: "Preferências de notificação · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Preferências de notificação · NimbusDesk" }] }),
   component: NotificationPreferencesPage,
 });
 

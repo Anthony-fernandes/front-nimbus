@@ -7,7 +7,7 @@ import { ClientForm } from "@/components/forms/ClientForm";
 import { getClient, toClientFormData } from "@/services/clientService";
 
 export const Route = createFileRoute("/clients/$id/edit")({
-  head: () => ({ meta: [{ title: "Editar organização · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Editar organização · NimbusDesk" }] }),
   component: EditOrganization,
 });
 

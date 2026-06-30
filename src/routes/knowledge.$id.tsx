@@ -33,7 +33,7 @@ import { getStoredUser } from "@/services/session";
 import { API_BASE_URL } from "@/services/api";
 
 export const Route = createFileRoute("/knowledge/$id")({
-  head: () => ({ meta: [{ title: "Artigo · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Artigo · NimbusDesk" }] }),
   component: KnowledgeArticlePage,
 });
 

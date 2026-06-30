@@ -23,7 +23,7 @@ import {
 import { getStoredUser } from "@/services/session";
 
 export const Route = createFileRoute("/forum")({
-  head: () => ({ meta: [{ title: "Fórum · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Fórum · NimbusDesk" }] }),
   component: ForumPage,
 });
 

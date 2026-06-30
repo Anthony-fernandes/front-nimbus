@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { deleteTeam, getTeam, listTeamMembers } from "@/services/teamService";
 
 export const Route = createFileRoute("/equipes/$id")({
-  head: () => ({ meta: [{ title: "Detalhes da equipe · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Detalhes da equipe · NimbusDesk" }] }),
   component: EquipeDetail,
 });
 

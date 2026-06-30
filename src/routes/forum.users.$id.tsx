@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { getForumUserProfile, listUserBadges } from "@/services/knowledgeService";
 
 export const Route = createFileRoute("/forum/users/$id")({
-  head: () => ({ meta: [{ title: "Perfil · Fórum · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Perfil · Fórum · NimbusDesk" }] }),
   component: ForumUserProfilePage,
 });
 

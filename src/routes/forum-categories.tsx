@@ -37,7 +37,7 @@ import {
 } from "@/services/knowledgeService";
 
 export const Route = createFileRoute("/forum-categories")({
-  head: () => ({ meta: [{ title: "Categorias do Fórum · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Categorias do Fórum · NimbusDesk" }] }),
   component: ForumCategoriesPage,
 });
 

@@ -16,7 +16,7 @@ import { getStoredUser } from "@/services/session";
 import { useState } from "react";
 
 export const Route = createFileRoute("/forum/moderation")({
-  head: () => ({ meta: [{ title: "Moderação · Fórum · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Moderação · Fórum · NimbusDesk" }] }),
   component: ForumModerationPage,
 });
 

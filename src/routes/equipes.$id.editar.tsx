@@ -7,7 +7,7 @@ import { TeamForm } from "@/components/forms/TeamForm";
 import { getTeam, listTeamMembers } from "@/services/teamService";
 
 export const Route = createFileRoute("/equipes/$id/editar")({
-  head: () => ({ meta: [{ title: "Editar equipe · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Editar equipe · NimbusDesk" }] }),
   component: EditarEquipe,
 });
 

@@ -21,7 +21,7 @@ import { listTickets } from "@/services/ticketService";
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/aprovacoes")({
-  head: () => ({ meta: [{ title: "Aprovações · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Aprovações · NimbusDesk" }] }),
   component: ApprovalsPage,
 });
 

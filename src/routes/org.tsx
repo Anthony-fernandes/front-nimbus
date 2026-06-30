@@ -170,7 +170,7 @@ function OrgChartTree({ departments, selectedId, onSelect }: OrgChartTreeProps) 
 }
 
 export const Route = createFileRoute("/org")({
-  head: () => ({ meta: [{ title: "Organização · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Organização · NimbusDesk" }] }),
   component: OrgPage,
 });
 

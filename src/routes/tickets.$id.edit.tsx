@@ -7,7 +7,7 @@ import { TicketForm } from "@/components/forms/TicketForm";
 import { getTicket, toTicketFormData } from "@/services/ticketService";
 
 export const Route = createFileRoute("/tickets/$id/edit")({
-  head: () => ({ meta: [{ title: "Editar chamado - Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Editar chamado - NimbusDesk" }] }),
   component: EditTicketPage,
 });
 

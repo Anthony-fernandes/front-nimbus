@@ -25,7 +25,7 @@ import { listActivityTimeEntries, saveActivityTimeEntry } from "@/services/activ
 import { getStoredUser } from "@/services/authService";
 
 export const Route = createFileRoute("/activities")({
-  head: () => ({ meta: [{ title: "Atividades · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Atividades · NimbusDesk" }] }),
   component: ActivitiesPage,
 });
 

@@ -48,7 +48,7 @@ hljs.registerLanguage("xml", xml);
 marked.setOptions({ gfm: true, breaks: true });
 
 export const Route = createFileRoute("/forum/$id")({
-  head: () => ({ meta: [{ title: "Tópico · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Tópico · NimbusDesk" }] }),
   component: ForumTopicPage,
 });
 

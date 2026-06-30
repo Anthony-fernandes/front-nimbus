@@ -8,7 +8,7 @@ import { getTicketReports } from "@/services/knowledgeService";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/doubts/reports")({
-  head: () => ({ meta: [{ title: "Relatórios · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Relatórios · NimbusDesk" }] }),
   component: DoubtsReportsPage,
 });
 

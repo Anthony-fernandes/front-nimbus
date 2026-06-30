@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { listAuditLogs } from "@/services/auditService";
 
 export const Route = createFileRoute("/audit")({
-  head: () => ({ meta: [{ title: "Auditoria · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Auditoria · NimbusDesk" }] }),
   component: AuditPage,
 });
 

@@ -26,7 +26,7 @@ import {
 import type { DoubtsQuestion } from "@/lib/types";
 
 export const Route = createFileRoute("/doubts")({
-  head: () => ({ meta: [{ title: "Central de Dúvidas · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Central de Dúvidas · NimbusDesk" }] }),
   component: DoubtsPage,
 });
 

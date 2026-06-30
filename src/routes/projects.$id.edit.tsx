@@ -8,7 +8,7 @@ import type { Project } from "@/lib/types";
 import { getProject, toProjectFormData } from "@/services/projectService";
 
 export const Route = createFileRoute("/projects/$id/edit")({
-  head: () => ({ meta: [{ title: "Editar projeto · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Editar projeto · NimbusDesk" }] }),
   component: EditProject,
 });
 

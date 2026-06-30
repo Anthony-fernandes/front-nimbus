@@ -21,7 +21,7 @@ import { listDepartments } from "@/services/orgService";
 import { listUsers } from "@/services/userService";
 
 export const Route = createFileRoute("/teams")({
-  head: () => ({ meta: [{ title: "Usuários e acessos · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Usuários e acessos · NimbusDesk" }] }),
   component: TeamsPage,
 });
 

@@ -8,7 +8,7 @@ import type { Ticket } from "@/lib/types";
 import { getTicket } from "@/services/ticketService";
 
 export const Route = createFileRoute("/activities/new")({
-  head: () => ({ meta: [{ title: "Nova atividade - Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Nova atividade - NimbusDesk" }] }),
   component: NewActivityPage,
 });
 

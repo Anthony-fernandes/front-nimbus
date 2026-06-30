@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { requestPasswordReset, confirmPasswordReset } from "@/services/authService";
 
 export const Route = createFileRoute("/forgot-password")({
-  head: () => ({ meta: [{ title: "Esqueci minha senha · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Esqueci minha senha · NimbusDesk" }] }),
   component: ForgotPasswordPage,
 });
 
@@ -20,7 +20,7 @@ function ForgotPasswordPage() {
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="font-semibold tracking-tight">
-            Stratos<span className="text-gradient">Suite</span>
+            Nimbus<span className="text-gradient">Desk</span>
           </span>
         </div>
 

@@ -23,7 +23,7 @@ import { parseApiError } from "@/services/utils";
 import type { User } from "@/lib/types";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: "Meu perfil - Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Meu perfil - NimbusDesk" }] }),
   component: ProfilePage,
 });
 

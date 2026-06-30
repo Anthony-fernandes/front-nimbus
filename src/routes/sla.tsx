@@ -46,7 +46,7 @@ import {
 import type { BusinessHours, CompanyHoliday } from "@/lib/types";
 
 export const Route = createFileRoute("/sla")({
-  head: () => ({ meta: [{ title: "SLA · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "SLA · NimbusDesk" }] }),
   component: SLAPage,
 });
 

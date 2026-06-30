@@ -37,7 +37,7 @@ import {
 import { API_BASE_URL } from "@/services/api";
 
 export const Route = createFileRoute("/automations")({
-  head: () => ({ meta: [{ title: "Automações · Stratos Suite" }] }),
+  head: () => ({ meta: [{ title: "Automações · NimbusDesk" }] }),
   component: AutomationsPage,
 });
 
