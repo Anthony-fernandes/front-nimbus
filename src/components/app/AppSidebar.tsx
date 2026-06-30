@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { listChatConversations } from "@/services/knowledgeService";
+import { listChatConversations } from "@/services/chatService";
 import {
   BarChart3,
   Blocks,
