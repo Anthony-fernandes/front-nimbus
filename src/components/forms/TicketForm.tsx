@@ -40,6 +40,7 @@ import type { TicketCustomField } from "@/services/knowledgeService";
 import {
   findTicketCategory,
   getCategoryDefaults,
+  calcPriorityFromMatrix,
   INTERNAL_TICKET_TYPE_OPTIONS,
   resolveTicketOpeningStatus,
   TICKET_IMPACT_OPTIONS,
@@ -525,6 +526,14 @@ export function TicketForm({
     handleRequesterChange(currentUser.id);
   }, [currentUser, data.organization, data.requesterUser, users]);
 
+  useEffect(() => {
+    if (!data.impact || data.impact === "Pendente" || !data.urgency) return;
+    const suggested = calcPriorityFromMatrix(data.impact, data.urgency);
+    if (suggested && suggested !== data.priority) {
+      set("priority", suggested);
+    }
+  }, [data.impact, data.urgency]);
+
   const applyCategoryDefaults = (categoryId: string) => {
     const category = findTicketCategory(categories, categoryId);
     if (!category) {
@@ -821,6 +830,14 @@ export function TicketForm({
                   label: formatUrgencyLabel(item),
                 }))}
               />
+              {data.impact && data.impact !== "Pendente" && data.urgency && (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Prioridade sugerida:{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatPriorityLabel(calcPriorityFromMatrix(data.impact, data.urgency) ?? "")}
+                  </span>
+                </p>
+              )}
             </Field>
             <Field label="SLA">
               <Input

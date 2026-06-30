@@ -39,6 +39,16 @@ export const TICKET_IMPACT_OPTIONS = [
 
 export const TICKET_URGENCY_OPTIONS = ["Alta", "Media", "Baixa"] as const;
 
+const PRIORITY_MATRIX: Record<string, Record<string, string>> = {
+  Alto:  { Alta: "Critica", Media: "Alta",  Baixa: "Media" },
+  Medio: { Alta: "Alta",    Media: "Media", Baixa: "Baixa" },
+  Baixo: { Alta: "Media",   Media: "Baixa", Baixa: "Baixa" },
+};
+
+export function calcPriorityFromMatrix(impact: string, urgency: string): string | null {
+  return PRIORITY_MATRIX[impact]?.[urgency] ?? null;
+}
+
 export const TICKET_STATUS_OPTIONS = [
   "Aberto",
   "Aguardando aprovacao",
