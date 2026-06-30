@@ -22,7 +22,7 @@ import { createKnowledgeArticle, listKnowledgeCategories } from "@/services/know
 import { listOrganizations } from "@/services/clientService";
 
 export const Route = createFileRoute("/knowledge/new")({
-  head: () => ({ meta: [{ title: "Novo Artigo · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Novo Artigo · Stratos Suite" }] }),
   component: KnowledgeNewPage,
 });
 

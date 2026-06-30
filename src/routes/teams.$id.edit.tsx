@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { getUser, toMemberFormData } from "@/services/userService";
 
 export const Route = createFileRoute("/teams/$id/edit")({
-  head: () => ({ meta: [{ title: "Editar usuário · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Editar usuário · Stratos Suite" }] }),
   component: EditMember,
 });
 

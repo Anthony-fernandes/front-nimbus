@@ -41,7 +41,7 @@ async function fetchAdminStats() {
 }
 
 export const Route = createFileRoute("/superadmin")({
-  head: () => ({ meta: [{ title: "Super Admin - Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Super Admin - Stratos Suite" }] }),
   component: SuperAdminPage,
 });
 
@@ -168,7 +168,7 @@ function SuperAdminContent() {
         <div className="glass overflow-hidden rounded-2xl shadow-card">
           <div className="border-b border-border px-4 py-3">
             <h2 className="font-semibold">Empresas cadastradas</h2>
-            <p className="text-xs text-muted-foreground">Todos os tenants da plataforma NimbusDesk.</p>
+            <p className="text-xs text-muted-foreground">Todos os tenants da plataforma Stratos Suite.</p>
           </div>
 
           {isLoading ? (
@@ -263,7 +263,7 @@ function SuperAdminContent() {
             <DialogHeader>
               <DialogTitle>Nova empresa</DialogTitle>
               <DialogDescription>
-                Cadastre um novo tenant na plataforma NimbusDesk.
+                Cadastre um novo tenant na plataforma Stratos Suite.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">

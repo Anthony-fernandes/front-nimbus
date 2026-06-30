@@ -101,7 +101,7 @@ import { listUsers } from "@/services/userService";
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/tickets")({
-  head: () => ({ meta: [{ title: "Chamados · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Chamados · Stratos Suite" }] }),
   component: TicketsPage,
 });
 

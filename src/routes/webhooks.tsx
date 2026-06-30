@@ -41,7 +41,7 @@ import {
 } from "@/services/webhookService";
 
 export const Route = createFileRoute("/webhooks")({
-  head: () => ({ meta: [{ title: "Webhooks · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Webhooks · Stratos Suite" }] }),
   component: WebhooksPage,
 });
 

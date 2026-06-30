@@ -36,7 +36,7 @@ import {
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/permission-blocks")({
-  head: () => ({ meta: [{ title: "Blocos de permissões · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Blocos de permissões · Stratos Suite" }] }),
   component: PermissionBlocksPage,
 });
 

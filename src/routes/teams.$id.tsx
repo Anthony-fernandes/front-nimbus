@@ -26,7 +26,7 @@ import { deleteUser, getUser } from "@/services/userService";
 import { formatCurrency } from "@/services/utils";
 
 export const Route = createFileRoute("/teams/$id")({
-  head: () => ({ meta: [{ title: "Detalhes do usuário · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Detalhes do usuário · Stratos Suite" }] }),
   component: MemberDetail,
 });
 

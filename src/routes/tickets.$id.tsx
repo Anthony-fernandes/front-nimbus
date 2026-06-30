@@ -96,7 +96,7 @@ import { listUsers } from "@/services/userService";
 import { formatDate, formatDateTime , parseApiError} from "@/services/utils";
 
 export const Route = createFileRoute("/tickets/$id")({
-  head: () => ({ meta: [{ title: "Detalhes do chamado - Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Detalhes do chamado - Stratos Suite" }] }),
   component: TicketDetail,
 });
 

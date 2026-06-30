@@ -26,7 +26,7 @@ import {
 import { listOrganizations } from "@/services/clientService";
 
 export const Route = createFileRoute("/knowledge/$id/edit")({
-  head: () => ({ meta: [{ title: "Editar Artigo · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Editar Artigo · Stratos Suite" }] }),
   component: KnowledgeEditPage,
 });
 

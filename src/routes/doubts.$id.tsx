@@ -35,7 +35,7 @@ import { api } from "@/services/api";
 import { getStoredUser } from "@/services/session";
 
 export const Route = createFileRoute("/doubts/$id")({
-  head: () => ({ meta: [{ title: "Dúvida · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Dúvida · Stratos Suite" }] }),
   component: DoubtsQuestionPage,
 });
 

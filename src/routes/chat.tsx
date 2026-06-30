@@ -58,7 +58,7 @@ import { getUserDisplayName } from "@/lib/auth";
 import type { ChatMessage } from "@/lib/types";
 
 export const Route = createFileRoute("/chat")({
-  head: () => ({ meta: [{ title: "Chat · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Chat · Stratos Suite" }] }),
   component: ChatPage,
 });
 

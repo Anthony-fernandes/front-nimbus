@@ -9,7 +9,7 @@ import type { User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
 
 export const Route = createFileRoute("/client/tickets/new")({
-  head: () => ({ meta: [{ title: "Abrir chamado · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Abrir chamado · Stratos Suite" }] }),
   component: ClientTicketNewPage,
 });
 

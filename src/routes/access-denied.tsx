@@ -4,7 +4,7 @@ import { getHomeRoute } from "@/lib/auth";
 import { getStoredUser } from "@/services/authService";
 
 export const Route = createFileRoute("/access-denied")({
-  head: () => ({ meta: [{ title: "Acesso negado · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Acesso negado · Stratos Suite" }] }),
   component: AccessDeniedPage,
 });
 

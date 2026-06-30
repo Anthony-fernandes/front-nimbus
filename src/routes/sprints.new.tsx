@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { SprintForm } from "@/components/forms/SprintForm";
 
 export const Route = createFileRoute("/sprints/new")({
-  head: () => ({ meta: [{ title: "Nova sprint · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Nova sprint · Stratos Suite" }] }),
   component: () => (
     <AppShell>
       <div className="space-y-5 max-w-7xl">

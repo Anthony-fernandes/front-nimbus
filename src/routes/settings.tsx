@@ -74,7 +74,7 @@ import {
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Configurações - Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Configurações - Stratos Suite" }] }),
   component: SettingsPage,
 });
 
@@ -843,7 +843,7 @@ function SettingsPage() {
                 <p>Use status customizados para pausas reais como "Aguardando fornecedor".</p>
                 <p>Marque "Permite retomar atendimento" quando o status interromper o trabalho tecnico.</p>
                 <p>Status finais bloqueiam novas ações de fluxo e mantem apenas consulta do chamado.</p>
-                <p>Os status padrão seguem protegidos para evitar quebra do processo base do Nimbus.</p>
+                <p>Os status padrão seguem protegidos para evitar quebra do processo base do Stratos Suite.</p>
               </div>
             </div>
           </div>

@@ -29,7 +29,7 @@ import {
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/ticket-categories")({
-  head: () => ({ meta: [{ title: "Categorias de chamado · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Categorias de chamado · Stratos Suite" }] }),
   component: TicketCategoriesPage,
 });
 

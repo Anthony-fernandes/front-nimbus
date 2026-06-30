@@ -62,7 +62,7 @@ import { listActivityCustomFields, listActivityCustomValues, upsertActivityCusto
 import { CustomFieldsSection } from "@/components/app/CustomFieldsSection";
 
 export const Route = createFileRoute("/activities/$id")({
-  head: () => ({ meta: [{ title: "Detalhes da atividade - NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Detalhes da atividade - Stratos Suite" }] }),
   component: ActivityDetail,
 });
 

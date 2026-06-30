@@ -13,7 +13,7 @@ import { listSprints } from "@/services/sprintService";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/backlog")({
-  head: () => ({ meta: [{ title: "Backlog · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Backlog · Stratos Suite" }] }),
   component: BacklogPage,
 });
 

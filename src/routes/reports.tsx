@@ -54,7 +54,7 @@ const RATING_COLORS: Record<number, string> = {
 };
 
 export const Route = createFileRoute("/reports")({
-  head: () => ({ meta: [{ title: "Relatórios · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Relatórios · Stratos Suite" }] }),
   component: ReportsPage,
 });
 

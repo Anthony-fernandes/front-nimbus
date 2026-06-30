@@ -7,7 +7,7 @@ import { SprintForm } from "@/components/forms/SprintForm";
 import { getSprint, toSprintFormData } from "@/services/sprintService";
 
 export const Route = createFileRoute("/sprints/$id/edit")({
-  head: () => ({ meta: [{ title: "Editar sprint · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Editar sprint · Stratos Suite" }] }),
   component: EditSprint,
 });
 

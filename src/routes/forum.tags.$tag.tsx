@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { listForumTopics } from "@/services/knowledgeService";
 
 export const Route = createFileRoute("/forum/tags/$tag")({
-  head: () => ({ meta: [{ title: "Tag · Fórum · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Tag · Fórum · Stratos Suite" }] }),
   component: ForumTagPage,
 });
 

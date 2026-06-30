@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { TeamForm } from "@/components/forms/TeamForm";
 
 export const Route = createFileRoute("/equipes/nova")({
-  head: () => ({ meta: [{ title: "Nova equipe · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Nova equipe · Stratos Suite" }] }),
   component: () => (
     <AppShell>
       <div className="space-y-5">

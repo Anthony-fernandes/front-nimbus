@@ -81,7 +81,7 @@ import { BurndownChart } from "@/components/dashboard/Charts";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/sprints/$id")({
-  head: () => ({ meta: [{ title: "Detalhes da sprint · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Detalhes da sprint · Stratos Suite" }] }),
   component: SprintDetail,
 });
 

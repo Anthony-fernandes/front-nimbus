@@ -105,14 +105,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NimbusDesk" },
+      { title: "Stratos Suite" },
       { name: "description", content: "Painel operacional integrado ao backend Django." },
-      { name: "author", content: "NimbusDesk" },
-      { property: "og:title", content: "NimbusDesk" },
+      { name: "author", content: "Stratos Suite" },
+      { property: "og:title", content: "Stratos Suite" },
       { property: "og:description", content: "Painel operacional integrado ao backend Django." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "NimbusDesk" },
+      { name: "twitter:title", content: "Stratos Suite" },
     ],
     links: [
       {

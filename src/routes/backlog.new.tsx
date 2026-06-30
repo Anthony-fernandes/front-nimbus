@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { BacklogItemForm } from "@/components/forms/BacklogItemForm";
 
 export const Route = createFileRoute("/backlog/new")({
-  head: () => ({ meta: [{ title: "Novo item de backlog · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Novo item de backlog · Stratos Suite" }] }),
   component: () => (
     <AppShell>
       <div className="space-y-5">

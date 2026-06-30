@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { ClientForm } from "@/components/forms/ClientForm";
 
 export const Route = createFileRoute("/clients/new")({
-  head: () => ({ meta: [{ title: "Nova organização · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Nova organização · Stratos Suite" }] }),
   component: () => (
     <AppShell>
       <div className="max-w-7xl space-y-5">

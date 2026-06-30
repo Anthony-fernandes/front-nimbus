@@ -13,7 +13,7 @@ import { setSession } from "@/services/session";
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/client/login")({
-  head: () => ({ meta: [{ title: "Portal do cliente · Entrar · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Portal do cliente · Entrar · Stratos Suite" }] }),
   component: ClientLoginPage,
 });
 
@@ -34,7 +34,7 @@ function ClientLoginPage() {
           </div>
           <div>
             <div className="text-lg font-semibold">
-              Nimbus<span className="text-gradient">Desk</span>
+              Stratos<span className="text-gradient">Suite</span>
             </div>
             <h2 className="mt-1 text-base font-semibold tracking-tight">Portal do Cliente</h2>
             <p className="text-xs text-muted-foreground mt-1">

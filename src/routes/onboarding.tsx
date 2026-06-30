@@ -10,7 +10,7 @@ import { getStoredUser } from "@/services/authService";
 import { api } from "@/services/api";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Configuração inicial · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Configuração inicial · Stratos Suite" }] }),
   component: OnboardingPage,
 });
 
@@ -137,7 +137,7 @@ function OnboardingPage() {
   }
 
   function finish() {
-    toast.success("Configuração concluída! Bem-vindo ao NimbusDesk.");
+    toast.success("Configuração concluída! Bem-vindo ao Stratos Suite.");
     void navigate({ to: "/" });
   }
 

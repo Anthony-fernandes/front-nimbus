@@ -7,7 +7,7 @@ import { ActivityForm } from "@/components/forms/ActivityForm";
 import { getActivity, toActivityFormData } from "@/services/activityService";
 
 export const Route = createFileRoute("/activities/$id/edit")({
-  head: () => ({ meta: [{ title: "Editar atividade - NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Editar atividade - Stratos Suite" }] }),
   component: EditActivity,
 });
 

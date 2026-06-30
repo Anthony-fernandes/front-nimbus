@@ -10,7 +10,7 @@ import { buildSprintCapacitySeries } from "@/services/analytics";
 import { listSprints } from "@/services/sprintService";
 
 export const Route = createFileRoute("/sprints")({
-  head: () => ({ meta: [{ title: "Sprints · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Sprints · Stratos Suite" }] }),
   component: SprintsPage,
 });
 

@@ -264,7 +264,7 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
           {!collapsed ? (
             <div className="leading-tight">
               <div className="text-sm font-semibold tracking-tight">
-                Nimbus<span className="text-gradient">Desk</span>
+                Stratos<span className="text-gradient">Suite</span>
               </div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                 {clientUser ? "Portal do cliente" : "Portal interno"}

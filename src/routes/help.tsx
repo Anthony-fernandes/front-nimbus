@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { listKnowledgeArticles, listForumTopics, listDoubtsQuestions } from "@/services/knowledgeService";
 
 export const Route = createFileRoute("/help")({
-  head: () => ({ meta: [{ title: "Central de Ajuda · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Central de Ajuda · Stratos Suite" }] }),
   component: HelpPage,
 });
 

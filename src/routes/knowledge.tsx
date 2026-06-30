@@ -35,7 +35,7 @@ import {
 import { getStoredUser } from "@/services/session";
 
 export const Route = createFileRoute("/knowledge")({
-  head: () => ({ meta: [{ title: "Base de Conhecimento · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Base de Conhecimento · Stratos Suite" }] }),
   component: KnowledgePage,
 });
 

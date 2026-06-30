@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { TicketForm } from "@/components/forms/TicketForm";
 
 export const Route = createFileRoute("/tickets/new")({
-  head: () => ({ meta: [{ title: "Novo chamado · Nimbus" }] }),
+  head: () => ({ meta: [{ title: "Novo chamado · Stratos Suite" }] }),
   component: NewTicketPage,
 });
 
