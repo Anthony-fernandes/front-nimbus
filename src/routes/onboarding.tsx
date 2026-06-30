@@ -76,8 +76,11 @@ function OnboardingPage() {
     setLoading(true);
     try {
       await Promise.allSettled(
-        validMembers.map((m) =>
-          api.post("/users/", { name: m.name, email: m.email, role: "TECHNICIAN" }),
+        validMembers.map((m) => {
+          const [first_name, ...rest] = m.name.trim().split(" ");
+          const last_name = rest.join(" ");
+          return api.post("/users/", { first_name, last_name, email: m.email, username: m.email, role: "TECHNICIAN" });
+        }),
         ),
       );
     } catch {
