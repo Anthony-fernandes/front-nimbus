@@ -56,8 +56,15 @@ function EquipesPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {teams.map((team) => {
+          <div className="space-y-6">
+            {[{ tipo: "equipe", label: "Equipes" }, { tipo: "grupo", label: "Grupos de Atendimento" }].map(({ tipo, label }) => {
+              const filtered = teams.filter((t) => (t.tipo ?? "equipe") === tipo);
+              if (filtered.length === 0) return null;
+              return (
+                <div key={tipo}>
+                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</h2>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {filtered.map((team) => {
               const memberCount = team.member_count ?? team.members?.length ?? 0;
               const icon = team.icon || (team.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join(""));
               return (
@@ -72,9 +79,14 @@ function EquipesPage() {
                       <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{team.name}</p>
                       {team.leader_name && <p className="text-xs text-muted-foreground truncate">Líder: {team.leader_name}</p>}
                     </div>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${team.status === "Ativa" ? "bg-success/15 text-success" : team.status === "Inativa" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}>
-                      {team.status || "Ativa"}
-                    </span>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${team.status === "Ativa" ? "bg-success/15 text-success" : team.status === "Inativa" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}>
+                        {team.status || "Ativa"}
+                      </span>
+                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${tipo === "grupo" ? "bg-amber-500/10 text-amber-400" : "bg-primary/10 text-primary"}`}>
+                        {tipo === "grupo" ? "Grupo" : "Equipe"}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Description */}
@@ -105,6 +117,10 @@ function EquipesPage() {
                     <span className="text-xs text-muted-foreground">{memberCount} membro{memberCount !== 1 ? "s" : ""}</span>
                   </div>
                 </Link>
+              );
+            })}
+                  </div>
+                </div>
               );
             })}
           </div>

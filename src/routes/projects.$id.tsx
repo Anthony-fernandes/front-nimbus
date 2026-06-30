@@ -460,7 +460,7 @@ function ProjectDetail() {
         <PageHeader
           crumbs={[{ label: "Projetos", to: "/projects" }, { label: project.name }]}
           title={project.name}
-          subtitle={`${project.organization_name || project.client_name || "Nao informado"} - ${project.owner_name || project.leader_name || "Nao informado"}`}
+          subtitle={`${project.tipo === "interno" ? (project.department_name || "Interno") : (project.organization_name || project.client_name || "Não informado")} · ${project.owner_name || project.leader_name || "Sem líder"}`}
           badges={
             <span className="flex items-center gap-2">
               <span
@@ -579,11 +579,13 @@ function ProjectDetail() {
                   </div>
                 </div>
                 <ProjectDetailPanel
-                  clientName={project.organization_name || project.client_name || "Nao informado"}
+                  clientName={project.tipo === "interno" ? (project.department_name || "Interno") : (project.organization_name || project.client_name || "Não informado")}
                   startAt={project.start_at}
                   dueAt={project.due_at}
                   status={project.status || "Não informado"}
                   health={project.health}
+                  tipo={project.tipo}
+                  metodologia={project.metodologia}
                 />
               </div>
               <div className="glass rounded-2xl p-5 shadow-card">
@@ -1097,15 +1099,22 @@ function ProjectDetailPanel({
   dueAt,
   status,
   health,
+  tipo,
+  metodologia,
 }: {
   clientName: string;
   startAt?: string | null;
   dueAt?: string | null;
   status: string;
   health?: string | null;
+  tipo?: string;
+  metodologia?: string;
 }) {
+  const metodologiaLabel: Record<string, string> = { scrum: "Scrum", kanban: "Kanban", hibrido: "Híbrido", tradicional: "Tradicional" };
   const details = [
-    { label: "Organização atendida", value: clientName },
+    { label: tipo === "interno" ? "Departamento" : "Organização atendida", value: clientName },
+    { label: "Tipo", value: tipo === "interno" ? "Interno" : "Cliente externo" },
+    { label: "Metodologia", value: metodologiaLabel[metodologia ?? ""] || metodologia || "Scrum" },
     { label: "Início", value: formatDateSafe(startAt) },
     { label: "Término", value: formatDateSafe(dueAt) },
   ];

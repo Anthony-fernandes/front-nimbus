@@ -78,7 +78,7 @@ function EquipeDetail() {
           <StatCard label="Membros" value={String(memberCount)} />
           <StatCard label="Líder" value={team.leader_name || "—"} />
           <StatCard label="Capacidade padrão" value={team.default_capacity ? `${team.default_capacity}h` : "—"} />
-          <StatCard label="Status" value={team.status || "Ativa"} />
+          <StatCard label="Tipo" value={team.tipo === "grupo" ? "Grupo" : "Equipe"} />
         </div>
 
         {/* Content */}
@@ -132,6 +132,24 @@ function EquipeDetail() {
                 <p className="text-sm text-muted-foreground italic">Sem descrição.</p>
               )}
             </div>
+
+            {team.tipo === "grupo" && (
+              <div className="glass rounded-2xl p-5 shadow-card space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Clientes atendidos</h3>
+                {(team.clients ?? []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">Nenhum cliente vinculado.</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {(team.clients ?? []).map((c) => (
+                      <li key={c} className="text-xs text-foreground flex items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             <div className="glass rounded-2xl p-5 shadow-card space-y-3">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2"><Zap className="h-4 w-4" /> Distribuição de membros</h3>

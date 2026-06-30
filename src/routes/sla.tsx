@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { listOrganizations } from "@/services/clientService";
 import {
   createSLAPolicy,
   deleteSLAPolicy,
@@ -269,6 +270,9 @@ function SLAPage() {
                     </span>
                     <span className="text-sm font-medium">{policy.name}</span>
                     {policy.category && <span className="text-xs text-muted-foreground">· {policy.category}</span>}
+                    {(policy as { client?: string | null; client_name?: string }).client_name && (
+                      <span className="text-xs bg-violet-500/10 text-violet-400 rounded px-1.5 py-0.5">{(policy as { client_name?: string }).client_name}</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-mono text-primary">{policy.response_time}</span>
@@ -418,6 +422,7 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
   const [priority, setPriority] = useState(editing?.priority ?? "");
   const [category, setCategory] = useState(editing?.category ?? "");
   const [responseTime, setResponseTime] = useState(editing?.response_time ?? "8h");
+  const [client, setClient] = useState((editing as { client?: string } | null)?.client ?? "");
 
   // Reset on open
   useState(() => {
@@ -425,11 +430,17 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
     setPriority(editing?.priority ?? "");
     setCategory(editing?.category ?? "");
     setResponseTime(editing?.response_time ?? "8h");
+    setClient((editing as { client?: string } | null)?.client ?? "");
+  });
+
+  const { data: organizations = [] } = useQuery({
+    queryKey: ["form-organizations"],
+    queryFn: () => listOrganizations(),
   });
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const data = { name, priority, category, response_time: responseTime, active: true };
+      const data = { name, priority, category, response_time: responseTime, active: true, client: client || null };
       return editing ? updateSLAPolicy(editing.id, data) : createSLAPolicy(data);
     },
     onSuccess: () => {
@@ -467,6 +478,18 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
             <label className="text-xs font-medium text-muted-foreground">Prazo de resposta</label>
             <Input value={responseTime} onChange={(e) => setResponseTime(e.target.value)} placeholder="Ex: 2h, 1d, 30m" />
             <p className="text-[11px] text-muted-foreground">Use h (horas), d (dias) ou m (minutos)</p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Cliente específico (opcional)</label>
+            <Select value={client} onValueChange={setClient}>
+              <SelectTrigger><SelectValue placeholder="Todos os clientes" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos os clientes</SelectItem>
+                {organizations.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

@@ -52,6 +52,7 @@ export type TeamFormData = {
   color: string;
   icon: string;
   default_capacity: string;
+  tipo: "equipe" | "grupo";
 };
 
 const PRESET_COLORS = [
@@ -130,6 +131,7 @@ const empty: TeamFormData = {
   color: "#6366f1",
   icon: "",
   default_capacity: "",
+  tipo: "equipe",
 };
 
 function initials(name: string) {
@@ -227,6 +229,7 @@ export function TeamForm({
         color: data.color,
         icon: data.icon,
         default_capacity: data.default_capacity ? Number(data.default_capacity) : 0,
+        tipo: data.tipo,
       };
 
       let saved: Team;
@@ -266,9 +269,18 @@ export function TeamForm({
           </div>
 
           <div className="p-5 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-[1fr_160px]">
-              <Field label="Nome da equipe" required>
+            <div className="grid gap-4 sm:grid-cols-[1fr_180px_160px]">
+              <Field label="Nome" required>
                 <Input placeholder="ex: Equipe Backend" value={data.name} onChange={(e) => set("name", e.target.value)} required />
+              </Field>
+              <Field label="Tipo" hint="Equipe de projeto/sprint ou grupo de atribuição de chamados.">
+                <Select value={data.tipo} onValueChange={(v) => set("tipo", v as TeamFormData["tipo"])}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="equipe">Equipe (Sprint/Projeto)</SelectItem>
+                    <SelectItem value="grupo">Grupo (Atribuição/Permissão)</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Status">
                 <Select value={data.status} onValueChange={(v) => set("status", v)}>

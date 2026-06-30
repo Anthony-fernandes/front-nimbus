@@ -23,6 +23,7 @@ import {
   listKnowledgeCategories,
   updateKnowledgeArticle,
 } from "@/services/knowledgeService";
+import { listOrganizations } from "@/services/clientService";
 
 export const Route = createFileRoute("/knowledge/$id/edit")({
   head: () => ({ meta: [{ title: "Editar Artigo · Nimbus" }] }),
@@ -42,6 +43,7 @@ function KnowledgeEditPage() {
     visibility: "INTERNAL" as KnowledgeArticle["visibility"],
     expires_at: "",
     review_at: "",
+    client: "",
   });
   const [initialized, setInitialized] = useState(false);
 
@@ -53,6 +55,10 @@ function KnowledgeEditPage() {
   const categoriesQuery = useQuery({
     queryKey: ["knowledge-categories"],
     queryFn: listKnowledgeCategories,
+  });
+  const { data: organizations = [] } = useQuery({
+    queryKey: ["form-organizations"],
+    queryFn: () => listOrganizations(),
   });
 
   useEffect(() => {
@@ -67,6 +73,7 @@ function KnowledgeEditPage() {
         visibility: a.visibility ?? "INTERNAL",
         expires_at: a.expires_at ?? "",
         review_at: a.review_at ?? "",
+        client: (a as { client?: string | null }).client ?? "",
       });
       setInitialized(true);
     }
@@ -79,6 +86,7 @@ function KnowledgeEditPage() {
       updateKnowledgeArticle(id, {
         ...form,
         category: form.category || null,
+        client: form.client || null,
         expires_at: form.expires_at || null,
         review_at: form.review_at || null,
       }),
@@ -207,6 +215,18 @@ function KnowledgeEditPage() {
                   <SelectItem value="PUBLIC">Público</SelectItem>
                   <SelectItem value="INTERNAL">Interno</SelectItem>
                   <SelectItem value="RESTRICTED">Restrito</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label>Cliente específico (opcional)</Label>
+              <Select value={form.client} onValueChange={(v) => setForm((f) => ({ ...f, client: v }))}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  {organizations.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

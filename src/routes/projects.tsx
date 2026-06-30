@@ -174,7 +174,7 @@ function ProjectsPage() {
             <TableHeader>
               <TableRow className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground hover:bg-transparent">
                 <TableHead className="px-4 py-2.5">Projeto</TableHead>
-                <TableHead className="px-2 py-2.5">Organização atendida</TableHead>
+                <TableHead className="px-2 py-2.5">Entidade / Tipo</TableHead>
                 <TableHead className="px-2 py-2.5">Status</TableHead>
                 <TableHead className="px-2 py-2.5">Progresso</TableHead>
                 <TableHead className="px-2 py-2.5">Equipe</TableHead>
@@ -199,8 +199,17 @@ function ProjectsPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-3 text-muted-foreground">
-                    {project.organization_name || project.client_name || "Nao informado"}
+                  <TableCell className="px-2 py-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-muted-foreground text-sm">
+                        {project.tipo === "interno"
+                          ? (project.department_name || "Interno")
+                          : (project.organization_name || project.client_name || "Não informado")}
+                      </span>
+                      <span className={`inline-block w-fit rounded px-1.5 py-0.5 text-[10px] font-medium ${project.tipo === "interno" ? "bg-blue-500/10 text-blue-400" : "bg-violet-500/10 text-violet-400"}`}>
+                        {project.tipo === "interno" ? "Interno" : "Cliente"}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="px-2 py-3">
                     <span className="rounded-md bg-muted/60 px-2 py-1 text-[11px] text-muted-foreground">

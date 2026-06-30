@@ -274,6 +274,10 @@ export type Project = {
   client_name?: string;
   organization_id?: string;
   organization_name?: string;
+  department?: string | null;
+  department_name?: string;
+  tipo?: "interno" | "cliente" | string;
+  metodologia?: "scrum" | "kanban" | "hibrido" | "tradicional" | string;
   owner?: string | null;
   owner_name?: string;
   leader_name?: string;
@@ -313,6 +317,9 @@ export type Ticket = {
   client_name?: string;
   organization_id?: string;
   organization_name?: string;
+  department?: string | null;
+  department_name?: string;
+  source?: "portal" | "email" | "chat" | "telefone" | "api" | string;
   project?: string | null;
   project_name?: string;
   sprint?: string | null;
@@ -593,6 +600,9 @@ export type Team = {
   icon?: string;
   default_capacity?: number;
   settings?: Record<string, unknown>;
+  tipo?: "equipe" | "grupo" | string;
+  parent?: string | null;
+  clients?: string[];
   member_count?: number;
   members?: TeamMember[];
   created_at?: string;
@@ -807,13 +817,13 @@ export type DashboardData = {
 
 export interface KnowledgeCategory { id: string; name: string; slug: string; description: string; parent: string | null; parent_name?: string; order: number; active: boolean; }
 export interface KnowledgeTag { id: string; name: string; slug: string; }
-export interface KnowledgeArticle { id: string; title: string; slug: string; content: string; summary: string; category: string | null; category_name?: string; tags: string[]; tag_names?: string[]; status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'REVIEW'; visibility: 'PUBLIC' | 'INTERNAL' | 'RESTRICTED'; author: string; author_name?: string; views_count: number; helpful_count: number; not_helpful_count: number; version: number; published_at: string | null; expires_at?: string | null; review_at?: string | null; source_ticket: string | null; created_at: string; }
-export interface ForumCategory { id: string; name: string; description: string; order: number; active: boolean; }
-export interface ForumTopic { id: string; category: string; category_name?: string; title: string; content: string; tags: string[]; author: string; author_name?: string; is_pinned: boolean; is_locked: boolean; views_count: number; replies_count: number; likes_count: number; best_answer: string | null; created_at: string; updated_at?: string; }
+export interface KnowledgeArticle { id: string; title: string; slug: string; content: string; summary: string; category: string | null; category_name?: string; tags: string[]; tag_names?: string[]; status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'REVIEW'; visibility: 'PUBLIC' | 'INTERNAL' | 'RESTRICTED'; client?: string | null; client_name?: string; author: string; author_name?: string; views_count: number; helpful_count: number; not_helpful_count: number; version: number; published_at: string | null; expires_at?: string | null; review_at?: string | null; source_ticket: string | null; created_at: string; }
+export interface ForumCategory { id: string; name: string; description: string; order: number; active: boolean; client?: string | null; client_name?: string; }
+export interface ForumTopic { id: string; category: string; category_name?: string; title: string; content: string; tags: string[]; author: string; author_name?: string; is_pinned: boolean; is_locked: boolean; views_count: number; replies_count: number; likes_count: number; best_answer: string | null; visibility?: 'interna' | 'publica_cliente' | 'todos'; created_at: string; updated_at?: string; }
 export interface ForumReply { id: string; topic: string; author: string; author_name?: string; content: string; is_best_answer: boolean; likes_count: number; created_at: string; updated_at?: string; }
 export interface DoubtsQuestion { id: string; title: string; content: string; author: string; author_name?: string; status: 'OPEN' | 'ANSWERED' | 'CLOSED'; views_count: number; answers_count: number; likes_count: number; tags: string[]; created_at: string; updated_at?: string; }
 export interface DoubtsAnswer { id: string; question: string; author: string; author_name?: string; content: string; is_accepted: boolean; likes_count: number; created_at: string; updated_at?: string; }
-export interface ChatConversation { id: string; participants: string[]; participant_names?: string[]; created_by: string; last_message_at: string | null; created_at: string; is_archived?: boolean; unread_count?: number; }
+export interface ChatConversation { id: string; tipo?: 'direto' | 'grupo' | 'chamado' | 'projeto' | 'entidade' | string; name?: string; participants: string[]; participant_names?: string[]; created_by: string; last_message_at: string | null; ticket?: string | null; project?: string | null; client?: string | null; created_at: string; is_archived?: boolean; unread_count?: number; }
 export interface ChatMessage { id: string; conversation: string; author: string; author_name?: string; content: string; file: string | null; file_url?: string | null; file_name: string | null; reply_to?: string | null; reply_to_preview?: string | null; reply_to_author?: string | null; is_pinned?: boolean; is_edited?: boolean; reactions?: Record<string, string[]>; forward_from?: string | null; read_by_ids?: string[]; created_at: string; }
 export interface ForumComment { id: string; topic?: string | null; reply?: string | null; author: string; author_name?: string; content: string; created_at: string; }
 export interface KnowledgeInternalComment { id: string; article: string; author: string; author_name?: string; content: string; created_at: string; }
@@ -830,3 +840,35 @@ export interface AuditLog {
   ip_address: string | null;
   metadata: Record<string, unknown> | null;
 }
+
+export type Company = {
+  id: string;
+  name: string;
+  document?: string;
+  email?: string;
+  phone?: string;
+  is_active?: boolean;
+  auto_assign?: boolean;
+  usage_type?: "interno" | "prestador" | "hibrido" | string;
+  email_domain?: string;
+  timezone?: string;
+  locale?: string;
+  currency?: string;
+  logo?: string;
+  primary_color?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type SLAPolicy = {
+  id: string;
+  name: string;
+  priority?: string;
+  category?: string;
+  client?: string | null;
+  client_name?: string;
+  response_time?: string;
+  priority_weight?: number;
+  active?: boolean;
+  created_at?: string;
+};

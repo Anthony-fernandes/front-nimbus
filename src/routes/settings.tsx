@@ -392,6 +392,42 @@ function SettingsPage() {
                     />
                   </div>
                 ))}
+                {/* Modo de uso */}
+                <div className="space-y-1">
+                  <Label>Modo de uso</Label>
+                  <p className="text-xs text-muted-foreground">Define como o sistema opera para sua empresa.</p>
+                  <div className="grid gap-2 pt-1">
+                    {([
+                      { value: "prestador", label: "Prestação de serviço (B2B)", desc: "Sua empresa atende outras empresas clientes. Chamados e projetos sempre vinculados a um cliente." },
+                      { value: "interno", label: "Uso interno", desc: "Sua empresa usa o sistema internamente por departamentos. Sem clientes externos." },
+                      { value: "hibrido", label: "Híbrido", desc: "Usa internamente por departamentos E também atende clientes externos ao mesmo tempo." },
+                    ] as const).map(({ value, label, desc }) => {
+                      const current = (companyForm.usage_type ?? companyData.usage_type ?? "prestador") as string;
+                      const selected = current === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setCompanyForm((prev) => ({ ...prev, usage_type: value }))}
+                          className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-all ${
+                            selected
+                              ? "border-primary bg-primary/8 shadow-sm"
+                              : "border-border bg-muted/10 hover:border-primary/40"
+                          }`}
+                        >
+                          <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${selected ? "border-primary" : "border-muted-foreground/40"}`}>
+                            {selected && <span className="h-2 w-2 rounded-full bg-primary block" />}
+                          </span>
+                          <span>
+                            <span className="block text-sm font-medium">{label}</span>
+                            <span className="block text-xs text-muted-foreground">{desc}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2">
                   <input
                     id="auto_assign"

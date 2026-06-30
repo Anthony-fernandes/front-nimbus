@@ -21,6 +21,7 @@ import { getUserOrganizationIds, isClientUser } from "@/lib/auth";
 import { formatProjectStatusLabel } from "@/lib/labels";
 import type { ProjectStage } from "@/lib/types";
 import { listOrganizations } from "@/services/clientService";
+import { listDepartments } from "@/services/orgService";
 import { saveProject } from "@/services/projectService";
 import { formatDate , parseApiError} from "@/services/utils";
 import { listUsers } from "@/services/userService";
@@ -33,6 +34,9 @@ type SelectOption = {
 export type ProjectFormData = {
   name: string;
   organization: string;
+  department: string;
+  tipo: "interno" | "cliente";
+  metodologia: "scrum" | "kanban" | "hibrido" | "tradicional";
   contactPrincipal: string;
   leader: string;
   team: string[];
@@ -51,6 +55,9 @@ export type ProjectFormData = {
 const empty: ProjectFormData = {
   name: "",
   organization: "",
+  department: "",
+  tipo: "cliente",
+  metodologia: "scrum",
   contactPrincipal: "",
   leader: "",
   team: [],
@@ -119,6 +126,10 @@ export function ProjectForm({
   const { data: organizations = [] } = useQuery({
     queryKey: ["form-organizations"],
     queryFn: () => listOrganizations(),
+  });
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => listDepartments(),
   });
   const { data: users = [] } = useQuery({
     queryKey: ["form-users"],
@@ -190,8 +201,12 @@ export function ProjectForm({
     }
     setFormErrors({});
 
-    if (!data.organization) {
-      toast.error("Preencha organização atendida");
+    if (data.tipo === "cliente" && !data.organization) {
+      toast.error("Selecione o cliente atendido");
+      return;
+    }
+    if (data.tipo === "interno" && !data.department) {
+      toast.error("Selecione o departamento responsável");
       return;
     }
 
@@ -229,18 +244,57 @@ export function ProjectForm({
             />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tipo de projeto" required>
+              <Select value={data.tipo} onValueChange={(v) => set("tipo", v as ProjectFormData["tipo"])}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cliente">Para cliente externo</SelectItem>
+                  <SelectItem value="interno">Interno (departamento)</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Metodologia">
+              <Select value={data.metodologia} onValueChange={(v) => set("metodologia", v as ProjectFormData["metodologia"])}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scrum">Scrum</SelectItem>
+                  <SelectItem value="kanban">Kanban</SelectItem>
+                  <SelectItem value="hibrido">Híbrido</SelectItem>
+                  <SelectItem value="tradicional">Tradicional</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            {data.tipo === "cliente" ? (
             <Field
-              label="Organização atendida"
+              label="Cliente atendido"
               required
-              hint="Selecione a empresa, cliente, setor ou area para quem o projeto sera entregue."
+              hint="Empresa ou cliente externo para quem o projeto será entregue."
             >
               <Selectable
                 value={data.organization}
                 onChange={(value) => set("organization", value)}
                 options={organizationOptions}
-                placeholder="Selecionar organização"
+                placeholder="Selecionar cliente"
               />
             </Field>
+            ) : (
+            <Field
+              label="Departamento responsável"
+              required
+              hint="Departamento interno para quem o projeto pertence."
+            >
+              <Selectable
+                value={data.department}
+                onChange={(value) => set("department", value)}
+                options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                placeholder="Selecionar departamento"
+              />
+            </Field>
+            )}
             <Field
               label="Contato principal"
               hint="Pessoa da organização que acompanha escopo, duvidas e validações do projeto."

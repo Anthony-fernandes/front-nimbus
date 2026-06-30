@@ -30,6 +30,7 @@ import { api } from "@/services/api";
 import { listActivities } from "@/services/activityService";
 import { listActivityTags } from "@/services/activityTagService";
 import { listOrganizations } from "@/services/clientService";
+import { listDepartments } from "@/services/orgService";
 import { listTicketCategories } from "@/services/ticketCategoryService";
 import { saveTicket } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
@@ -118,6 +119,8 @@ export type TicketFormData = {
   requiresClientValidation: boolean;
   internalNotes: string;
   convertToProjectActivity: boolean;
+  department: string;
+  source: string;
 };
 
 const empty: TicketFormData = {
@@ -152,6 +155,8 @@ const empty: TicketFormData = {
   requiresClientValidation: true,
   internalNotes: "",
   convertToProjectActivity: false,
+  department: "",
+  source: "portal",
 };
 
 function toUserOption(user: {
@@ -288,6 +293,10 @@ export function TicketForm({
   const { data: organizations = [] } = useQuery({
     queryKey: ["form-organizations"],
     queryFn: () => listOrganizations(),
+  });
+  const { data: departments = [] } = useQuery({
+    queryKey: ["form-departments"],
+    queryFn: () => listDepartments(),
   });
   const { data: users = [] } = useQuery({
     queryKey: ["form-users"],
@@ -668,7 +677,6 @@ export function TicketForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Organização atendida"
-              required
               hint="Selecione a organização, cliente, setor ou área atendida."
             >
               <Selectable
@@ -677,6 +685,16 @@ export function TicketForm({
                 options={organizationOptions}
                 placeholder="Selecionar organização"
               />
+            </Field>
+            <Field label="Departamento" hint="Departamento interno envolvido neste chamado.">
+              <Select value={data.department} onValueChange={(v) => set("department", v)}>
+                <SelectTrigger><SelectValue placeholder="Selecionar departamento" /></SelectTrigger>
+                <SelectContent>
+                  {departments.map((d: { id: string; name: string }) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field
               label="Solicitante"
@@ -714,6 +732,18 @@ export function TicketForm({
             </Field>
             <Field label="Origem">
               <Input value={data.origin} disabled />
+            </Field>
+            <Field label="Canal de entrada" hint="Como este chamado foi recebido.">
+              <Select value={data.source} onValueChange={(v) => set("source", v)}>
+                <SelectTrigger><SelectValue placeholder="Selecionar canal" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="portal">Portal</SelectItem>
+                  <SelectItem value="email">E-mail</SelectItem>
+                  <SelectItem value="chat">Chat</SelectItem>
+                  <SelectItem value="telefone">Telefone</SelectItem>
+                  <SelectItem value="api">API / Integração</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <Field
               label={mode === "create" ? "Status inicial" : "Status"}

@@ -14,6 +14,13 @@ export interface Company {
   phone: string;
   is_active: boolean;
   auto_assign: boolean;
+  usage_type?: "interno" | "prestador" | "hibrido";
+  email_domain?: string;
+  timezone?: string;
+  locale?: string;
+  currency?: string;
+  logo?: string;
+  primary_color?: string;
 }
 
 export async function getCompanyStats(): Promise<CompanyStats> {

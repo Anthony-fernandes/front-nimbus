@@ -44,7 +44,7 @@ function ForumPage() {
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", content: "", category: "", tags: "" });
+  const [form, setForm] = useState({ title: "", content: "", category: "", tags: "", visibility: "todos" });
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterTab>("recentes");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -64,11 +64,12 @@ function ForumPage() {
         content: form.content,
         category: form.category || undefined,
         tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : undefined,
+        visibility: form.visibility as "interna" | "publica_cliente" | "todos",
       } as Parameters<typeof createForumTopic>[0]),
     onSuccess: () => {
       toast.success("Tópico criado.");
       setDialogOpen(false);
-      setForm({ title: "", content: "", category: "", tags: "" });
+      setForm({ title: "", content: "", category: "", tags: "", visibility: "todos" });
       setKbSuggestions([]);
       void qc.invalidateQueries({ queryKey: ["forum-topics"] });
     },
@@ -352,6 +353,17 @@ function ForumPage() {
                 placeholder="Ex: rh, ti, processo, onboarding"
                 className="text-sm"
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Visibilidade</Label>
+              <Select value={form.visibility} onValueChange={(v) => setForm((f) => ({ ...f, visibility: v }))}>
+                <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="interna">Interna (equipe)</SelectItem>
+                  <SelectItem value="publica_cliente">Clientes (portal)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

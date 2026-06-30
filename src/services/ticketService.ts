@@ -181,6 +181,8 @@ function buildExtendedPayload(data: TicketFormData) {
     converted_reason: data.convertToProjectActivity
       ? "Convertido em atividade de projeto"
       : "",
+    department: data.department || null,
+    source: data.source || "portal",
   };
 }
 

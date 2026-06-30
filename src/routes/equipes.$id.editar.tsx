@@ -39,6 +39,7 @@ function EditarEquipe() {
               color: team.color ?? "#6366f1",
               icon: team.icon ?? "",
               default_capacity: String(team.default_capacity ?? ""),
+              tipo: (team.tipo as "equipe" | "grupo") ?? "equipe",
             }}
           />
         )}

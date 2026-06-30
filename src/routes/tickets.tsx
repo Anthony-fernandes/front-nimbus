@@ -816,7 +816,7 @@ function TicketsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="font-mono text-xs text-muted-foreground">{(ticket as { code?: string }).code || ticket.id.slice(0, 8)}</div>
                       <div className="mt-0.5 font-medium text-sm truncate">{ticket.title}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">{(ticket as { organization_name?: string; client_name?: string }).organization_name || (ticket as { organization_name?: string; client_name?: string }).client_name || "—"}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{(ticket as { department_name?: string; organization_name?: string; client_name?: string }).department_name || (ticket as { organization_name?: string; client_name?: string }).organization_name || (ticket as { organization_name?: string; client_name?: string }).client_name || "—"}</div>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getTicketPriorityClass(ticket.priority)}`}>
@@ -892,7 +892,7 @@ function TicketsPage() {
                           </Link>
                         </td>
                         <td className="hidden lg:table-cell px-2 py-3 text-muted-foreground">
-                          {ticket.organization_name || ticket.client_name || ticket.client || "—"}
+                          {(ticket as { department_name?: string }).department_name || ticket.organization_name || ticket.client_name || ticket.client || "—"}
                         </td>
                         <td className="hidden lg:table-cell px-2 py-3 text-muted-foreground">
                           {ticket.category_name || ticket.category || "Sem categoria"}

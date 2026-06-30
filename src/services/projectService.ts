@@ -262,7 +262,10 @@ export async function saveProject(
   const payload = {
     name: data.name,
     description: data.description || "",
-    client: data.organization,
+    tipo: data.tipo || "cliente",
+    metodologia: data.metodologia || "scrum",
+    client: data.tipo === "cliente" ? (data.organization || null) : null,
+    department: data.tipo === "interno" ? (data.department || null) : null,
     owner: data.leader || null,
     contact_principal: data.contactPrincipal || null,
     team: data.team,
@@ -288,7 +291,10 @@ export function toProjectFormData(project: Project): Partial<ProjectFormData> {
 
   return {
     name: normalizedProject.name,
+    tipo: (normalizedProject.tipo as ProjectFormData["tipo"]) || "cliente",
+    metodologia: (normalizedProject.metodologia as ProjectFormData["metodologia"]) || "scrum",
     organization: normalizedProject.client || normalizedProject.organization_id || "",
+    department: normalizedProject.department || "",
     contactPrincipal: normalizedProject.contact_principal || "",
     leader: normalizedProject.owner || "",
     team: normalizedProject.team || [],

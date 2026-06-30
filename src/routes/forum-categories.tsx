@@ -20,7 +20,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ForumCategory } from "@/lib/types";
+import { listOrganizations } from "@/services/clientService";
 import {
   createForumCategory,
   deleteForumCategory,
@@ -38,12 +46,13 @@ type FormState = {
   description: string;
   order: number;
   active: boolean;
+  client: string;
 };
 
-const defaultForm: FormState = { name: "", description: "", order: 0, active: true };
+const defaultForm: FormState = { name: "", description: "", order: 0, active: true, client: "" };
 
 function categoryToForm(c: ForumCategory): FormState {
-  return { name: c.name, description: c.description, order: c.order, active: c.active };
+  return { name: c.name, description: c.description, order: c.order, active: c.active, client: (c as { client?: string | null }).client ?? "" };
 }
 
 function ForumCategoriesPage() {
@@ -55,6 +64,10 @@ function ForumCategoriesPage() {
   const { data: categories = [] } = useQuery({
     queryKey: ["forum-categories"],
     queryFn: listForumCategories,
+  });
+  const { data: organizations = [] } = useQuery({
+    queryKey: ["form-organizations"],
+    queryFn: () => listOrganizations(),
   });
 
   const createMutation = useMutation({
@@ -147,6 +160,7 @@ function ForumCategoriesPage() {
                 <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-2.5 text-left font-medium">Nome</th>
                   <th className="px-4 py-2.5 text-left font-medium">Descrição</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Cliente</th>
                   <th className="px-4 py-2.5 text-left font-medium">Ordem</th>
                   <th className="px-4 py-2.5 text-left font-medium">Status</th>
                   <th className="px-4 py-2.5 text-right font-medium">Ações</th>
@@ -168,6 +182,9 @@ function ForumCategoriesPage() {
                       <td className="px-4 py-3 font-medium">{category.name}</td>
                       <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
                         {category.description || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {(category as { client_name?: string }).client_name || "Todos"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{category.order}</td>
                       <td className="px-4 py-3">
@@ -249,6 +266,19 @@ function ForumCategoriesPage() {
                 onChange={(e) => setForm((f) => ({ ...f, order: Number(e.target.value) }))}
                 placeholder="0"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Cliente específico (opcional)</Label>
+              <Select value={form.client} onValueChange={(v) => setForm((f) => ({ ...f, client: v }))}>
+                <SelectTrigger><SelectValue placeholder="Todos os clientes" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos os clientes</SelectItem>
+                  {organizations.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center gap-3">

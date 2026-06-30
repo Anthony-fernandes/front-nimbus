@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import type { KnowledgeArticle } from "@/lib/types";
 import { createKnowledgeArticle, listKnowledgeCategories } from "@/services/knowledgeService";
+import { listOrganizations } from "@/services/clientService";
 
 export const Route = createFileRoute("/knowledge/new")({
   head: () => ({ meta: [{ title: "Novo Artigo · Nimbus" }] }),
@@ -35,11 +36,16 @@ function KnowledgeNewPage() {
     category: "",
     status: "DRAFT" as KnowledgeArticle["status"],
     visibility: "INTERNAL" as KnowledgeArticle["visibility"],
+    client: "",
   });
 
   const categoriesQuery = useQuery({
     queryKey: ["knowledge-categories"],
     queryFn: listKnowledgeCategories,
+  });
+  const { data: organizations = [] } = useQuery({
+    queryKey: ["form-organizations"],
+    queryFn: () => listOrganizations(),
   });
 
   const categories = categoriesQuery.data ?? [];
@@ -49,7 +55,8 @@ function KnowledgeNewPage() {
       createKnowledgeArticle({
         ...form,
         category: form.category || null,
-      }),
+        client: form.client || null,
+      } as Partial<KnowledgeArticle>),
     onSuccess: (article) => {
       toast.success("Artigo criado com sucesso.");
       void navigate({ to: "/knowledge/$id", params: { id: article.id } });
@@ -153,6 +160,18 @@ function KnowledgeNewPage() {
                   <SelectItem value="PUBLIC">Público</SelectItem>
                   <SelectItem value="INTERNAL">Interno</SelectItem>
                   <SelectItem value="RESTRICTED">Restrito</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label>Cliente específico (opcional)</Label>
+              <Select value={form.client} onValueChange={(v) => setForm((f) => ({ ...f, client: v }))}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  {organizations.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
