@@ -81,7 +81,6 @@ function OnboardingPage() {
           const last_name = rest.join(" ");
           return api.post("/users/", { first_name, last_name, email: m.email, username: m.email, role: "TECHNICIAN" });
         }),
-        ),
       );
     } catch {
       // non-blocking
