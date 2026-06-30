@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Plus } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Plus } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,13 @@ function daysUntil(date?: string | null) {
   if (!date) return "Sem prazo";
   const diff = Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
   return diff < 0 ? `${Math.abs(diff)} dias de atraso` : `${diff} dias`;
+}
+
+function projectHealth(project: Project): "on_track" | "at_risk" | "delayed" {
+  const finished = ["Concluido", "Cancelado"].includes(project.status || "");
+  if (!finished && project.due_at && new Date(project.due_at) < new Date()) return "delayed";
+  if (risk(project) > 35) return "at_risk";
+  return "on_track";
 }
 
 function ProjectTimeline({ projects }: { projects: Project[] }) {
@@ -179,7 +186,7 @@ function ProjectsPage() {
                 <TableHead className="px-2 py-2.5">Progresso</TableHead>
                 <TableHead className="px-2 py-2.5">Equipe</TableHead>
                 <TableHead className="px-2 py-2.5">Entrega</TableHead>
-                <TableHead className="px-4 py-2.5 text-right">Risco</TableHead>
+                <TableHead className="px-4 py-2.5 text-right">Saúde</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -238,17 +245,24 @@ function ProjectsPage() {
                     {daysUntil(project.due_at)}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">
-                    <span
-                      className={`inline-flex items-center gap-1 text-[11px] ${
-                        risk(project) > 60
-                          ? "text-destructive"
-                          : risk(project) > 35
-                            ? "text-warning"
-                            : "text-success"
-                      }`}
-                    >
-                      <AlertTriangle className="h-3 w-3" /> {risk(project)}%
-                    </span>
+                    {(() => {
+                      const h = projectHealth(project);
+                      if (h === "delayed") return (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                          <AlertTriangle className="h-3 w-3" /> Atrasado
+                        </span>
+                      );
+                      if (h === "at_risk") return (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[11px] font-medium text-warning">
+                          <Clock className="h-3 w-3" /> Em risco
+                        </span>
+                      );
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+                          <CheckCircle2 className="h-3 w-3" /> No prazo
+                        </span>
+                      );
+                    })()}
                   </TableCell>
                 </TableRow>
               ))}

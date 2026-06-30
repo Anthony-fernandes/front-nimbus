@@ -4,6 +4,7 @@ import { listChatConversations } from "@/services/knowledgeService";
 import {
   BarChart3,
   Blocks,
+  Bot,
   BookOpen,
   Building2,
   ClipboardCheck,
@@ -200,6 +201,12 @@ function getInternalMenu(user: User | null | undefined) {
       url: "/audit",
       icon: ScrollText,
       visible: hasPermission(user, "settings.view") || getUserRole(user) === "ADMIN",
+    },
+    {
+      title: "Automações",
+      url: "/automations",
+      icon: Bot,
+      visible: getUserRole(user) === "ADMIN",
     },
     {
       title: "Webhooks",
