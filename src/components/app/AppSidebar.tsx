@@ -129,6 +129,7 @@ function getInternalMenu(user: User | null | undefined) {
       visible: getUserRole(user) !== "CLIENT",
     },
     { title: "Chat", url: "/chat", icon: MessageCircle, visible: true },
+    { title: "Meu perfil", url: "/profile", icon: Settings, visible: getUserRole(user) !== "CLIENT" },
   ].filter((item) => item.visible);
 
   const management: MenuItem[] = [
