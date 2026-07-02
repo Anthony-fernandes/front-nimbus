@@ -169,7 +169,7 @@ function ForumCategoriesPage() {
               <tbody>
                 {categories.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                       Nenhuma categoria cadastrada.
                     </td>
                   </tr>
@@ -270,10 +270,13 @@ function ForumCategoriesPage() {
 
             <div className="space-y-1.5">
               <Label>Cliente específico (opcional)</Label>
-              <Select value={form.client} onValueChange={(v) => setForm((f) => ({ ...f, client: v }))}>
+              <Select
+                value={form.client || "__all__"}
+                onValueChange={(v) => setForm((f) => ({ ...f, client: v === "__all__" ? "" : v }))}
+              >
                 <SelectTrigger><SelectValue placeholder="Todos os clientes" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os clientes</SelectItem>
+                  <SelectItem value="__all__">Todos os clientes</SelectItem>
                   {organizations.map((o) => (
                     <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
                   ))}

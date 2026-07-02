@@ -185,12 +185,13 @@ type DeptForm = {
 
 type PositionForm = {
   name: string;
+  description: string;
   auto_approval: boolean;
   active: boolean;
 };
 
 const emptyDept: DeptForm = { name: "", description: "", manager: "", active: true };
-const emptyPosition: PositionForm = { name: "", auto_approval: false, active: true };
+const emptyPosition: PositionForm = { name: "", description: "", auto_approval: false, active: true };
 
 function OrgPage() {
   const queryClient = useQueryClient();
@@ -298,6 +299,7 @@ function OrgPage() {
     setEditingPos(pos);
     setPosForm({
       name: pos.name,
+      description: pos.description ?? "",
       auto_approval: pos.auto_approval ?? false,
       active: pos.active ?? true,
     });
@@ -313,6 +315,7 @@ function OrgPage() {
     try {
       const payload = {
         name: posForm.name.trim(),
+        description: posForm.description.trim(),
         auto_approval: posForm.auto_approval,
         active: posForm.active,
       };
@@ -715,6 +718,15 @@ function OrgPage() {
                 value={posForm.name}
                 onChange={(e) => setPosForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="Ex.: Analista de suporte"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pos-description">Descrição</Label>
+              <Input
+                id="pos-description"
+                value={posForm.description}
+                onChange={(e) => setPosForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Responsabilidades do cargo (opcional)"
               />
             </div>
             <label className="flex cursor-pointer items-center gap-2">

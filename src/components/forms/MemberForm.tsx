@@ -308,9 +308,9 @@ export function MemberForm({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const currentUser = getStoredUser();
+  // Somente users.managePermissions pode gravar permissões — o backend rejeita users.manage sozinho.
   const canManagePermissionSettings = hasAnyPermission(currentUser, [
     "users.managePermissions",
-    "users.manage",
   ]);
   const [data, setData] = useState<MemberFormData>({ ...empty, ...initial });
   const { data: organizations = [] } = useQuery({
@@ -485,7 +485,7 @@ export function MemberForm({
               label={mode === "create" ? "Senha" : "Nova senha"}
               hint={
                 mode === "create"
-                  ? "Se ficar em branco, o backend usa 123456."
+                  ? "Se ficar em branco, uma senha aleatória segura é gerada — o usuário deve redefinir via 'Esqueci minha senha'."
                   : "Preencha apenas se quiser trocar a senha atual."
               }
             >
@@ -571,7 +571,7 @@ export function MemberForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Cargo">
+            <Field label="Título do cargo (texto livre)" hint="Aparece no perfil. Para vincular ao cargo oficial da empresa, use 'Cargo oficial' abaixo.">
               <Input
                 value={data.jobTitle}
                 onChange={(event) => set("jobTitle", event.target.value)}
@@ -665,7 +665,7 @@ export function MemberForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Cargo (organizacional)">
+            <Field label="Cargo oficial" hint="Cargo cadastrado na estrutura organizacional — pode conceder auto-aprovação.">
               <Select
                 value={data.position || "__none__"}
                 onValueChange={(v) => set("position", v === "__none__" ? "" : v)}

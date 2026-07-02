@@ -66,6 +66,7 @@ function PermissionBlocksPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: blocks = [] } = useQuery({
     queryKey: ["permission-blocks"],
@@ -120,6 +121,17 @@ function PermissionBlocksPage() {
     setSelectedId(block.id);
     setFormData({
       name: block.name,
+      description: block.description || "",
+      active: block.active !== false,
+      permissionKeys: flattenGrantedPermissions(block.permissions),
+    });
+    setDialogOpen(true);
+  }
+
+  function openDuplicate(block: PermissionBlock) {
+    setSelectedId(null);
+    setFormData({
+      name: `${block.name} (cópia)`,
       description: block.description || "",
       active: block.active !== false,
       permissionKeys: flattenGrantedPermissions(block.permissions),
@@ -215,11 +227,19 @@ function PermissionBlocksPage() {
         </div>
 
         <div className="glass overflow-hidden rounded-2xl shadow-card">
-          <div className="border-b border-border px-4 py-3">
-            <h2 className="font-semibold">Blocos cadastrados</h2>
-            <p className="text-xs text-muted-foreground">
-              Cada bloco pode ser aplicado a usuários técnicos ou clientes sem mudar o tipo principal da conta.
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <div>
+              <h2 className="font-semibold">Blocos cadastrados</h2>
+              <p className="text-xs text-muted-foreground">
+                Cada bloco pode ser aplicado a usuários técnicos ou clientes sem mudar o tipo principal da conta.
+              </p>
+            </div>
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar bloco..."
+              className="h-9 w-56 rounded-md border border-border bg-background px-3 text-sm"
+            />
           </div>
 
           <div className="overflow-x-auto">
@@ -233,14 +253,16 @@ function PermissionBlocksPage() {
                 </tr>
               </thead>
               <tbody>
-                {blocks.length === 0 ? (
+                {blocks.filter((b) => !searchTerm || b.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
-                      Nenhum bloco cadastrado.
+                      {searchTerm ? "Nenhum bloco encontrado." : "Nenhum bloco cadastrado."}
                     </td>
                   </tr>
                 ) : (
-                  blocks.map((block) => (
+                  blocks
+                    .filter((b) => !searchTerm || b.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map((block) => (
                     <tr
                       key={block.id}
                       className="border-b border-border last:border-0 hover:bg-muted/20"
@@ -269,6 +291,17 @@ function PermissionBlocksPage() {
                             <Pencil className="h-3.5 w-3.5" />
                             Editar
                           </Button>
+                          {canManage ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={() => openDuplicate(block)}
+                            >
+                              Duplicar
+                            </Button>
+                          ) : null}
                           {canManage ? (
                             <Button
                               type="button"

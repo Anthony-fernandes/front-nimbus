@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Eye, EyeOff, ShieldCheck, ShieldOff } from "lucide-react";
@@ -37,6 +37,25 @@ function ProfilePage() {
     phone: (currentUser as { phone?: string } | null)?.phone ?? "",
     job_title: (currentUser as { job_title?: string } | null)?.job_title ?? "",
   });
+  // Busca dados frescos da API — o localStorage pode estar desatualizado.
+  const meQuery = useQuery({
+    queryKey: ["auth-me"],
+    queryFn: () => api.get<User>("/auth/me/").then((r) => r.data),
+  });
+
+  useEffect(() => {
+    const me = meQuery.data as (User & { phone?: string; job_title?: string }) | undefined;
+    if (me) {
+      setProfileForm({
+        first_name: me.first_name ?? "",
+        last_name: me.last_name ?? "",
+        email: me.email ?? "",
+        phone: me.phone ?? "",
+        job_title: me.job_title ?? "",
+      });
+    }
+  }, [meQuery.data]);
+
   const profileMutation = useMutation({
     mutationFn: () => updateMyProfile(profileForm),
     onSuccess: () => toast.success("Perfil atualizado."),

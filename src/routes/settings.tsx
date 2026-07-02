@@ -294,22 +294,16 @@ function SettingsPage() {
 
         {/* Tab navigation */}
         <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
-          {(["workflow", "empresa", "campos", "departamentos", "cargos", "permissoes"] as const).map((tab) => {
+          {(["workflow", "empresa", "campos"] as const).map((tab) => {
             const labels = {
               workflow: "Workflow",
               empresa: "Empresa",
               campos: "Campos",
-              departamentos: "Departamentos",
-              cargos: "Cargos",
-              permissoes: "Permissões",
             };
             const icons = {
               workflow: <Workflow className="h-3.5 w-3.5" />,
               empresa: <Building2 className="h-3.5 w-3.5" />,
               campos: <SlidersHorizontal className="h-3.5 w-3.5" />,
-              departamentos: <Users className="h-3.5 w-3.5" />,
-              cargos: <Briefcase className="h-3.5 w-3.5" />,
-              permissoes: <Blocks className="h-3.5 w-3.5" />,
             };
             return (
               <button
@@ -346,6 +340,7 @@ function SettingsPage() {
                     { key: "document", label: "CNPJ / Documento", type: "text" },
                     { key: "email", label: "E-mail de contato", type: "email" },
                     { key: "phone", label: "Telefone", type: "tel" },
+                    { key: "email_domain", label: "Domínio de e-mail (ex: empresa.com)", type: "text" },
                   ] as const
                 ).map(({ key, label, type }) => (
                   <div key={key} className="space-y-1">
@@ -357,6 +352,49 @@ function SettingsPage() {
                     />
                   </div>
                 ))}
+                {/* Localização e identidade visual */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Fuso horário</Label>
+                    <select
+                      value={(companyForm.timezone ?? companyData.timezone ?? "America/Sao_Paulo") as string}
+                      onChange={(e) => setCompanyForm((prev) => ({ ...prev, timezone: e.target.value }))}
+                      className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                    >
+                      {["America/Sao_Paulo", "America/Manaus", "America/Fortaleza", "America/Recife", "America/Cuiaba", "UTC"].map((tz) => (
+                        <option key={tz} value={tz}>{tz}</option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-muted-foreground">Usado no cálculo de SLA e horário de funcionamento.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Moeda</Label>
+                    <select
+                      value={(companyForm.currency ?? companyData.currency ?? "BRL") as string}
+                      onChange={(e) => setCompanyForm((prev) => ({ ...prev, currency: e.target.value }))}
+                      className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                    >
+                      {["BRL", "USD", "EUR"].map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label>Cor primária</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={(companyForm.primary_color ?? companyData.primary_color ?? "#6366f1") as string}
+                      onChange={(e) => setCompanyForm((prev) => ({ ...prev, primary_color: e.target.value }))}
+                      className="h-9 w-14 cursor-pointer rounded-md border border-border bg-background"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {(companyForm.primary_color ?? companyData.primary_color ?? "#6366f1") as string}
+                    </span>
+                  </div>
+                </div>
+
                 {/* Modo de uso */}
                 <div className="space-y-1">
                   <Label>Modo de uso</Label>
@@ -730,152 +768,6 @@ function SettingsPage() {
           />
         ) : null}
 
-        {/* Departamentos tab */}
-        {activeTab === "departamentos" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold">Departamentos</h2>
-                <p className="text-xs text-muted-foreground">{departments.length} departamento{departments.length !== 1 ? "s" : ""} cadastrado{departments.length !== 1 ? "s" : ""}.</p>
-              </div>
-              <a
-                href="/org"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-              >
-                <ExternalLink className="h-3.5 w-3.5" /> Gerenciar
-              </a>
-            </div>
-            <div className="glass overflow-hidden rounded-2xl shadow-card">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-2.5 text-left font-medium">Nome</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Gerente</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Membros</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {departments.length === 0 ? (
-                    <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nenhum departamento. <a href="/org" className="text-primary underline">Criar agora</a>.</td></tr>
-                  ) : departments.map((dept) => (
-                    <tr key={dept.id} className="border-b border-border last:border-0 hover:bg-muted/20">
-                      <td className="px-4 py-3 font-medium">
-                        {dept.name}
-                        {dept.description && <div className="text-xs text-muted-foreground">{dept.description}</div>}
-                      </td>
-                      <td className="px-2 py-3 text-muted-foreground">{dept.manager_name || "—"}</td>
-                      <td className="px-2 py-3 text-muted-foreground">{dept.member_count ?? 0} membro{dept.member_count !== 1 ? "s" : ""}</td>
-                      <td className="px-2 py-3">
-                        <span className={(dept.active ?? true) ? "rounded-md bg-success/15 px-2 py-0.5 text-[10px] text-success" : "rounded-md bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"}>
-                          {(dept.active ?? true) ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Cargos tab */}
-        {activeTab === "cargos" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold">Cargos</h2>
-                <p className="text-xs text-muted-foreground">{positions.length} cargo{positions.length !== 1 ? "s" : ""} cadastrado{positions.length !== 1 ? "s" : ""}.</p>
-              </div>
-              <a
-                href="/org"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-              >
-                <ExternalLink className="h-3.5 w-3.5" /> Gerenciar
-              </a>
-            </div>
-            <div className="glass overflow-hidden rounded-2xl shadow-card">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-2.5 text-left font-medium">Nome</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Usuários</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Auto-aprovação</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {positions.length === 0 ? (
-                    <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nenhum cargo. <a href="/org" className="text-primary underline">Criar agora</a>.</td></tr>
-                  ) : positions.map((pos) => (
-                    <tr key={pos.id} className="border-b border-border last:border-0 hover:bg-muted/20">
-                      <td className="px-4 py-3 font-medium">{pos.name}</td>
-                      <td className="px-2 py-3 text-muted-foreground">{pos.user_count ?? 0} usuário{pos.user_count !== 1 ? "s" : ""}</td>
-                      <td className="px-2 py-3">
-                        {pos.auto_approval
-                          ? <span className="rounded-md bg-success/15 px-2 py-0.5 text-[10px] text-success">Sim</span>
-                          : <span className="text-muted-foreground">Não</span>}
-                      </td>
-                      <td className="px-2 py-3">
-                        <span className={(pos.active ?? true) ? "rounded-md bg-success/15 px-2 py-0.5 text-[10px] text-success" : "rounded-md bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"}>
-                          {(pos.active ?? true) ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Permissões tab */}
-        {activeTab === "permissoes" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold">Blocos de permissões</h2>
-                <p className="text-xs text-muted-foreground">{permissionBlocks.length} bloco{permissionBlocks.length !== 1 ? "s" : ""} cadastrado{permissionBlocks.length !== 1 ? "s" : ""}. Templates reutilizáveis atribuídos a usuários.</p>
-              </div>
-              <a
-                href="/permission-blocks"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-              >
-                <ExternalLink className="h-3.5 w-3.5" /> Gerenciar
-              </a>
-            </div>
-            <div className="glass overflow-hidden rounded-2xl shadow-card">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-2.5 text-left font-medium">Nome</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Descrição</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Permissões</th>
-                    <th className="px-2 py-2.5 text-left font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {permissionBlocks.length === 0 ? (
-                    <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Nenhum bloco. <a href="/permission-blocks" className="text-primary underline">Criar agora</a>.</td></tr>
-                  ) : permissionBlocks.map((block) => (
-                    <tr key={block.id} className="border-b border-border last:border-0 hover:bg-muted/20">
-                      <td className="px-4 py-3 font-medium">{block.name}</td>
-                      <td className="px-2 py-3 text-muted-foreground">{block.description || "—"}</td>
-                      <td className="px-2 py-3 text-muted-foreground">
-                        {Object.values(block.permissions || {}).filter(Boolean).length} ativa{Object.values(block.permissions || {}).filter(Boolean).length !== 1 ? "s" : ""}
-                      </td>
-                      <td className="px-2 py-3">
-                        <span className={(block.active ?? true) ? "rounded-md bg-success/15 px-2 py-0.5 text-[10px] text-success" : "rounded-md bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"}>
-                          {(block.active ?? true) ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
     </AppShell>
   );
