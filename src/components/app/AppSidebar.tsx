@@ -123,7 +123,7 @@ function getInternalMenu(user: User | null | undefined) {
     { title: "Dúvidas", url: "/doubts", icon: HelpCircle, visible: true },
     { title: "Central de Ajuda", url: "/help", icon: LifeBuoy, visible: true },
     {
-      title: "Categorias",
+      title: "Categorias de Conteúdo",
       url: "/categories",
       icon: Tag,
       visible: getUserRole(user) !== "CLIENT",
@@ -134,7 +134,7 @@ function getInternalMenu(user: User | null | undefined) {
 
   const management: MenuItem[] = [
     {
-      title: "Organizações",
+      title: "Clientes",
       url: "/clients",
       icon: Users,
       visible: hasPermission(user, "clients.view"),
@@ -146,13 +146,13 @@ function getInternalMenu(user: User | null | undefined) {
       visible: hasAnyPermission(user, ["users.view", "users.manage", "users.managePermissions"]),
     },
     {
-      title: "Organização",
+      title: "Estrutura Organizacional",
       url: "/org",
       icon: Building2,
       visible: hasAnyPermission(user, ["users.manage", "users.managePermissions"]),
     },
     {
-      title: "Categorias",
+      title: "Categorias de Chamados",
       url: "/ticket-categories",
       icon: Tags,
       visible: hasAnyPermission(user, ["categories.view", "categories.manage"]),

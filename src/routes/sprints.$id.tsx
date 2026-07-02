@@ -67,6 +67,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   closeSprint,
+  startSprint,
   deleteSprint,
   getSprint,
   getSprintRetrospective,
@@ -1592,6 +1593,33 @@ function SprintDetail() {
     }
   };
 
+  const handleStartSprint = async () => {
+    try {
+      await startSprint(id);
+      await queryClient.invalidateQueries({ queryKey: ["sprint", id] });
+      await queryClient.invalidateQueries({ queryKey: ["sprints"] });
+      toast.success("Sprint iniciada!");
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail;
+      if (error?.response?.status === 409) {
+        const shouldForce = window.confirm(`${detail}\n\nIniciar mesmo assim?`);
+        if (shouldForce) {
+          try {
+            await startSprint(id, { force: true });
+            await queryClient.invalidateQueries({ queryKey: ["sprint", id] });
+            toast.success("Sprint iniciada!");
+            return;
+          } catch {
+            toast.error("Não foi possível iniciar a sprint.");
+            return;
+          }
+        }
+        return;
+      }
+      toast.error(detail || "Não foi possível iniciar a sprint.");
+    }
+  };
+
   const handleCloseSprint = async () => {
     try {
       setClosingSprintPending(true);
@@ -1685,7 +1713,17 @@ function SprintDetail() {
                   Planejar sprint
                 </Button>
               )}
-              {sprint.status !== "Concluída" && (
+              {sprint.status === "Planejada" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+                  onClick={() => void handleStartSprint()}
+                >
+                  ▶ Iniciar Sprint
+                </Button>
+              )}
+              {sprint.status === "Em andamento" && (
                 <Button
                   type="button"
                   variant="outline"

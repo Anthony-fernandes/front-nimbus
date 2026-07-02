@@ -437,9 +437,18 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
     queryFn: () => listOrganizations(),
   });
 
+  const responseTimeValid = /^\d+\s*[hdm]$/i.test(responseTime.trim());
+
   const saveMutation = useMutation({
     mutationFn: () => {
-      const data = { name, priority, category, response_time: responseTime, active: true, client: client || null };
+      const data = {
+        name,
+        priority,
+        category,
+        response_time: responseTime.trim().toLowerCase(),
+        active: true,
+        client: client && client !== "__all__" ? client : null,
+      };
       return editing ? updateSLAPolicy(editing.id, data) : createSLAPolicy(data);
     },
     onSuccess: () => {
@@ -475,15 +484,24 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Prazo de resposta</label>
-            <Input value={responseTime} onChange={(e) => setResponseTime(e.target.value)} placeholder="Ex: 2h, 1d, 30m" />
-            <p className="text-[11px] text-muted-foreground">Use h (horas), d (dias) ou m (minutos)</p>
+            <Input
+              value={responseTime}
+              onChange={(e) => setResponseTime(e.target.value)}
+              placeholder="Ex: 2h, 1d, 30m"
+              className={!responseTime || responseTimeValid ? "" : "border-destructive"}
+            />
+            <p className={`text-[11px] ${!responseTime || responseTimeValid ? "text-muted-foreground" : "text-destructive"}`}>
+              {!responseTime || responseTimeValid
+                ? "Use h (horas), d (dias) ou m (minutos) — ex: 2h, 1d, 30m"
+                : "Formato inválido — use número + h/d/m, ex: 4h"}
+            </p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Cliente específico (opcional)</label>
-            <Select value={client} onValueChange={setClient}>
+            <Select value={client || "__all__"} onValueChange={(v) => setClient(v === "__all__" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Todos os clientes" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os clientes</SelectItem>
+                <SelectItem value="__all__">Todos os clientes</SelectItem>
                 {organizations.map((o) => (
                   <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
                 ))}
@@ -493,7 +511,7 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
         </div>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button size="sm" disabled={saveMutation.isPending || !name || !responseTime} onClick={() => saveMutation.mutate()}>
+          <Button size="sm" disabled={saveMutation.isPending || !name || !responseTimeValid} onClick={() => saveMutation.mutate()}>
             Salvar
           </Button>
         </DialogFooter>

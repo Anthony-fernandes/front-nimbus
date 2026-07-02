@@ -46,8 +46,9 @@ function BacklogPage() {
   });
 
   const sprintsQuery = useQuery({
-    queryKey: ["sprints-active"],
-    queryFn: () => listSprints({ status: "Ativo" }),
+    queryKey: ["sprints-open"],
+    queryFn: () => listSprints(),
+    select: (data) => data.filter((s) => s.status === "Em andamento" || s.status === "Planejada"),
   });
 
   const moveToSprintMutation = useMutation({

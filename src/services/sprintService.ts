@@ -79,6 +79,10 @@ export function getSprintReview(sprintId: string) {
   });
 }
 
+export function startSprint(sprintId: string, payload: { force?: boolean } = {}) {
+  return api.post<{ detail: string; status: string }>(`/sprints/${sprintId}/start/`, payload).then((r) => r.data);
+}
+
 export function closeSprint(sprintId: string, payload: { notes?: string }) {
   return api.post<SprintReview>(`/sprints/${sprintId}/close/`, payload).then((r) => r.data);
 }

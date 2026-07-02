@@ -36,7 +36,19 @@ const statusMap: Record<string, { cls: string; Icon: typeof Circle }> = {
   "Em revisao": { cls: "text-accent", Icon: AlertCircle },
   Bloqueado: { cls: "text-warning", Icon: Pause },
   Concluido: { cls: "text-success", Icon: CheckCircle2 },
+  "Concluída": { cls: "text-success", Icon: CheckCircle2 },
+  "Concluído": { cls: "text-success", Icon: CheckCircle2 },
 };
+
+const STATUS_FILTER_OPTIONS = [
+  "Todos",
+  "Backlog",
+  "A fazer",
+  "Em progresso",
+  "Em revisao",
+  "Bloqueado",
+  "Concluída",
+];
 
 const priorityClr: Record<string, string> = {
   Critica: "bg-destructive/15 text-destructive",
@@ -176,16 +188,41 @@ function ActivitiesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
   const [timeEntryActivity, setTimeEntryActivity] = useState<Activity | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [projectFilter, setProjectFilter] = useState("all");
 
   if (pathname !== "/activities") {
     return <Outlet />;
   }
 
+  const projectOptions = Array.from(
+    new Map(
+      rows
+        .filter((r: Activity) => r.project && r.project_name)
+        .map((r: Activity) => [r.project as string, r.project_name as string]),
+    ).entries(),
+  );
+
+  const filteredRows = rows.filter((row: Activity) => {
+    const matchesSearch =
+      !searchTerm ||
+      (row.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (row.assignee_name || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const status = row.status || "";
+    const matchesStatus =
+      statusFilter === "Todos" ||
+      status === statusFilter ||
+      (statusFilter === "Concluída" && ["Concluido", "Concluído", "Done"].includes(status));
+    const matchesProject = projectFilter === "all" || row.project === projectFilter;
+    return matchesSearch && matchesStatus && matchesProject;
+  });
+
   const toggleSelectAll = () => {
-    if (selectedIds.size === rows.length && rows.length > 0) {
+    if (selectedIds.size === filteredRows.length && filteredRows.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(rows.map((r: Activity) => r.id)));
+      setSelectedIds(new Set(filteredRows.map((r: Activity) => r.id)));
     }
   };
 
@@ -222,7 +259,7 @@ function ActivitiesPage() {
     }
   };
 
-  const allSelected = rows.length > 0 && selectedIds.size === rows.length;
+  const allSelected = filteredRows.length > 0 && selectedIds.size === filteredRows.length;
 
   return (
     <AppShell>
@@ -263,6 +300,38 @@ function ActivitiesPage() {
           )}
         </div>
 
+        {/* Filtros */}
+        <div className="glass flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 shadow-card">
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por título ou responsável..."
+            className="h-9 max-w-xs"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+          >
+            {STATUS_FILTER_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s === "Todos" ? "Todos os status" : s}</option>
+            ))}
+          </select>
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+          >
+            <option value="all">Todos os projetos</option>
+            {projectOptions.map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {filteredRows.length} de {rows.length} atividade(s)
+          </span>
+        </div>
+
         <div className="glass overflow-hidden rounded-2xl shadow-card">
           <div className="grid grid-cols-12 gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground">
             <div className="col-span-1 flex items-center gap-2">
@@ -284,7 +353,7 @@ function ActivitiesPage() {
             <div className="col-span-1 text-right">Tempo</div>
           </div>
 
-          {rows.map((row: Activity, index) => {
+          {filteredRows.map((row: Activity, index) => {
             const status = statusMap[row.status || "Backlog"] || statusMap.Backlog;
             const isSelected = selectedIds.has(row.id);
 

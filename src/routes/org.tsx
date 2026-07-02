@@ -347,7 +347,7 @@ function OrgPage() {
       <div className="max-w-7xl space-y-5">
         <PageHeader
           crumbs={[{ label: "Workspace", to: "/" }, { label: "Organização" }]}
-          title="Organização"
+          title="Estrutura Organizacional"
           subtitle="Gerencie departamentos e cargos da empresa."
           actions={
             canManage && tab !== "organograma" ? (

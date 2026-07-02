@@ -88,101 +88,66 @@ function formatFull(value: string): string {
   });
 }
 
-function TimelineCard({ log, isLast }: { log: AuditLog; isLast: boolean }) {
+function AuditRow({ log }: { log: AuditLog }) {
   const [expanded, setExpanded] = useState(false);
   const hasChanges = log.changes && Object.keys(log.changes).length > 0;
   const colors = getActionColors(log.action);
 
   return (
-    <div className="flex gap-4">
-      {/* Timeline line + dot */}
-      <div className="flex flex-col items-center">
-        <div className={cn("mt-1.5 h-3 w-3 shrink-0 rounded-full ring-2 ring-background", colors.dot)} />
-        {!isLast && <div className="mt-1 w-0.5 flex-1 bg-border" />}
-      </div>
-
-      {/* Card */}
-      <div className={cn("mb-4 min-w-0 flex-1 rounded-2xl border border-border bg-card p-4 shadow-sm", isLast && "mb-0")}>
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={cn(
-                  "inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                  colors.badge,
-                )}
-              >
-                {log.action}
-              </span>
-            </div>
-            <p className="mt-1.5 text-sm">
-              <span className="font-semibold">{log.actor_name}</span>{" "}
-              <span className="text-muted-foreground">
-                {ACTION_LABEL[log.action] ?? log.action}
-              </span>{" "}
-              {log.entity_label ? (
-                <span className="font-medium">{log.entity_label}</span>
-              ) : null}
-            </p>
-            {log.entity_type ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">{log.entity_type}</p>
-            ) : null}
-          </div>
-          <div className="shrink-0 text-right">
-            <p
-              className="cursor-default text-xs font-medium text-muted-foreground"
-              title={formatFull(log.created_at)}
-            >
-              {relativeTime(log.created_at)}
-            </p>
-            {log.ip_address ? (
-              <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-                {log.ip_address}
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        {hasChanges ? (
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={() => setExpanded((prev) => !prev)}
-              className="flex items-center gap-1 text-xs font-medium text-primary transition hover:opacity-80"
-            >
-              {expanded ? "▲ Ocultar detalhes" : "▼ Ver detalhes"}
-            </button>
-            {expanded ? (
-              <div className="mt-2 overflow-x-auto rounded-xl border border-border bg-muted/30 p-3">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-left text-muted-foreground">
-                      <th className="pb-1.5 pr-4 font-medium">Campo</th>
-                      <th className="pb-1.5 pr-4 font-medium">Antes</th>
-                      <th className="pb-1.5 font-medium">Depois</th>
+    <>
+      <tr
+        className={cn(
+          "border-t border-border/60 text-sm transition-colors hover:bg-muted/30",
+          hasChanges && "cursor-pointer",
+        )}
+        onClick={() => hasChanges && setExpanded((prev) => !prev)}
+      >
+        <td className="px-4 py-2.5 whitespace-nowrap">
+          <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold", colors.badge)}>
+            {ACTION_LABEL[log.action] ?? log.action}
+          </span>
+        </td>
+        <td className="px-4 py-2.5 font-medium">{log.actor_name || "Sistema"}</td>
+        <td className="max-w-[280px] truncate px-4 py-2.5">{log.entity_label || "—"}</td>
+        <td className="px-4 py-2.5 text-xs text-muted-foreground">{log.entity_type || "—"}</td>
+        <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap" title={formatFull(log.created_at)}>
+          {relativeTime(log.created_at)}
+        </td>
+        <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground">{log.ip_address ?? "—"}</td>
+        <td className="px-4 py-2.5 text-xs text-primary">
+          {hasChanges ? (expanded ? "▲" : "▼ detalhes") : ""}
+        </td>
+      </tr>
+      {expanded && hasChanges ? (
+        <tr className="border-t border-border/40 bg-muted/20">
+          <td colSpan={7} className="px-6 py-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-muted-foreground">
+                  <th className="pb-1.5 pr-4 font-medium">Campo</th>
+                  <th className="pb-1.5 pr-4 font-medium">Antes</th>
+                  <th className="pb-1.5 font-medium">Depois</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(log.changes!).map(([key, value]) => {
+                  const isArray = Array.isArray(value);
+                  const before = isArray ? String(value[0] ?? "—") : "—";
+                  const after = isArray ? String(value[1] ?? "—") : String(value ?? "—");
+                  return (
+                    <tr key={key} className="border-t border-border/50">
+                      <td className="py-1 pr-4 font-mono text-muted-foreground">{key}</td>
+                      <td className="py-1 pr-4 text-destructive/80">{before}</td>
+                      <td className="py-1 text-green-400">{after}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(log.changes!).map(([key, value]) => {
-                      const isArray = Array.isArray(value);
-                      const before = isArray ? String(value[0] ?? "—") : "—";
-                      const after = isArray ? String(value[1] ?? "—") : String(value ?? "—");
-                      return (
-                        <tr key={key} className="border-t border-border/50">
-                          <td className="py-1 pr-4 font-mono text-muted-foreground">{key}</td>
-                          <td className="py-1 pr-4 text-destructive/80">{before}</td>
-                          <td className="py-1 text-green-400">{after}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </div>
+                  );
+                })}
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      ) : null}
+    </>
   );
 }
 
@@ -344,23 +309,38 @@ function AuditPage() {
           </Button>
         </div>
 
-        {/* Timeline */}
-        <div className="pl-1">
-          {isLoading ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              Carregando registros...
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-10 text-center">
-              <ScrollText className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nenhum registro encontrado.</p>
-            </div>
-          ) : (
-            logs.map((log, i) => (
-              <TimelineCard key={log.id} log={log} isLast={i === logs.length - 1} />
-            ))
-          )}
-        </div>
+        {/* Tabela */}
+        {isLoading ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            Carregando registros...
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-10 text-center">
+            <ScrollText className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Nenhum registro encontrado.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Ação</th>
+                  <th className="px-4 py-2.5 font-medium">Ator</th>
+                  <th className="px-4 py-2.5 font-medium">Entidade</th>
+                  <th className="px-4 py-2.5 font-medium">Tipo</th>
+                  <th className="px-4 py-2.5 font-medium">Quando</th>
+                  <th className="px-4 py-2.5 font-medium">IP</th>
+                  <th className="px-4 py-2.5 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log) => (
+                  <AuditRow key={log.id} log={log} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {hasMore ? (
           <div className="flex justify-center">

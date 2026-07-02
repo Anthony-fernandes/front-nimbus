@@ -51,10 +51,31 @@ const TRIGGER_LABELS: Record<string, string> = {
 const ACTION_LABELS: Record<string, string> = {
   set_priority: "Definir prioridade",
   set_status: "Definir status",
+  set_category: "Definir categoria",
   assign_technician: "Atribuir técnico",
   assign_team: "Atribuir equipe",
-  add_tag: "Adicionar tag",
+  add_tag: "Adicionar tag(s)",
   send_notification: "Enviar notificação",
+};
+
+const PRIORITY_OPTIONS = ["Critica", "Alta", "Media", "Baixa"];
+const STATUS_OPTIONS = [
+  "Triagem",
+  "Aguardando atendimento",
+  "Em atendimento",
+  "Aguardando cliente",
+  "Validacao",
+  "Pausado",
+  "Cancelado",
+  "Finalizado",
+];
+
+const ACTION_VALUE_HINTS: Record<string, string> = {
+  set_category: "Nome da categoria",
+  add_tag: "tags separadas por vírgula",
+  assign_technician: "ID do técnico",
+  assign_team: "ID da equipe",
+  send_notification: "Mensagem da notificação (opcional)",
 };
 
 const CONDITION_FIELD_LABELS: Record<string, string> = {
@@ -79,6 +100,7 @@ type RuleForm = {
   action: string;
   action_value: string;
   active: boolean;
+  order: number;
 };
 
 const EMPTY_FORM: RuleForm = {
@@ -88,6 +110,7 @@ const EMPTY_FORM: RuleForm = {
   action: "set_priority",
   action_value: "",
   active: true,
+  order: 0,
 };
 
 function AutomationsPage() {
@@ -117,6 +140,7 @@ function AutomationsPage() {
       action: rule.action,
       action_value: rule.action_value || "",
       active: rule.active,
+      order: (rule as { order?: number }).order ?? 0,
     });
     setRuleDialog(true);
   }
@@ -392,17 +416,64 @@ function AutomationsPage() {
               </div>
               <div className="space-y-1">
                 <Label>Valor da ação</Label>
-                <Input
-                  value={form.action_value}
-                  onChange={(e) => setForm((f) => ({ ...f, action_value: e.target.value }))}
-                  placeholder="Ex.: Critica, Finalizado, ID..."
-                />
+                {form.action === "set_priority" ? (
+                  <Select value={form.action_value} onValueChange={(v) => setForm((f) => ({ ...f, action_value: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar prioridade..." /></SelectTrigger>
+                    <SelectContent>
+                      {PRIORITY_OPTIONS.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : form.action === "set_status" ? (
+                  <Select value={form.action_value} onValueChange={(v) => setForm((f) => ({ ...f, action_value: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar status..." /></SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={form.action_value}
+                    onChange={(e) => setForm((f) => ({ ...f, action_value: e.target.value }))}
+                    placeholder={ACTION_VALUE_HINTS[form.action] || "Valor"}
+                  />
+                )}
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Ordem de execução</Label>
+              <Input
+                type="number"
+                min={0}
+                className="w-28"
+                value={form.order}
+                onChange={(e) => setForm((f) => ({ ...f, order: Number(e.target.value) || 0 }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Regras com ordem menor executam primeiro dentro do mesmo gatilho.
+              </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRuleDialog(false)}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name}>
+            <Button
+              onClick={() => {
+                if (form.conditions.some((c) => !c.value.trim())) {
+                  toast.error("Preencha o valor de todas as condições ou remova as vazias.");
+                  return;
+                }
+                if (form.action !== "send_notification" && !form.action_value.trim()) {
+                  toast.error("Informe o valor da ação.");
+                  return;
+                }
+                saveMutation.mutate();
+              }}
+              disabled={saveMutation.isPending || !form.name}
+            >
               {saveMutation.isPending ? "Salvando..." : "Salvar regra"}
             </Button>
           </DialogFooter>

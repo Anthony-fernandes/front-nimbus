@@ -16,7 +16,7 @@ import type { Organization } from "@/lib/types";
 import { listOrganizations } from "@/services/clientService";
 
 export const Route = createFileRoute("/clients")({
-  head: () => ({ meta: [{ title: "Organizações · NimbusDesk" }] }),
+  head: () => ({ meta: [{ title: "Clientes · NimbusDesk" }] }),
   component: OrganizationsPage,
 });
 
@@ -53,7 +53,7 @@ function OrganizationsPage() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Organizações</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
             <p className="text-sm text-muted-foreground">
               {isLoading ? "Carregando organizações..." : `${organizations.length} organizações cadastradas`}
             </p>

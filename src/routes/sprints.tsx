@@ -34,7 +34,10 @@ function SprintsPage() {
     return <Outlet />;
   }
 
-  const active = sprints[0];
+  const active =
+    sprints.find((s) => s.status === "Em andamento") ||
+    sprints.find((s) => s.status === "Planejada") ||
+    sprints[0];
   const chartData = buildSprintCapacitySeries(sprints);
 
   return (
