@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Briefcase, Building2, Eye, Pencil, Plus, Search, UserCheck } from "lucide-react";
+import { Eye, Pencil, Plus, Search } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getRoleLabel } from "@/lib/auth";
 import { hasAnyPermission } from "@/lib/permissions";
 import type { User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
@@ -46,134 +45,6 @@ const ROLE_BADGE: Record<string, { label: string; cls: string }> = {
   TECHNICIAN: { label: "Técnico", cls: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" },
   CLIENT: { label: "Cliente", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" },
 };
-
-function UserCard({ member, canManage }: { member: User; canManage: boolean }) {
-  const name =
-    member.name ||
-    `${member.first_name || ""} ${member.last_name || ""}`.trim() ||
-    member.email ||
-    "Usuário";
-  const initials = getInitials(name);
-  const avatarColor = stringToColor(name);
-  const role = member.role?.toUpperCase() || "TECHNICIAN";
-  const badge = ROLE_BADGE[role] || ROLE_BADGE.TECHNICIAN;
-
-  return (
-    <div className="glass flex flex-col gap-3 rounded-2xl p-4 shadow-card transition-all hover:shadow-lg">
-      {/* Header row */}
-      <div className="flex items-start gap-3">
-        {/* Avatar */}
-        <div
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm"
-          style={{ backgroundColor: avatarColor }}
-        >
-          {initials}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <a href={`/teams/${member.id}`} className="block truncate font-semibold hover:text-primary">
-            {name}
-          </a>
-          <div className="truncate text-[11px] text-muted-foreground">
-            {member.email || member.username || "-"}
-          </div>
-        </div>
-
-        {/* Status */}
-        <span
-          className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-            member.is_active === false
-              ? "bg-muted text-muted-foreground"
-              : "bg-success/15 text-success"
-          }`}
-        >
-          {member.is_active === false ? "Inativo" : "Ativo"}
-        </span>
-      </div>
-
-      {/* Role + job title */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${badge.cls}`}>
-          {badge.label}
-        </span>
-        {member.job_title && (
-          <span className="text-[11px] text-muted-foreground">{member.job_title}</span>
-        )}
-      </div>
-
-      {/* Org info */}
-      {(member.department_name || member.position_name) && (
-        <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-          {member.department_name && (
-            <span className="flex items-center gap-1">
-              <Building2 className="h-3 w-3 flex-shrink-0" />
-              {member.department_name}
-            </span>
-          )}
-          {member.position_name && (
-            <span className="flex items-center gap-1">
-              <Briefcase className="h-3 w-3 flex-shrink-0" />
-              {member.position_name}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Teams */}
-      {member.teams_data && member.teams_data.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {member.teams_data.map((team) => (
-            <a
-              key={team.id}
-              href={`/equipes/${team.id}`}
-              className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors hover:opacity-80"
-              style={{
-                borderColor: `${team.color}60`,
-                backgroundColor: `${team.color}15`,
-                color: team.color,
-              }}
-            >
-              {team.name}
-            </a>
-          ))}
-        </div>
-      )}
-
-      {/* Supervisor */}
-      {member.supervisor_name && (
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          <UserCheck className="h-3 w-3 flex-shrink-0" />
-          <span>Supervisor: {member.supervisor_name}</span>
-        </div>
-      )}
-
-      {/* Organization (for CLIENT role) */}
-      {member.organization_name && (
-        <div className="text-[11px] text-muted-foreground">
-          Org: {member.organization_name}
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-2 border-t border-border pt-2">
-        <a
-          href={`/teams/${member.id}`}
-          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-        >
-          <Eye className="h-3.5 w-3.5" /> Detalhes
-        </a>
-        {canManage && (
-          <a
-            href={`/teams/${member.id}/edit`}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-          >
-            <Pencil className="h-3.5 w-3.5" /> Editar
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function TeamsPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -284,22 +155,115 @@ function TeamsPage() {
           </Select>
         </div>
 
-        {/* Grid */}
+        {/* Tabela de usuários */}
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="glass h-48 animate-pulse rounded-2xl" />
-            ))}
-          </div>
+          <div className="glass h-64 animate-pulse rounded-2xl" />
         ) : filtered.length === 0 ? (
           <div className="glass rounded-2xl py-16 text-center text-muted-foreground">
             Nenhum usuário encontrado
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((member) => (
-              <UserCard key={member.id} member={member} canManage={canManage} />
-            ))}
+          <div className="glass overflow-x-auto rounded-2xl shadow-card">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-2.5 text-left font-medium">Usuário</th>
+                  <th className="px-2 py-2.5 text-left font-medium">Tipo</th>
+                  <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Departamento</th>
+                  <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Cargo</th>
+                  <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Equipes</th>
+                  <th className="px-2 py-2.5 text-left font-medium">Status</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((member) => {
+                  const name =
+                    member.name ||
+                    `${member.first_name || ""} ${member.last_name || ""}`.trim() ||
+                    member.email ||
+                    "Usuário";
+                  const role = member.role?.toUpperCase() || "TECHNICIAN";
+                  const badge = ROLE_BADGE[role] || ROLE_BADGE.TECHNICIAN;
+                  return (
+                    <tr key={member.id} className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/30">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+                            style={{ backgroundColor: stringToColor(name) }}
+                          >
+                            {getInitials(name)}
+                          </div>
+                          <div className="min-w-0">
+                            <a href={`/teams/${member.id}`} className="block truncate font-medium hover:text-primary">
+                              {name}
+                            </a>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {member.email || member.username || "—"}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2.5">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${badge.cls}`}>
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="hidden lg:table-cell px-2 py-2.5 text-muted-foreground">
+                        {member.department_name || "—"}
+                      </td>
+                      <td className="hidden lg:table-cell px-2 py-2.5 text-muted-foreground">
+                        {member.position_name || member.job_title || "—"}
+                      </td>
+                      <td className="hidden lg:table-cell px-2 py-2.5">
+                        <div className="flex flex-wrap gap-1">
+                          {(member.teams_data ?? []).slice(0, 3).map((team) => (
+                            <span
+                              key={team.id}
+                              className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                              style={{ borderColor: `${team.color}60`, backgroundColor: `${team.color}15`, color: team.color }}
+                            >
+                              {team.name}
+                            </span>
+                          ))}
+                          {(member.teams_data?.length ?? 0) === 0 && <span className="text-muted-foreground">—</span>}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2.5">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            member.is_active === false
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-success/15 text-success"
+                          }`}
+                        >
+                          {member.is_active === false ? "Inativo" : "Ativo"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex justify-end gap-1.5">
+                          <a
+                            href={`/teams/${member.id}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> Detalhes
+                          </a>
+                          {canManage && (
+                            <a
+                              href={`/teams/${member.id}/edit`}
+                              className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                            >
+                              <Pencil className="h-3.5 w-3.5" /> Editar
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

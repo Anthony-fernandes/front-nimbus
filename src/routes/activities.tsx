@@ -5,6 +5,7 @@ import { AlertCircle, Check, CheckCircle2, Circle, Clock, Pause, Plus, Timer, X 
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { ActivityDetailDialog } from "@/components/activities/ActivityDetailDialog";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -188,6 +189,7 @@ function ActivitiesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
   const [timeEntryActivity, setTimeEntryActivity] = useState<Activity | null>(null);
+  const [detailActivityId, setDetailActivityId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [projectFilter, setProjectFilter] = useState("all");
@@ -372,18 +374,18 @@ function ActivitiesPage() {
                     aria-label={`Selecionar atividade ${row.id.slice(0, 8)}`}
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <Link
-                    to="/activities/$id"
-                    params={{ id: row.id }}
+                  <button
+                    type="button"
+                    onClick={() => setDetailActivityId(row.id)}
                     className="font-mono text-xs text-muted-foreground hover:text-primary"
                   >
                     {row.id.slice(0, 8)}
-                  </Link>
+                  </button>
                 </div>
-                <Link
-                  to="/activities/$id"
-                  params={{ id: row.id }}
-                  className="col-span-3 truncate hover:text-primary"
+                <button
+                  type="button"
+                  onClick={() => setDetailActivityId(row.id)}
+                  className="col-span-3 truncate text-left hover:text-primary"
                 >
                   {row.title}
                   <span
@@ -393,7 +395,7 @@ function ActivitiesPage() {
                   >
                     {formatPriorityLabel(row.priority || "Media")}
                   </span>
-                </Link>
+                </button>
                 <div className="col-span-2 truncate text-muted-foreground">{row.project_name || "—"}</div>
                 <div className="col-span-1 text-xs text-muted-foreground">{row.sprint_name || "—"}</div>
                 <div className="col-span-1 text-xs">{row.assignee_name || "—"}</div>
@@ -448,6 +450,12 @@ function ActivitiesPage() {
           </Button>
         </div>
       ) : null}
+
+      <ActivityDetailDialog
+        activityId={detailActivityId}
+        open={Boolean(detailActivityId)}
+        onOpenChange={(v) => { if (!v) setDetailActivityId(null); }}
+      />
 
       {/* Time entry dialog */}
       {timeEntryActivity && (

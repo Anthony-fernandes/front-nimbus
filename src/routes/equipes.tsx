@@ -56,73 +56,75 @@ function EquipesPage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-6">
-            {[{ tipo: "equipe", label: "Equipes" }, { tipo: "grupo", label: "Grupos de Atendimento" }].map(({ tipo, label }) => {
-              const filtered = teams.filter((t) => (t.tipo ?? "equipe") === tipo);
-              if (filtered.length === 0) return null;
-              return (
-                <div key={tipo}>
-                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</h2>
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {filtered.map((team) => {
-                      const memberCount = team.member_count ?? team.members?.length ?? 0;
-                      const icon = team.icon || (team.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join(""));
-                      return (
-                        <Link key={team.id} to="/equipes/$id" params={{ id: team.id }}
-                          className="glass rounded-2xl p-5 shadow-card space-y-4 hover:border-primary/30 border border-border transition-colors group animate-fade-in-up">
-                          {/* Team header */}
-                          <div className="flex items-start gap-3">
-                            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-bold text-white shadow" style={{ backgroundColor: team.color || "#6366f1" }}>
-                              {icon}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{team.name}</p>
-                              {team.leader_name && <p className="text-xs text-muted-foreground truncate">Líder: {team.leader_name}</p>}
-                            </div>
-                            <div className="flex flex-col items-end gap-1 shrink-0">
-                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${team.status === "Ativa" ? "bg-success/15 text-success" : team.status === "Inativa" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}>
-                                {team.status || "Ativa"}
-                              </span>
-                              <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${tipo === "grupo" ? "bg-amber-500/10 text-amber-400" : "bg-primary/10 text-primary"}`}>
-                                {tipo === "grupo" ? "Grupo" : "Equipe"}
-                              </span>
-                            </div>
+          <div className="glass overflow-x-auto rounded-2xl shadow-card">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-2.5 text-left font-medium">Equipe</th>
+                  <th className="px-2 py-2.5 text-left font-medium">Tipo</th>
+                  <th className="hidden lg:table-cell px-2 py-2.5 text-left font-medium">Líder</th>
+                  <th className="px-2 py-2.5 text-left font-medium">Membros</th>
+                  <th className="px-2 py-2.5 text-left font-medium">Status</th>
+                  <th className="hidden lg:table-cell px-4 py-2.5 text-left font-medium">Descrição</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teams.map((team) => {
+                  const memberCount = team.member_count ?? team.members?.length ?? 0;
+                  const tipo = team.tipo ?? "equipe";
+                  const icon = team.icon || (team.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join(""));
+                  return (
+                    <tr
+                      key={team.id}
+                      className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/30"
+                    >
+                      <td className="px-4 py-2.5">
+                        <Link to="/equipes/$id" params={{ id: team.id }} className="flex items-center gap-3">
+                          <div
+                            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-xs font-bold text-white"
+                            style={{ backgroundColor: team.color || "#6366f1" }}
+                          >
+                            {icon}
                           </div>
-
-                          {/* Description */}
-                          {team.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">{team.description}</p>
-                          )}
-
-                          {/* Member avatars */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              {(team.members ?? []).slice(0, 5).map((m, i) => {
-                                const name = m.user_name || String(m.user);
-                                const ini = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
-                                return (
-                                  <div key={m.id} title={name}
-                                    className={`${i > 0 ? "-ml-2" : ""} grid h-7 w-7 place-items-center rounded-full bg-gradient-primary text-[9px] font-bold text-primary-foreground ring-2 ring-background`}>
-                                    {ini}
-                                  </div>
-                                );
-                              })}
-                              {memberCount > 5 && (
-                                <div className="-ml-2 grid h-7 w-7 place-items-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-background">
-                                  +{memberCount - 5}
-                                </div>
-                              )}
-                              {memberCount === 0 && <span className="text-xs text-muted-foreground">Sem membros</span>}
-                            </div>
-                            <span className="text-xs text-muted-foreground">{memberCount} membro{memberCount !== 1 ? "s" : ""}</span>
-                          </div>
+                          <span className="font-medium hover:text-primary">{team.name}</span>
                         </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                      </td>
+                      <td className="px-2 py-2.5">
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${tipo === "grupo" ? "bg-amber-500/10 text-amber-400" : "bg-primary/10 text-primary"}`}>
+                          {tipo === "grupo" ? "Grupo" : "Equipe"}
+                        </span>
+                      </td>
+                      <td className="hidden lg:table-cell px-2 py-2.5 text-muted-foreground">{team.leader_name || "—"}</td>
+                      <td className="px-2 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            {(team.members ?? []).slice(0, 4).map((m, i) => {
+                              const name = m.user_name || String(m.user);
+                              const ini = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+                              return (
+                                <div key={m.id} title={name}
+                                  className={`${i > 0 ? "-ml-1.5" : ""} grid h-6 w-6 place-items-center rounded-full bg-gradient-primary text-[8px] font-bold text-primary-foreground ring-2 ring-background`}>
+                                  {ini}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <span className="text-xs text-muted-foreground">{memberCount}</span>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2.5">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${team.status === "Ativa" ? "bg-success/15 text-success" : team.status === "Inativa" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}`}>
+                          {team.status || "Ativa"}
+                        </span>
+                      </td>
+                      <td className="hidden lg:table-cell max-w-[280px] truncate px-4 py-2.5 text-xs text-muted-foreground">
+                        {team.description || "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

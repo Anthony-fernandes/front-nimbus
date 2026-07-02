@@ -39,6 +39,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { TableSkeleton } from "@/components/app/TableSkeleton";
 import { EmptyState } from "@/components/app/EmptyState";
 import { TicketWorkflowDialog, type TicketWorkflowDialogSubmitData } from "@/components/tickets/TicketWorkflowDialog";
+import { TicketDetailDialog } from "@/components/tickets/TicketDetailDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -154,6 +155,7 @@ function TicketsPage() {
   const [dialogState, setDialogState] = useState<TicketWorkflowDialogState>(null);
   const [workflowSaving, setWorkflowSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [detailTicketId, setDetailTicketId] = useState<string | null>(null);
   const [bulkAction, setBulkAction] = useState<BulkActionType>(null);
   const [bulkValue, setBulkValue] = useState("");
   const [bulkSaving, setBulkSaving] = useState(false);
@@ -813,7 +815,7 @@ function TicketsPage() {
               {filteredTickets.map((ticket) => (
                 <div
                   key={ticket.id}
-                  onClick={() => navigate({ to: "/tickets/$id", params: { id: ticket.id } })}
+                  onClick={() => setDetailTicketId(ticket.id)}
                   className="cursor-pointer p-4 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -867,7 +869,7 @@ function TicketsPage() {
                     return (
                       <tr
                         key={ticket.id}
-                        onClick={() => navigate({ to: "/tickets/$id", params: { id: ticket.id } })}
+                        onClick={() => setDetailTicketId(ticket.id)}
                         className={cn(
                           "cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/30",
                           isSelected && "bg-primary/5",
@@ -886,14 +888,10 @@ function TicketsPage() {
                           />
                         </td>
                         <td className="px-2 py-3 font-mono text-xs text-muted-foreground">
-                          <Link to="/tickets/$id" params={{ id: ticket.id }} className="hover:text-primary">
-                            {ticket.code || ticket.id.slice(0, 8)}
-                          </Link>
+                          {ticket.code || ticket.id.slice(0, 8)}
                         </td>
                         <td className="px-2 py-3 font-medium">
-                          <Link to="/tickets/$id" params={{ id: ticket.id }} className="hover:text-primary">
-                            {ticket.title}
-                          </Link>
+                          <span className="hover:text-primary">{ticket.title}</span>
                         </td>
                         <td className="hidden lg:table-cell px-2 py-3 text-muted-foreground">
                           {(ticket as { department_name?: string }).department_name || ticket.organization_name || ticket.client_name || ticket.client || "—"}
@@ -942,9 +940,7 @@ function TicketsPage() {
                             ticket={ticket}
                             actions={actions}
                             hasWorkflowActions={flowActions.length > 0}
-                            onOpenDetails={() =>
-                              navigate({ to: "/tickets/$id", params: { id: ticket.id } })
-                            }
+                            onOpenDetails={() => setDetailTicketId(ticket.id)}
                             onEdit={() =>
                               navigate({ to: "/tickets/$id/edit", params: { id: ticket.id } })
                             }
@@ -1201,6 +1197,14 @@ function TicketsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <TicketDetailDialog
+        ticketId={detailTicketId}
+        open={Boolean(detailTicketId)}
+        onOpenChange={(open) => {
+          if (!open) setDetailTicketId(null);
+        }}
+      />
 
       <TicketWorkflowDialog
         open={Boolean(dialogState)}

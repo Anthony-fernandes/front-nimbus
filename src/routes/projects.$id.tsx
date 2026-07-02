@@ -56,6 +56,7 @@ import { listUsers } from "@/services/userService";
 import { formatCurrency, formatDateSafe, toNumber , parseApiError} from "@/services/utils";
 import { listProjectCustomFields, listProjectCustomValues, upsertProjectCustomValue } from "@/services/customFieldService";
 import { CustomFieldsSection } from "@/components/app/CustomFieldsSection";
+import { ActivityDetailDialog } from "@/components/activities/ActivityDetailDialog";
 
 export const Route = createFileRoute("/projects/$id")({
   head: () => ({ meta: [{ title: "Detalhes do projeto - NimbusDesk" }] }),
@@ -74,6 +75,7 @@ function ProjectDetail() {
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [togglingStageId, setTogglingStageId] = useState<string | null>(null);
   const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
+  const [detailActivityId, setDetailActivityId] = useState<string | null>(null);
   const [selectedMembersToAdd, setSelectedMembersToAdd] = useState<string[]>([]);
   const [memberSearchTerm, setMemberSearchTerm] = useState("");
   const [addingMembersPending, setAddingMembersPending] = useState(false);
@@ -668,22 +670,48 @@ function ProjectDetail() {
             </TabsContent>
 
             <TabsContent value="activities" className="space-y-3">
-              {activities.length === 0 && (
+              {activities.length === 0 ? (
                 <EmptyPanel text="Nenhuma atividade vinculada a este projeto ainda. Use o botao acima para cadastrar a primeira." />
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
+                        <th className="px-4 py-2.5 text-left font-medium">Atividade</th>
+                        <th className="px-2 py-2.5 text-left font-medium">Responsável</th>
+                        <th className="px-2 py-2.5 text-left font-medium">Status</th>
+                        <th className="px-2 py-2.5 text-left font-medium">Prioridade</th>
+                        <th className="px-2 py-2.5 text-right font-medium">Estimativa</th>
+                        <th className="px-4 py-2.5 text-right font-medium">Prazo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activities.map((activity) => (
+                        <tr
+                          key={activity.id}
+                          onClick={() => setDetailActivityId(activity.id)}
+                          className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-muted/30"
+                        >
+                          <td className="px-4 py-2.5 font-medium">{activity.title}</td>
+                          <td className="px-2 py-2.5 text-muted-foreground">{activity.assignee_name || "—"}</td>
+                          <td className="px-2 py-2.5">
+                            <span className="rounded bg-primary/15 px-2 py-0.5 text-[11px] text-primary">
+                              {activity.status || "Backlog"}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2.5 text-muted-foreground">{activity.priority || "—"}</td>
+                          <td className="px-2 py-2.5 text-right font-mono text-xs">
+                            {activity.est_hours ? `${activity.est_hours}h` : "—"}
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
+                            {activity.due_at ? new Date(activity.due_at).toLocaleDateString("pt-BR") : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
-              {activities.map((activity) => (
-                <Link
-                  key={activity.id}
-                  to="/activities/$id"
-                  params={{ id: activity.id }}
-                  className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3 transition hover:bg-muted/30"
-                >
-                  <span className="text-sm">{activity.title}</span>
-                  <span className="rounded bg-primary/15 px-2 py-0.5 text-[11px] text-primary">
-                    {activity.status || "Backlog"}
-                  </span>
-                </Link>
-              ))}
             </TabsContent>
 
             <TabsContent value="costs" className="space-y-4">
@@ -986,6 +1014,12 @@ function ProjectDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ActivityDetailDialog
+        activityId={detailActivityId}
+        open={Boolean(detailActivityId)}
+        onOpenChange={(v) => { if (!v) setDetailActivityId(null); }}
+      />
     </AppShell>
   );
 }
