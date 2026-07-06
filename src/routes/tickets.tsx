@@ -39,7 +39,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { TableSkeleton } from "@/components/app/TableSkeleton";
 import { EmptyState } from "@/components/app/EmptyState";
 import { TicketWorkflowDialog, type TicketWorkflowDialogSubmitData } from "@/components/tickets/TicketWorkflowDialog";
-import { TicketDetailDialog } from "@/components/tickets/TicketDetailDialog";
+import { WorkItemModal } from "@/components/workitem/WorkItemModal";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -1198,12 +1198,13 @@ function TicketsPage() {
         </Dialog>
       </div>
 
-      <TicketDetailDialog
-        ticketId={detailTicketId}
+      <WorkItemModal
+        workRef={detailTicketId ? { type: "ticket", id: detailTicketId } : null}
         open={Boolean(detailTicketId)}
         onOpenChange={(open) => {
           if (!open) setDetailTicketId(null);
         }}
+        onChanged={() => void queryClient.invalidateQueries({ queryKey: ["tickets"] })}
       />
 
       <TicketWorkflowDialog

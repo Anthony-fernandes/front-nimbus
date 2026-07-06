@@ -5,7 +5,7 @@ import { AlertCircle, Check, CheckCircle2, Circle, Clock, Pause, Plus, Timer, X 
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
-import { ActivityDetailDialog } from "@/components/activities/ActivityDetailDialog";
+import { WorkItemModal } from "@/components/workitem/WorkItemModal";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -451,10 +451,11 @@ function ActivitiesPage() {
         </div>
       ) : null}
 
-      <ActivityDetailDialog
-        activityId={detailActivityId}
+      <WorkItemModal
+        workRef={detailActivityId ? { type: "project_activity", id: detailActivityId } : null}
         open={Boolean(detailActivityId)}
         onOpenChange={(v) => { if (!v) setDetailActivityId(null); }}
+        onChanged={() => void queryClient.invalidateQueries({ queryKey: ["activities"] })}
       />
 
       {/* Time entry dialog */}

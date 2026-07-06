@@ -5,7 +5,7 @@ import { ArrowRight, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
-import { ActivityDetailDialog } from "@/components/activities/ActivityDetailDialog";
+import { WorkItemModal } from "@/components/workitem/WorkItemModal";
 import { formatHoursLabel } from "@/lib/activityFlow";
 import type { Activity } from "@/lib/types";
 import { listActivities, updateActivity } from "@/services/activityService";
@@ -220,10 +220,11 @@ function BacklogPage() {
           )}
         </div>
       </div>
-      <ActivityDetailDialog
-        activityId={detailActivityId}
+      <WorkItemModal
+        workRef={detailActivityId ? { type: "project_activity", id: detailActivityId } : null}
         open={Boolean(detailActivityId)}
         onOpenChange={(v) => { if (!v) setDetailActivityId(null); }}
+        onChanged={() => void queryClient.invalidateQueries({ queryKey: ["backlog"] })}
       />
     </AppShell>
   );

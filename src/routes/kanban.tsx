@@ -5,10 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
-import {
-  WorkItemUpdatesDialog,
-  type WorkItemUpdatesDialogItem,
-} from "@/components/app/WorkItemUpdatesDialog";
+import { WorkItemModal } from "@/components/workitem/WorkItemModal";
+import { WorkItemBlockDialog } from "@/components/workitem/WorkItemDialogs";
 import type { Ticket } from "@/lib/types";
 import { listTickets, updateTicket } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
@@ -58,7 +56,9 @@ function KanbanPage() {
   const [filterTech, setFilterTech] = useState<string>("");
   const [filterPriority, setFilterPriority] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
-  const [updatesDialogItem, setUpdatesDialogItem] = useState<WorkItemUpdatesDialogItem | null>(null);
+  const [drawerTicketId, setDrawerTicketId] = useState<string | null>(null);
+  const [drawerTab, setDrawerTab] = useState<"conversa" | "resolucao">("conversa");
+  const [pausePendingId, setPausePendingId] = useState<string | null>(null);
 
   const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: () => listUsers() });
 
@@ -67,8 +67,8 @@ function KanbanPage() {
   }, [tickets]);
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ ticketId, status }: { ticketId: string; status: string }) =>
-      updateTicket(ticketId, { status }),
+    mutationFn: ({ ticketId, status, reason }: { ticketId: string; status: string; reason?: string }) =>
+      updateTicket(ticketId, { status, ...(reason ? { status_change_reason: reason } : {}) } as Partial<Ticket>),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["kanban-tickets"] }),
@@ -88,10 +88,9 @@ function KanbanPage() {
     [localTickets, filterTech, filterPriority],
   );
 
-  const moveTicketToStatus = (ticketId: string, nextStatus: string) => {
+  const applyMove = (ticketId: string, nextStatus: string, reason?: string) => {
     const currentTicket = localTickets.find((ticket) => ticket.id === ticketId);
     if (!currentTicket) return;
-
     const previousStatus = currentTicket.status || "Triagem";
     if (previousStatus === nextStatus) return;
 
@@ -100,9 +99,8 @@ function KanbanPage() {
         ticket.id === ticketId ? { ...ticket, status: nextStatus } : ticket,
       ),
     );
-
     updateStatusMutation.mutate(
-      { ticketId, status: nextStatus },
+      { ticketId, status: nextStatus, reason },
       {
         onError: () => {
           setLocalTickets((current) =>
@@ -116,26 +114,29 @@ function KanbanPage() {
     );
   };
 
-  const openTicketUpdates = (ticket: Ticket) => {
-    setUpdatesDialogItem({
-      type: "ticket",
-      id: ticket.id,
-      code: ticket.code,
-      title: ticket.title,
-      status: ticket.status,
-      priority: ticket.priority,
-      typeLabel: ticket.type || "Chamado",
-      description: ticket.description,
-      responsibleNames: [
-        ticket.responsible_technician_name,
-        ...(ticket.technician_names || []),
-      ].filter(Boolean) as string[],
-      plannedHours: ticket.est_hours,
-      doneHours: ticket.done_hours,
-      sprintName: ticket.sprint_name,
-      plannedEndDate: ticket.due_at || undefined,
-      subtitle: ticket.client_name || ticket.organization_name || "Chamado",
-    });
+  const moveTicketToStatus = (ticketId: string, nextStatus: string) => {
+    const currentTicket = localTickets.find((ticket) => ticket.id === ticketId);
+    if (!currentTicket) return;
+    if ((currentTicket.status || "Triagem") === nextStatus) return;
+
+    // Concluir exige resolução documentada — abre o fluxo em vez de mover direto.
+    if (nextStatus === "Finalizado") {
+      setDrawerTab("resolucao");
+      setDrawerTicketId(ticketId);
+      toast.info("Preencha a resolução para finalizar este card.");
+      return;
+    }
+    // Pausar exige motivo.
+    if (nextStatus === "Pausado") {
+      setPausePendingId(ticketId);
+      return;
+    }
+    applyMove(ticketId, nextStatus);
+  };
+
+  const openTicket = (ticket: Ticket) => {
+    setDrawerTab("conversa");
+    setDrawerTicketId(ticket.id);
   };
 
   return (
@@ -251,7 +252,7 @@ function KanbanPage() {
                     <div className="flex items-center justify-between">
                       <button
                         type="button"
-                        onClick={() => openTicketUpdates(card)}
+                        onClick={() => openTicket(card)}
                         className="text-[10px] font-mono text-muted-foreground hover:text-primary"
                       >
                         {card.code || card.id.slice(0, 8)}
@@ -264,7 +265,7 @@ function KanbanPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => openTicketUpdates(card)}
+                      onClick={() => openTicket(card)}
                       className="mt-1.5 block w-full text-left text-sm leading-snug hover:text-primary"
                     >
                       {card.title}
@@ -329,11 +330,25 @@ function KanbanPage() {
           ))}
         </div>
       </div>
-      <WorkItemUpdatesDialog
-        open={Boolean(updatesDialogItem)}
-        item={updatesDialogItem}
+      <WorkItemModal
+        workRef={drawerTicketId ? { type: "ticket", id: drawerTicketId } : null}
+        open={Boolean(drawerTicketId)}
+        initialTab={drawerTab}
         onOpenChange={(open) => {
-          if (!open) setUpdatesDialogItem(null);
+          if (!open) { setDrawerTicketId(null); setDrawerTab("conversa"); }
+        }}
+        onChanged={() => void queryClient.invalidateQueries({ queryKey: ["kanban-tickets"] })}
+      />
+      <WorkItemBlockDialog
+        open={Boolean(pausePendingId)}
+        onOpenChange={(open) => { if (!open) setPausePendingId(null); }}
+        title="Pausar card"
+        description="Informe o motivo da pausa — ele fica registrado no histórico do chamado."
+        actionLabel="Pausar"
+        saving={updateStatusMutation.isPending}
+        onConfirm={(reason) => {
+          if (pausePendingId) applyMove(pausePendingId, "Pausado", reason);
+          setPausePendingId(null);
         }}
       />
     </AppShell>

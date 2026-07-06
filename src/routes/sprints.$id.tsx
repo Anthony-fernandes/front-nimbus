@@ -24,6 +24,9 @@ import {
   WorkItemUpdatesDialog,
   type WorkItemUpdatesDialogItem,
 } from "@/components/app/WorkItemUpdatesDialog";
+import { WorkItemModal } from "@/components/workitem/WorkItemModal";
+import { WorkItemBlockDialog } from "@/components/workitem/WorkItemDialogs";
+import type { WorkItemRef } from "@/lib/workItem";
 import {
   SprintActivityPlanForm,
   toSprintActivityPlanFormData,
@@ -913,6 +916,9 @@ function SprintDetail() {
   const [kanbanLocalTickets, setKanbanLocalTickets] = useState<Ticket[]>([]);
   const [kanbanLocalActivities, setKanbanLocalActivities] = useState<Activity[]>([]);
   const [kanbanDragId, setKanbanDragId] = useState<string | null>(null);
+  const [wiRef, setWiRef] = useState<WorkItemRef | null>(null);
+  const [wiTab, setWiTab] = useState<"conversa" | "resolucao">("conversa");
+  const [kanbanPauseCard, setKanbanPauseCard] = useState<{ key: string; column: string } | null>(null);
   const [kanbanActiveCol, setKanbanActiveCol] = useState<string | null>(null);
   const [kanbanFilterTech, setKanbanFilterTech] = useState<string>("");
   const [kanbanFilterPriority, setKanbanFilterPriority] = useState<string>("");
@@ -997,51 +1003,69 @@ function SprintDetail() {
   }, [ticketsQuery.data, ticketPlansQuery.data]);
 
   const kanbanUpdateMutation = useMutation({
-    mutationFn: ({ ticketId, status }: { ticketId: string; status: string }) =>
-      updateTicket(ticketId, { status }),
+    mutationFn: ({ ticketId, status, reason }: { ticketId: string; status: string; reason?: string }) =>
+      updateTicket(ticketId, { status, ...(reason ? { status_change_reason: reason } : {}) } as Partial<Ticket>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tickets-for-sprint-wizard"] });
     },
   });
 
   const kanbanActivityUpdateMutation = useMutation({
-    mutationFn: ({ activityId, status }: { activityId: string; status: string }) =>
-      updateActivity(activityId, { status }),
+    mutationFn: ({ activityId, status, reason }: { activityId: string; status: string; reason?: string }) =>
+      updateActivity(activityId, { status, ...(reason ? { status_reason: reason.slice(0, 255) } : {}) } as Partial<Activity>),
     onSuccess: (_activity, variables) => {
       queryClient.invalidateQueries({ queryKey: ["activities"] });
       queryClient.invalidateQueries({ queryKey: ["activity", variables.activityId] });
     },
   });
 
-  const moveKanbanTicket = (ticketId: string, nextStatus: string) => {
+  const moveKanbanTicket = (ticketId: string, nextStatus: string, reason?: string) => {
     const current = kanbanLocalTickets.find(t => t.id === ticketId);
     if (!current || current.status === nextStatus) return;
     const prev = current.status || "Triagem";
     setKanbanLocalTickets(ts => ts.map(t => t.id === ticketId ? { ...t, status: nextStatus } : t));
-    kanbanUpdateMutation.mutate({ ticketId, status: nextStatus }, {
+    kanbanUpdateMutation.mutate({ ticketId, status: nextStatus, reason }, {
       onError: () => setKanbanLocalTickets(ts => ts.map(t => t.id === ticketId ? { ...t, status: prev } : t)),
     });
   };
 
-  const moveKanbanActivity = (activityId: string, nextColumn: string) => {
+  const moveKanbanActivity = (activityId: string, nextColumn: string, reason?: string) => {
     const current = kanbanLocalActivities.find(activity => activity.id === activityId);
     if (!current || getActivityKanbanColumn(current.status) === nextColumn) return;
     const prev = current.status || "Backlog";
     const nextStatus = getActivityStatusForKanbanColumn(nextColumn);
     setKanbanLocalActivities(items => items.map(activity => activity.id === activityId ? { ...activity, status: nextStatus } : activity));
-    kanbanActivityUpdateMutation.mutate({ activityId, status: nextStatus }, {
+    kanbanActivityUpdateMutation.mutate({ activityId, status: nextStatus, reason }, {
       onError: () => setKanbanLocalActivities(items => items.map(activity => activity.id === activityId ? { ...activity, status: prev } : activity)),
     });
+  };
+
+  const applyKanbanMove = (cardKey: string, nextColumn: string, reason?: string) => {
+    const [type, itemId] = cardKey.split(":");
+    if (!itemId) return;
+    if (type === "activity") {
+      moveKanbanActivity(itemId, nextColumn, reason);
+      return;
+    }
+    moveKanbanTicket(itemId, nextColumn, reason);
   };
 
   const moveKanbanCard = (cardKey: string, nextColumn: string) => {
     const [type, itemId] = cardKey.split(":");
     if (!itemId) return;
-    if (type === "activity") {
-      moveKanbanActivity(itemId, nextColumn);
+    // Concluir exige resolução documentada — abre o popup no fluxo de finalização.
+    if (nextColumn === "Finalizado") {
+      setWiTab("resolucao");
+      setWiRef({ type: type === "activity" ? "sprint_activity" : "ticket", id: itemId });
+      toast.info("Preencha a resolução para concluir este item.");
       return;
     }
-    moveKanbanTicket(itemId, nextColumn);
+    // Pausar/Bloquear exige motivo registrado.
+    if (nextColumn === "Pausado" || nextColumn === "Aguardando cliente") {
+      setKanbanPauseCard({ key: cardKey, column: nextColumn });
+      return;
+    }
+    applyKanbanMove(cardKey, nextColumn);
   };
 
   const sprint = sprintQuery.data;
@@ -1279,42 +1303,10 @@ function SprintDetail() {
     });
   };
 
+  // Todo card do kanban da sprint abre o mesmo popup unificado de atendimento.
   const openKanbanCardUpdates = (card: KanbanCard) => {
-    if (card.type === "activity") {
-      const activity = activityMap.get(card.id) || kanbanLocalActivities.find((item) => item.id === card.id);
-      const plan = sprintPlans.find((item) => item.activityId === card.id);
-      if (activity) {
-        const relatedEntries = allTimeEntries.filter((entry) => entry.activityId === card.id);
-        const summary = plan ? getSprintPlanExecutionSummary(plan, relatedEntries) : undefined;
-        openActivityUpdates(activity, plan, summary?.realizedHours);
-        return;
-      }
-    }
-
-    if (card.type === "ticket") {
-      const ticket =
-        kanbanLocalTickets.find((item) => item.id === card.id)
-        || (allTicketsForPlanning as Ticket[]).find((item) => item.id === card.id);
-      const plan = ticketPlansQuery.data?.find((item) => item.ticketId === card.id);
-      if (ticket) {
-        openTicketUpdates(ticket, plan);
-        return;
-      }
-    }
-
-    setUpdatesDialogItem({
-      type: card.type,
-      id: card.id,
-      code: card.code,
-      title: card.title,
-      status: card.status,
-      priority: card.priority,
-      typeLabel: card.type === "ticket" ? "Chamado" : "Atividade",
-      responsibleNames: getResponsibleNamesFromIds(card.responsibleIds),
-      plannedHours: card.hoursLabel,
-      sprintName: sprint?.name,
-      subtitle: card.subtitle,
-    });
+    setWiTab("conversa");
+    setWiRef({ type: card.type === "activity" ? "sprint_activity" : "ticket", id: card.id });
   };
 
   // Merge registered participants with users who have planned hours in this sprint
@@ -2376,6 +2368,36 @@ function SprintDetail() {
         item={updatesDialogItem}
         onOpenChange={(open) => {
           if (!open) setUpdatesDialogItem(null);
+        }}
+      />
+
+      {/* Popup unificado de atendimento (chamados e atividades da sprint) */}
+      <WorkItemModal
+        workRef={wiRef}
+        open={Boolean(wiRef)}
+        initialTab={wiTab}
+        onOpenChange={(open) => {
+          if (!open) { setWiRef(null); setWiTab("conversa"); }
+        }}
+        onChanged={() => {
+          void queryClient.invalidateQueries({ queryKey: ["activities"] });
+          void queryClient.invalidateQueries({ queryKey: ["tickets-for-sprint-wizard"] });
+          void queryClient.invalidateQueries({ queryKey: ["all-activity-time-entries"] });
+          void queryClient.invalidateQueries({ queryKey: ["sprint-activity-plans", id] });
+        }}
+      />
+
+      {/* Pausar/Bloquear no kanban exige motivo */}
+      <WorkItemBlockDialog
+        open={Boolean(kanbanPauseCard)}
+        onOpenChange={(open) => { if (!open) setKanbanPauseCard(null); }}
+        title={kanbanPauseCard?.column === "Pausado" ? "Pausar item" : "Bloquear / aguardar"}
+        description="Informe o motivo — ele fica registrado no histórico do item."
+        actionLabel="Confirmar"
+        saving={kanbanUpdateMutation.isPending || kanbanActivityUpdateMutation.isPending}
+        onConfirm={(reason) => {
+          if (kanbanPauseCard) applyKanbanMove(kanbanPauseCard.key, kanbanPauseCard.column, reason);
+          setKanbanPauseCard(null);
         }}
       />
 

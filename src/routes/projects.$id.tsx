@@ -56,7 +56,7 @@ import { listUsers } from "@/services/userService";
 import { formatCurrency, formatDateSafe, toNumber , parseApiError} from "@/services/utils";
 import { listProjectCustomFields, listProjectCustomValues, upsertProjectCustomValue } from "@/services/customFieldService";
 import { CustomFieldsSection } from "@/components/app/CustomFieldsSection";
-import { ActivityDetailDialog } from "@/components/activities/ActivityDetailDialog";
+import { WorkItemModal } from "@/components/workitem/WorkItemModal";
 
 export const Route = createFileRoute("/projects/$id")({
   head: () => ({ meta: [{ title: "Detalhes do projeto - NimbusDesk" }] }),
@@ -1015,10 +1015,11 @@ function ProjectDetail() {
         </DialogContent>
       </Dialog>
 
-      <ActivityDetailDialog
-        activityId={detailActivityId}
+      <WorkItemModal
+        workRef={detailActivityId ? { type: "project_activity", id: detailActivityId } : null}
         open={Boolean(detailActivityId)}
         onOpenChange={(v) => { if (!v) setDetailActivityId(null); }}
+        onChanged={() => void queryClient.invalidateQueries({ queryKey: ["project-activities"] })}
       />
     </AppShell>
   );
