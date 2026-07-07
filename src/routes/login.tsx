@@ -1,5 +1,19 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Sparkles, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  ArrowRight,
+  BarChart3,
+  Clock,
+  Eye,
+  EyeOff,
+  Headset,
+  KanbanSquare,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  ShieldCheck,
+  Ticket,
+  UserRound,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -25,96 +39,148 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const FEATURES = [
+  {
+    icon: Ticket,
+    title: "Central de chamados",
+    description: "Abertura, triagem, SLA e resolução documentada em um fluxo único.",
+  },
+  {
+    icon: KanbanSquare,
+    title: "Projetos, sprints e kanban",
+    description: "Atividades, capacidade por técnico e planejamento visual.",
+  },
+  {
+    icon: Clock,
+    title: "SLA sob controle",
+    description: "Prazos por prioridade, categoria e cliente, com alertas antes do estouro.",
+  },
+  {
+    icon: BarChart3,
+    title: "Relatórios e indicadores",
+    description: "CSAT, reaberturas, produtividade e exportação para Excel.",
+  },
+];
+
 function LoginPage() {
   const { reason } = Route.useSearch();
   return (
-    <div className="min-h-screen w-full grid lg:grid-cols-2 bg-background text-foreground">
-      <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-primary opacity-20" />
-        <div className="absolute -top-32 -left-20 h-96 w-96 rounded-full bg-primary/30 blur-3xl" />
-        <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
-        <div className="relative flex items-center gap-2.5">
-          <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
+    <div className="grid min-h-screen w-full bg-background text-foreground lg:grid-cols-[1.1fr_1fr]">
+      {/* ── Painel institucional ─────────────────────────────────── */}
+      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-border/60 p-10 lg:flex xl:p-14">
+        {/* Fundo decorativo */}
+        <div className="absolute inset-0 bg-gradient-primary opacity-[0.07]" />
+        <div className="absolute -top-40 -left-24 h-[28rem] w-[28rem] rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-40 -right-24 h-[28rem] w-[28rem] rounded-full bg-accent/20 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, color-mix(in oklch, currentColor 12%, transparent) 1px, transparent 0)",
+            backgroundSize: "28px 28px",
+            color: "var(--muted-foreground, #888)",
+          }}
+        />
+
+        {/* Marca */}
+        <div className="relative flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-primary shadow-glow">
+            <Headset className="h-5.5 w-5.5 h-6 w-6 text-primary-foreground" />
           </div>
-          <div className="text-lg font-semibold">
-            Nimbus<span className="text-gradient">Desk</span>
+          <div>
+            <div className="text-xl font-bold tracking-tight">
+              Nimbus<span className="text-gradient">Desk</span>
+            </div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Service Desk &amp; Gestão Operacional
+            </div>
           </div>
         </div>
-        <div className="relative">
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight max-w-md">
-            A operacao da sua equipe tecnica conectada ao backend Django.
+
+        {/* Mensagem + features */}
+        <div className="relative max-w-lg">
+          <h1 className="text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
+            Toda a operação de suporte da sua equipe em um só lugar.
           </h1>
-          <p className="mt-4 text-muted-foreground max-w-md">
-            Chamados, projetos, sprints e atividades em um unico fluxo.
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Chamados, projetos, sprints, SLA e relatórios conectados — do primeiro contato ao
+            encerramento com resolução registrada.
           </p>
-          <div className="mt-8 flex gap-2">
-            {["Django API", "JWT", "React", "Vite"].map((tag) => (
-              <span key={tag} className="text-[11px] px-2.5 py-1 rounded-full glass">
-                {tag}
-              </span>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            {FEATURES.map(({ icon: Icon, title, description }) => (
+              <div
+                key={title}
+                className="rounded-xl border border-border/70 bg-background/50 p-3.5 backdrop-blur transition-colors hover:border-primary/30"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-sm font-semibold">{title}</span>
+                </div>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
+              </div>
             ))}
           </div>
         </div>
-        <div className="relative text-xs text-muted-foreground">
-          © NimbusDesk 2026 · Todos os direitos reservados
+
+        {/* Rodapé institucional */}
+        <div className="relative flex items-center justify-between text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} NimbusDesk · Todos os direitos reservados</span>
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-success" />
+            Conexão segura · Autenticação em duas etapas
+          </span>
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-6">
-        <div className="w-full max-w-sm glass-strong rounded-2xl p-7 shadow-card animate-fade-in-up">
-          <div className="lg:hidden flex items-center gap-2 mb-6">
-            <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
+      {/* ── Coluna do formulário ─────────────────────────────────── */}
+      <div className="flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-[400px]">
+          {/* Marca (mobile) */}
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary shadow-glow">
+              <Headset className="h-5 w-5 text-primary-foreground" />
             </div>
-            <div className="font-semibold">
-              Nimbus<span className="text-gradient">Desk</span>
+            <div>
+              <div className="font-bold leading-tight">
+                Nimbus<span className="text-gradient">Desk</span>
+              </div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                Service Desk
+              </div>
             </div>
           </div>
-          <h2 className="text-xl font-semibold tracking-tight">Entrar na workspace</h2>
-          <p className="text-xs text-muted-foreground mt-1">Use seu usuário ou e-mail cadastrado</p>
 
-          {reason === "timeout" && (
-            <div className="mt-4 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-400">
-              Sua sessão expirou por inatividade. Por favor, entre novamente.
-            </div>
-          )}
+          <div className="glass-strong rounded-2xl border border-border/70 p-8 shadow-card animate-fade-in-up">
+            <h2 className="text-xl font-semibold tracking-tight">Acesse sua central</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Entre com suas credenciais para gerenciar chamados e atividades.
+            </p>
 
-          <LoginForm />
+            {reason === "timeout" && (
+              <div className="mt-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
+                Sua sessão expirou por inatividade. Por favor, entre novamente.
+              </div>
+            )}
+
+            <LoginForm />
+          </div>
+
+          <p className="mt-5 text-center text-xs text-muted-foreground">
+            Problemas para acessar? Fale com o administrador da sua empresa.
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-function Field({
-  label,
-  type,
-  placeholder,
-  value,
-  onChange,
-}: {
-  label: string;
-  type: string;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        type={type}
-        placeholder={placeholder}
-        className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
-      />
-    </label>
-  );
-}
-
 const REMEMBER_KEY = "nimbus_remembered_user";
+
+const inputClass =
+  "h-11 w-full rounded-lg border border-border bg-muted/30 pl-10 pr-3 text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-primary/60 focus:ring-2 focus:ring-primary/20";
 
 function LoginForm() {
   const navigate = useNavigate();
@@ -122,6 +188,7 @@ function LoginForm() {
   const [step, setStep] = useState<"credentials" | "mfa" | "forgot">("credentials");
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [totpCode, setTotpCode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => typeof window !== "undefined" && !!localStorage.getItem(REMEMBER_KEY));
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
@@ -135,6 +202,8 @@ function LoginForm() {
     resolver: zodResolver(loginSchema),
     defaultValues: { username: (typeof window !== "undefined" ? localStorage.getItem(REMEMBER_KEY) : null) || "", password: "" },
   });
+
+  // ── Verificação em duas etapas ────────────────────────────────────────────
   if (step === "mfa") {
     return (
       <form
@@ -164,12 +233,12 @@ function LoginForm() {
         }}
       >
         <div className="flex flex-col items-center gap-2 pb-2">
-          <div className="h-12 w-12 rounded-full bg-primary/10 grid place-items-center">
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10">
             <ShieldCheck className="h-6 w-6 text-primary" />
           </div>
-          <h3 className="text-base font-semibold">Verificação em dois fatores</h3>
-          <p className="text-xs text-muted-foreground text-center">
-            Digite o código do seu aplicativo autenticador
+          <h3 className="text-base font-semibold">Verificação em duas etapas</h3>
+          <p className="text-center text-xs text-muted-foreground">
+            Digite o código de 6 dígitos do seu aplicativo autenticador
           </p>
         </div>
 
@@ -182,16 +251,16 @@ function LoginForm() {
             value={totpCode}
             onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
             placeholder="000000"
-            className="w-40 h-12 rounded-lg bg-muted/40 border border-border px-3 text-center text-xl tracking-[0.4em] outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
+            className="h-12 w-44 rounded-lg border border-border bg-muted/30 px-3 text-center text-xl tracking-[0.4em] outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading || totpCode.length < 6}
-          className="w-full h-10 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 hover:opacity-95 transition disabled:opacity-60"
+          className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-primary text-sm font-medium text-primary-foreground shadow-glow transition hover:opacity-95 disabled:opacity-60"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar e entrar"}
         </button>
 
         <div className="text-center">
@@ -202,7 +271,7 @@ function LoginForm() {
               setMfaToken(null);
               setTotpCode("");
             }}
-            className="text-xs text-muted-foreground hover:text-foreground transition underline underline-offset-2"
+            className="text-xs text-muted-foreground underline underline-offset-2 transition hover:text-foreground"
           >
             Voltar ao login
           </button>
@@ -211,19 +280,22 @@ function LoginForm() {
     );
   }
 
-  // ── Tela de recuperação de senha ──────────────────────────────────────────
+  // ── Recuperação de senha ──────────────────────────────────────────────────
   if (step === "forgot") {
     return (
       <div className="mt-6 space-y-4">
         <div className="flex flex-col items-center gap-1 pb-1">
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10">
+            <Mail className="h-5 w-5 text-primary" />
+          </div>
           <h3 className="text-base font-semibold">Recuperar senha</h3>
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-center text-xs text-muted-foreground">
             Informe seu e-mail cadastrado para receber o link de redefinição.
           </p>
         </div>
 
         {forgotSent ? (
-          <div className="rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success text-center">
+          <div className="rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-center text-sm text-success">
             E-mail enviado! Verifique sua caixa de entrada.
           </div>
         ) : (
@@ -244,20 +316,23 @@ function LoginForm() {
             }}
           >
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">E-mail</span>
-              <input
-                type="email"
-                autoFocus
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                placeholder="seu@email.com"
-                className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
-              />
+              <span className="mb-1 block text-xs font-medium">E-mail</span>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="email"
+                  autoFocus
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="seu@empresa.com"
+                  className={inputClass}
+                />
+              </div>
             </label>
             <button
               type="submit"
               disabled={forgotLoading || !forgotEmail.trim()}
-              className="w-full h-10 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 hover:opacity-95 transition disabled:opacity-60"
+              className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-primary text-sm font-medium text-primary-foreground shadow-glow transition hover:opacity-95 disabled:opacity-60"
             >
               {forgotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar link de recuperação"}
             </button>
@@ -268,7 +343,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => { setStep("credentials"); setForgotSent(false); setForgotEmail(""); }}
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition"
+            className="text-xs text-muted-foreground underline underline-offset-2 transition hover:text-foreground"
           >
             Voltar ao login
           </button>
@@ -280,7 +355,7 @@ function LoginForm() {
   // ── Formulário principal ───────────────────────────────────────────────────
   return (
     <form
-      className="mt-6 space-y-3"
+      className="mt-6 space-y-4"
       onSubmit={handleSubmit(async (values) => {
         const { username, password } = values;
         setLoading(true);
@@ -300,7 +375,6 @@ function LoginForm() {
           const data = response.data as { access: string; refresh: string; user?: User | null };
           setSession({ access: data.access, refresh: data.refresh, user: null });
 
-          // Lembrar usuário
           if (rememberMe) {
             localStorage.setItem(REMEMBER_KEY, username);
           } else {
@@ -329,14 +403,17 @@ function LoginForm() {
     >
       <div>
         <label className="block">
-          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Usuário ou e-mail</span>
-          <input
-            {...register("username")}
-            type="text"
-            autoComplete="username"
-            placeholder="usuario ou email@empresa.com"
-            className="mt-1 w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
-          />
+          <span className="mb-1 block text-xs font-medium">Usuário ou e-mail</span>
+          <div className="relative">
+            <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              {...register("username")}
+              type="text"
+              autoComplete="username"
+              placeholder="usuario ou email@empresa.com"
+              className={inputClass}
+            />
+          </div>
         </label>
         {errors.username && (
           <p className="mt-1 text-xs text-destructive">{errors.username.message}</p>
@@ -344,29 +421,41 @@ function LoginForm() {
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Senha</span>
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-xs font-medium">Senha</span>
           <button
             type="button"
             onClick={() => setStep("forgot")}
-            className="text-[11px] text-primary hover:underline"
+            className="text-xs text-primary transition hover:underline"
           >
             Esqueci minha senha
           </button>
         </div>
-        <input
-          {...register("password")}
-          type="password"
-          autoComplete="current-password"
-          placeholder="••••••••"
-          className="w-full h-10 rounded-lg bg-muted/40 border border-border px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
-        />
+        <div className="relative">
+          <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            {...register("password")}
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className={`${inputClass} pr-11`}
+          />
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
         {errors.password && (
           <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
         )}
       </div>
 
-      <label className="flex items-center gap-2 cursor-pointer select-none">
+      <label className="flex cursor-pointer select-none items-center gap-2">
         <input
           type="checkbox"
           checked={rememberMe}
@@ -379,10 +468,15 @@ function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full h-10 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-medium shadow-glow inline-flex items-center justify-center gap-1.5 hover:opacity-95 transition disabled:opacity-60"
+        className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-primary text-sm font-semibold text-primary-foreground shadow-glow transition hover:opacity-95 disabled:opacity-60"
       >
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Entrar <ArrowRight className="h-4 w-4" /></>}
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Entrar na central <ArrowRight className="h-4 w-4" /></>}
       </button>
+
+      <div className="flex items-center justify-center gap-1.5 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+        <ShieldCheck className="h-3.5 w-3.5 text-success" />
+        Suas credenciais trafegam criptografadas
+      </div>
     </form>
   );
 }
