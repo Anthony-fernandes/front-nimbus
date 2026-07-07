@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Loader2, Eye, EyeOff, CheckCircle2, ArrowLeft, KeyRound } from "lucide-react";
+import { Loader2, Eye, EyeOff, CheckCircle2, ArrowLeft, KeyRound } from "lucide-react";
+import { BrandLogo } from "@/components/app/BrandLogo";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -16,9 +17,7 @@ function ForgotPasswordPage() {
       <div className="w-full max-w-sm glass-strong rounded-2xl p-8 shadow-card animate-fade-in-up">
         {/* Logo */}
         <div className="flex items-center gap-2 mb-8">
-          <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <BrandLogo className="h-10 w-10" />
           <span className="font-semibold tracking-tight">
             Nimbus<span className="text-gradient">Desk</span>
           </span>

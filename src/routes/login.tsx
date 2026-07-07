@@ -5,7 +5,6 @@ import {
   Clock,
   Eye,
   EyeOff,
-  Headset,
   KanbanSquare,
   Loader2,
   LockKeyhole,
@@ -20,6 +19,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { BrandLogo } from "@/components/app/BrandLogo";
 import type { User } from "@/lib/types";
 import { getHomeRoute, normalizeUser } from "@/lib/auth";
 import { api } from "@/services/api";
@@ -84,9 +84,7 @@ function LoginPage() {
 
         {/* Marca */}
         <div className="relative flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-primary shadow-glow">
-            <Headset className="h-5.5 w-5.5 h-6 w-6 text-primary-foreground" />
-          </div>
+          <BrandLogo className="h-14 w-14" />
           <div>
             <div className="text-xl font-bold tracking-tight">
               Nimbus<span className="text-gradient">Desk</span>
@@ -140,9 +138,7 @@ function LoginPage() {
         <div className="w-full max-w-[400px]">
           {/* Marca (mobile) */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary shadow-glow">
-              <Headset className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <BrandLogo className="h-11 w-11" />
             <div>
               <div className="font-bold leading-tight">
                 Nimbus<span className="text-gradient">Desk</span>

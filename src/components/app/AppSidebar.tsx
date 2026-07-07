@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { BrandLogo } from "@/components/app/BrandLogo";
 import { useQuery } from "@tanstack/react-query";
 import { listChatConversations } from "@/services/chatService";
 import {
@@ -24,7 +25,6 @@ import {
   Rocket,
   ScrollText,
   Settings,
-  Sparkles,
   Tag,
   Tags,
   Ticket,
@@ -266,8 +266,8 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
     <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2.5 px-2 py-2">
-          <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-primary shadow-glow">
-            <Sparkles className="h-4.5 w-4.5 text-primary-foreground" strokeWidth={2.5} />
+          <div className="relative grid h-10 w-10 shrink-0 place-items-center">
+            <BrandLogo className="h-10 w-10" />
           </div>
           {!collapsed ? (
             <div className="leading-tight">

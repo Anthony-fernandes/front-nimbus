@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, ShieldCheck } from "lucide-react";
+import { BrandLogo } from "@/components/app/BrandLogo";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,9 +30,7 @@ function ClientLoginPage() {
     <div className="min-h-screen w-full flex items-center justify-center bg-background text-foreground p-6">
       <div className="w-full max-w-sm glass-strong rounded-2xl p-7 shadow-card animate-fade-in-up space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="h-12 w-12 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
-            <Sparkles className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <BrandLogo className="h-14 w-14" />
           <div>
             <div className="text-lg font-semibold">
               Nimbus<span className="text-gradient">Desk</span>
