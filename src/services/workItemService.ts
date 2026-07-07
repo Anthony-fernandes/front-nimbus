@@ -258,3 +258,52 @@ export async function reopenWorkItem(ref: WorkItemRef, reason: string): Promise<
   const url = isTicketRef(ref) ? `/tickets/${ref.id}/reopen/` : `/activities/${ref.id}/reopen/`;
   await api.post(url, { reason });
 }
+
+// ── Subchamados (apenas tickets) ────────────────────────────────────
+
+type RawRelation = {
+  id: string;
+  related_ticket: string;
+  related_ticket_code?: string;
+  related_ticket_title?: string;
+  related_ticket_status?: string;
+  related_ticket_responsible?: string;
+  related_ticket_category?: string;
+  relation_type: string;
+};
+
+export async function listWorkItemSubTickets(ref: WorkItemRef) {
+  if (ref.type !== "ticket") return [];
+  const { data } = await api.get<RawRelation[] | { results: RawRelation[] }>(
+    `/tickets/relations/?ticket=${ref.id}&relation_type=subchamado`,
+  );
+  const rows = Array.isArray(data) ? data : data.results || [];
+  return rows.map((r) => ({
+    id: r.id,
+    ticketId: r.related_ticket,
+    code: r.related_ticket_code || r.related_ticket.slice(0, 8),
+    title: r.related_ticket_title || "",
+    status: r.related_ticket_status || "Aberto",
+    responsibleName: r.related_ticket_responsible || "",
+    category: r.related_ticket_category || "",
+  }));
+}
+
+export async function createWorkItemSubTicket(
+  ref: WorkItemRef,
+  parent: { title: string; clientId?: string | null },
+  payload: { title: string; category: string; responsibleId?: string; description?: string },
+): Promise<void> {
+  const { data: created } = await api.post<Ticket>("/tickets/", {
+    title: payload.title,
+    description: payload.description || `Subchamado de: ${parent.title}`,
+    category: payload.category || "Atendimento",
+    ...(payload.responsibleId ? { responsible_technician: payload.responsibleId } : {}),
+    ...(parent.clientId ? { client: parent.clientId } : {}),
+  });
+  await api.post("/tickets/relations/", {
+    ticket: ref.id,
+    related_ticket: created.id,
+    relation_type: "subchamado",
+  });
+}

@@ -219,3 +219,19 @@ export function activityToWorkItem(
     raw: activity,
   };
 }
+
+export type WorkItemSubTicket = {
+  id: string;
+  ticketId: string;
+  code: string;
+  title: string;
+  status: string;
+  responsibleName?: string;
+  category?: string;
+};
+
+const SUBTICKET_DONE = ["Finalizado", "Cancelado", "Resolvido"];
+
+export function isSubTicketFinished(sub: WorkItemSubTicket): boolean {
+  return SUBTICKET_DONE.includes(sub.status);
+}

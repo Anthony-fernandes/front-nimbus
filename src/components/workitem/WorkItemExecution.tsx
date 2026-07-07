@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Clock, ListChecks, Plus, Trash2 } from "lucide-react";
+import { Clock, GitBranch, ListChecks, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { WorkItem, WorkItemSubtask, WorkItemTimeLog } from "@/lib/workItem";
-import { isWorkItemFinished } from "@/lib/workItem";
+import type { WorkItem, WorkItemSubTicket, WorkItemSubtask, WorkItemTimeLog } from "@/lib/workItem";
+import { isSubTicketFinished, isWorkItemFinished } from "@/lib/workItem";
 import { cn } from "@/lib/utils";
 import { parseApiError } from "@/services/utils";
 
@@ -17,16 +17,27 @@ export function WorkItemExecution({
   item,
   timeLogs,
   timeLogsLoading,
+  subTickets,
   onSaveSubtasks,
   onLogTime,
+  onCreateSubTicket,
+  onOpenSubTicket,
 }: {
   item: WorkItem;
   timeLogs: WorkItemTimeLog[];
   timeLogsLoading?: boolean;
+  /** Subchamados vinculados (apenas para chamados). */
+  subTickets?: WorkItemSubTicket[];
   onSaveSubtasks: (subtasks: WorkItemSubtask[]) => Promise<void>;
   onLogTime: (payload: { date: string; hours: number; description: string }) => Promise<void>;
+  onCreateSubTicket?: (payload: { title: string; category: string }) => Promise<void>;
+  onOpenSubTicket?: (ticketId: string) => void;
 }) {
   const finished = isWorkItemFinished(item);
+  const inProgress = ["Em atendimento", "Em progresso", "Em andamento"].includes(item.status);
+  const [newSubTicketTitle, setNewSubTicketTitle] = useState("");
+  const [newSubTicketCategory, setNewSubTicketCategory] = useState("");
+  const [creatingSubTicket, setCreatingSubTicket] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [newRequired, setNewRequired] = useState(false);
   const [savingSubtasks, setSavingSubtasks] = useState(false);
@@ -166,6 +177,113 @@ export function WorkItemExecution({
         )}
       </section>
 
+      {/* ── Subchamados (somente chamados) ── */}
+      {subTickets !== undefined && (
+        <section className="rounded-xl border border-border bg-muted/10 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <GitBranch className="h-3.5 w-3.5" /> Subchamados
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {subTickets.filter(isSubTicketFinished).length}/{subTickets.length} encerrados
+            </span>
+          </div>
+
+          {subTickets.length === 0 ? (
+            <p className="py-2 text-sm text-muted-foreground">
+              Nenhum subchamado. Crie um para acionar outra equipe (infra, banco, desenvolvimento...).
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <th className="pb-1.5 pr-3 font-medium">Código</th>
+                    <th className="pb-1.5 pr-3 font-medium">Título</th>
+                    <th className="pb-1.5 pr-3 font-medium">Categoria</th>
+                    <th className="pb-1.5 pr-3 font-medium">Responsável</th>
+                    <th className="pb-1.5 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subTickets.map((sub) => (
+                    <tr
+                      key={sub.id}
+                      className="cursor-pointer border-t border-border/50 transition-colors hover:bg-muted/30"
+                      onClick={() => onOpenSubTicket?.(sub.ticketId)}
+                    >
+                      <td className="py-1.5 pr-3 font-mono text-xs text-primary">{sub.code}</td>
+                      <td className="max-w-[220px] truncate py-1.5 pr-3 font-medium">{sub.title}</td>
+                      <td className="py-1.5 pr-3 text-muted-foreground">{sub.category || "—"}</td>
+                      <td className="py-1.5 pr-3 text-muted-foreground">{sub.responsibleName || "—"}</td>
+                      <td className="py-1.5">
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                            isSubTicketFinished(sub) ? "bg-success/15 text-success" : "bg-info/15 text-info",
+                          )}
+                        >
+                          {sub.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!finished && onCreateSubTicket && (
+            <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/60 pt-3">
+              <div className="min-w-[200px] flex-1">
+                <label className="mb-1 block text-[11px] text-muted-foreground">Título do subchamado</label>
+                <Input
+                  value={newSubTicketTitle}
+                  onChange={(e) => setNewSubTicketTitle(e.target.value)}
+                  placeholder="Ex.: Verificar fila de impressão"
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-muted-foreground">Categoria / equipe</label>
+                <Input
+                  value={newSubTicketCategory}
+                  onChange={(e) => setNewSubTicketCategory(e.target.value)}
+                  placeholder="Ex.: Infraestrutura"
+                  className="h-9 w-44"
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 gap-1"
+                disabled={creatingSubTicket || !newSubTicketTitle.trim()}
+                onClick={() => {
+                  void (async () => {
+                    setCreatingSubTicket(true);
+                    try {
+                      await onCreateSubTicket({
+                        title: newSubTicketTitle.trim(),
+                        category: newSubTicketCategory.trim(),
+                      });
+                      setNewSubTicketTitle("");
+                      setNewSubTicketCategory("");
+                      toast.success("Subchamado criado e vinculado.");
+                    } catch (error) {
+                      toast.error(parseApiError(error, "Não foi possível criar o subchamado."));
+                    } finally {
+                      setCreatingSubTicket(false);
+                    }
+                  })();
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" /> Criar subchamado
+              </Button>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* ── Apontamento de tempo ── */}
       <section className="rounded-xl border border-border bg-muted/10 p-4">
         <div className="mb-2 flex items-center justify-between">
@@ -218,7 +336,12 @@ export function WorkItemExecution({
           <p className="py-2 text-sm text-muted-foreground">Nenhum apontamento registrado.</p>
         )}
 
-        {!finished && (
+        {!finished && !inProgress && (
+          <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+            ⚠ Inicie o atendimento para apontar horas neste item.
+          </div>
+        )}
+        {!finished && inProgress && (
           <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/60 pt-3">
             <div>
               <label className="mb-1 block text-[11px] text-muted-foreground">Data</label>

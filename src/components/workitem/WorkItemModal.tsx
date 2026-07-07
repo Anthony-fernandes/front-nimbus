@@ -1,15 +1,25 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { isWorkItemFinished, type WorkItemNoteType, type WorkItemRef, type WorkItemSubtask } from "@/lib/workItem";
+import {
+  isSubTicketFinished,
+  isWorkItemFinished,
+  type WorkItemNoteType,
+  type WorkItemRef,
+  type WorkItemSubtask,
+} from "@/lib/workItem";
 import {
   createWorkItemComment,
+  createWorkItemSubTicket,
   getWorkItem,
   listWorkItemComments,
   listWorkItemHistory,
+  listWorkItemSubTickets,
   listWorkItemTimeLogs,
   logWorkItemTime,
   reopenWorkItem,
@@ -19,6 +29,7 @@ import {
   updateWorkItemSubtasks,
 } from "@/services/workItemService";
 import { parseApiError } from "@/services/utils";
+import type { Ticket } from "@/lib/types";
 
 import { WorkItemHeader } from "./WorkItemHeader";
 import { WorkItemConversation } from "./WorkItemConversation";
@@ -29,11 +40,16 @@ import { WorkItemHistoryTimeline } from "./WorkItemHistoryTimeline";
 import { WorkItemContextPanel } from "./WorkItemContextPanel";
 import { WorkItemBlockDialog, WorkItemReopenDialog } from "./WorkItemDialogs";
 
+type TabId = "descricao" | "conversa" | "notas" | "internos" | "execucao" | "historico";
+
+// Ações de comentário não entram no histórico — ele guarda só eventos automáticos.
+const HISTORY_EXCLUDED_ACTIONS = ["comment"];
+
 export function WorkItemModal({
   workRef,
   open,
   onOpenChange,
-  /** Abre direto na aba de resolução (ex.: drag para Concluído no kanban). */
+  /** "resolucao" (legado, ex.: drag p/ Concluído) abre a Execução, onde a resolução vive. */
   initialTab,
   /** Chamado após qualquer mutação para o chamador invalidar suas listas. */
   onChanged,
@@ -45,46 +61,63 @@ export function WorkItemModal({
   onChanged?: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState(initialTab || "conversa");
+  const resolvedInitialTab: TabId = initialTab === "resolucao" ? "execucao" : (initialTab as TabId) || "descricao";
+  const [tab, setTab] = useState<TabId>(resolvedInitialTab);
   const [reopenOpen, setReopenOpen] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
   const [mutating, setMutating] = useState(false);
+  // Navegação para dentro de um subchamado sem fechar o popup
+  const [innerRef, setInnerRef] = useState<WorkItemRef | null>(null);
 
   useEffect(() => {
-    if (open) setTab(initialTab || "conversa");
+    if (open) {
+      setTab(resolvedInitialTab);
+      setInnerRef(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialTab, workRef?.id]);
 
-  const enabled = open && Boolean(workRef);
-  const keyBase = workRef ? [workRef.type, workRef.id] : ["none"];
+  const effRef = innerRef ?? workRef;
+  const enabled = open && Boolean(effRef);
+  const keyBase = effRef ? [effRef.type, effRef.id] : ["none"];
 
   const itemQuery = useQuery({
     queryKey: ["work-item", ...keyBase],
-    queryFn: () => getWorkItem(workRef!),
+    queryFn: () => getWorkItem(effRef!),
     enabled,
   });
   const commentsQuery = useQuery({
     queryKey: ["work-item-comments", ...keyBase],
-    queryFn: () => listWorkItemComments(workRef!),
+    queryFn: () => listWorkItemComments(effRef!),
     enabled,
   });
   const timeLogsQuery = useQuery({
     queryKey: ["work-item-time", ...keyBase],
-    queryFn: () => listWorkItemTimeLogs(workRef!),
+    queryFn: () => listWorkItemTimeLogs(effRef!),
     enabled,
+  });
+  const subTicketsQuery = useQuery({
+    queryKey: ["work-item-subtickets", ...keyBase],
+    queryFn: () => listWorkItemSubTickets(effRef!),
+    enabled: enabled && effRef?.type === "ticket",
   });
   const historyQuery = useQuery({
     queryKey: ["work-item-history", ...keyBase],
-    queryFn: () => listWorkItemHistory(workRef!),
+    queryFn: () => listWorkItemHistory(effRef!),
     enabled: enabled && tab === "historico",
   });
 
   const item = itemQuery.data;
+  const comments = commentsQuery.data ?? [];
+  const subTickets = subTicketsQuery.data ?? [];
+  const openSubTickets = subTickets.filter((s) => !isSubTicketFinished(s)).length;
 
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["work-item", ...keyBase] }),
       queryClient.invalidateQueries({ queryKey: ["work-item-comments", ...keyBase] }),
       queryClient.invalidateQueries({ queryKey: ["work-item-time", ...keyBase] }),
+      queryClient.invalidateQueries({ queryKey: ["work-item-subtickets", ...keyBase] }),
       queryClient.invalidateQueries({ queryKey: ["work-item-history", ...keyBase] }),
     ]);
     onChanged?.();
@@ -105,30 +138,46 @@ export function WorkItemModal({
   };
 
   const changeStatus = (status: string, reason?: string, message?: string) =>
-    runMutation(() => updateWorkItemStatus(workRef!, status, reason), message || `Status alterado para ${status}.`);
+    runMutation(() => updateWorkItemStatus(effRef!, status, reason), message || `Status alterado para ${status}.`);
 
   const startStatus = item?.backend === "ticket" ? "Em atendimento" : "Em progresso";
   const validationStatus = item?.backend === "ticket" ? "Validacao" : "Em revisao";
   const pauseStatus = item?.backend === "ticket" ? "Pausado" : "Bloqueado";
 
   const sendComment = async (payload: { body: string; noteType: WorkItemNoteType }) => {
-    await createWorkItemComment(workRef!, payload);
+    await createWorkItemComment(effRef!, payload);
     await refresh();
   };
 
   const saveSubtasks = async (subtasks: WorkItemSubtask[]) => {
-    await updateWorkItemSubtasks(workRef!, subtasks);
+    await updateWorkItemSubtasks(effRef!, subtasks);
     await refresh();
   };
 
   const logTime = async (payload: { date: string; hours: number; description: string }) => {
-    await logWorkItemTime(workRef!, {
+    await logWorkItemTime(effRef!, {
       ...payload,
       sprintId: item?.sprintId,
       projectId: item?.projectId,
     });
     await refresh();
   };
+
+  const createSubTicket = async (payload: { title: string; category: string }) => {
+    if (!item) return;
+    await createWorkItemSubTicket(
+      effRef!,
+      { title: item.title, clientId: (item.raw as Ticket).client || null },
+      payload,
+    );
+    await refresh();
+  };
+
+  const historyEvents = (historyQuery.data ?? []).filter(
+    (e) => !HISTORY_EXCLUDED_ACTIONS.some((x) => e.action.includes(x)),
+  );
+
+  const conversationTitle = item?.backend === "ticket" ? "Conversa" : "Comentários";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,13 +190,28 @@ export function WorkItemModal({
           </div>
         ) : (
           <>
+            {/* Voltar do subchamado ao principal */}
+            {innerRef && (
+              <div className="flex items-center gap-2 border-b border-border bg-primary/5 px-5 py-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs text-primary"
+                  onClick={() => { setInnerRef(null); setTab("execucao"); }}
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> Voltar ao chamado principal
+                </Button>
+                <span className="text-[11px] text-muted-foreground">Você está em um subchamado</span>
+              </div>
+            )}
+
             {/* Header fixo */}
             <WorkItemHeader
               item={item}
               onStart={() => void changeStatus(startStatus, undefined, "Atendimento iniciado.")}
               onPause={() => setPauseOpen(true)}
               onSendToValidation={() => void changeStatus(validationStatus, undefined, "Enviado para validação.")}
-              onGoToResolution={() => setTab("resolucao")}
+              onGoToResolution={() => setTab("execucao")}
               onRequestReopen={() => setReopenOpen(true)}
               onChangeStatus={(status) => {
                 if (["Pausado", "Bloqueado", "Cancelado"].includes(status)) {
@@ -161,52 +225,81 @@ export function WorkItemModal({
             {/* Corpo: abas + painel lateral */}
             <div className="flex min-h-0 flex-1">
               <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex min-h-0 flex-1 flex-col">
+                <Tabs value={tab} onValueChange={(v) => setTab(v as TabId)} className="flex min-h-0 flex-1 flex-col">
                   <TabsList className="mx-5 mt-3 w-fit shrink-0 border border-border bg-muted/40">
-                    <TabsTrigger value="conversa">Conversa</TabsTrigger>
                     <TabsTrigger value="descricao">Descrição</TabsTrigger>
-                    <TabsTrigger value="execucao">Execução</TabsTrigger>
-                    <TabsTrigger value="resolucao" className={isWorkItemFinished(item) ? "text-success" : ""}>
-                      Resolução
+                    <TabsTrigger value="conversa">{conversationTitle}</TabsTrigger>
+                    <TabsTrigger value="notas">Notas Técnicas</TabsTrigger>
+                    <TabsTrigger value="internos">Comentários Internos</TabsTrigger>
+                    <TabsTrigger value="execucao" className={isWorkItemFinished(item) ? "text-success" : ""}>
+                      Execução
                     </TabsTrigger>
                     <TabsTrigger value="historico">Histórico</TabsTrigger>
                   </TabsList>
 
                   <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-                    <TabsContent value="conversa" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                      <WorkItemConversation
-                        comments={commentsQuery.data ?? []}
-                        loading={commentsQuery.isLoading}
-                        hasRequester={item.backend === "ticket"}
-                        onSend={sendComment}
-                      />
-                    </TabsContent>
                     <TabsContent value="descricao" className="m-0">
                       <WorkItemDescription item={item} />
                     </TabsContent>
-                    <TabsContent value="execucao" className="m-0">
+
+                    <TabsContent value="conversa" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                      <WorkItemConversation
+                        comments={comments}
+                        loading={commentsQuery.isLoading}
+                        mode="public"
+                        onSend={sendComment}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="notas" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                      <WorkItemConversation
+                        comments={comments}
+                        loading={commentsQuery.isLoading}
+                        mode="technical"
+                        onSend={sendComment}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="internos" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                      <WorkItemConversation
+                        comments={comments}
+                        loading={commentsQuery.isLoading}
+                        mode="internal"
+                        onSend={sendComment}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="execucao" className="m-0 space-y-4">
                       <WorkItemExecution
                         item={item}
                         timeLogs={timeLogsQuery.data ?? []}
                         timeLogsLoading={timeLogsQuery.isLoading}
+                        subTickets={effRef?.type === "ticket" ? subTickets : undefined}
                         onSaveSubtasks={saveSubtasks}
                         onLogTime={logTime}
+                        onCreateSubTicket={effRef?.type === "ticket" ? createSubTicket : undefined}
+                        onOpenSubTicket={(ticketId) => {
+                          setInnerRef({ type: "ticket", id: ticketId });
+                          setTab("descricao");
+                        }}
                       />
-                    </TabsContent>
-                    <TabsContent value="resolucao" className="m-0">
+
+                      {/* Resolução no fim do fluxo de execução */}
                       <WorkItemResolution
                         item={item}
                         timeLogs={timeLogsQuery.data ?? []}
                         resolving={mutating}
+                        openSubTickets={openSubTickets}
                         onResolve={(payload) =>
-                          runMutation(() => resolveWorkItem(workRef!, payload), "Item finalizado com resolução registrada.")
+                          runMutation(() => resolveWorkItem(effRef!, payload), "Item finalizado com resolução registrada.")
                         }
                         onRequestReopen={() => setReopenOpen(true)}
                       />
                     </TabsContent>
+
                     <TabsContent value="historico" className="m-0">
                       <WorkItemHistoryTimeline
-                        events={historyQuery.data ?? []}
+                        events={historyEvents}
                         loading={historyQuery.isLoading}
                       />
                     </TabsContent>
@@ -214,13 +307,13 @@ export function WorkItemModal({
                 </Tabs>
               </div>
 
-              {/* Painel lateral de contexto (colapsa em telas menores) */}
+              {/* Painel lateral de contexto */}
               <aside className="hidden w-64 shrink-0 overflow-y-auto border-l border-border bg-muted/[0.04] px-3 py-4 lg:block">
                 <WorkItemContextPanel
                   item={item}
                   onChangeResponsible={(userId) =>
                     void runMutation(
-                      () => updateWorkItemResponsible(workRef!, userId),
+                      () => updateWorkItemResponsible(effRef!, userId),
                       "Responsável atualizado.",
                     )
                   }
@@ -236,9 +329,9 @@ export function WorkItemModal({
           onOpenChange={setReopenOpen}
           saving={mutating}
           onConfirm={(reason) => {
-            void runMutation(() => reopenWorkItem(workRef!, reason), "Item reaberto.").then(() => {
+            void runMutation(() => reopenWorkItem(effRef!, reason), "Item reaberto.").then(() => {
               setReopenOpen(false);
-              setTab("conversa");
+              setTab("descricao");
             }).catch(() => undefined);
           }}
         />

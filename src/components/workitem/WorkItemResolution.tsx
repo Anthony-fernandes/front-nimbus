@@ -17,12 +17,15 @@ export function WorkItemResolution({
   item,
   timeLogs,
   resolving,
+  openSubTickets = 0,
   onResolve,
   onRequestReopen,
 }: {
   item: WorkItem;
   timeLogs: WorkItemTimeLog[];
   resolving: boolean;
+  /** Subchamados ainda abertos bloqueiam a finalização. */
+  openSubTickets?: number;
   onResolve: (payload: {
     resolutionType: string;
     resolutionNotes: string;
@@ -43,6 +46,8 @@ export function WorkItemResolution({
 
   const totalHours = timeLogs.reduce((sum, log) => sum + log.hours, 0);
   const pendingRequired = item.subtasks.filter((s) => s.required && !s.done);
+  const started = ["Em atendimento", "Em progresso", "Em andamento", "Validacao", "Em revisao", "Aguardando cliente", "Pausado", "Bloqueado"].includes(item.status);
+  const blocked = !started || pendingRequired.length > 0 || openSubTickets > 0;
 
   // ── Item já finalizado: resolução imutável + opção de reabrir ──
   if (finished) {
@@ -97,10 +102,20 @@ export function WorkItemResolution({
           Todo item precisa registrar o que foi feito antes de ser concluído.
         </p>
 
+        {!started && (
+          <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+            ⚠ Inicie o atendimento antes de finalizar este item.
+          </div>
+        )}
         {pendingRequired.length > 0 && (
           <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
             ⚠ Subtarefas obrigatórias pendentes: {pendingRequired.map((s) => s.text).join(", ")}.
-            Conclua-as na aba Execução antes de finalizar.
+            Conclua-as acima antes de finalizar.
+          </div>
+        )}
+        {openSubTickets > 0 && (
+          <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+            ⚠ {openSubTickets} subchamado(s) ainda aberto(s). Encerre-os antes de finalizar o chamado principal.
           </div>
         )}
 
@@ -160,7 +175,7 @@ export function WorkItemResolution({
       <div className="flex justify-end">
         <Button
           className="gap-1.5 bg-success text-white hover:bg-success/90"
-          disabled={resolving || !resolutionNotes.trim() || pendingRequired.length > 0}
+          disabled={resolving || !resolutionNotes.trim() || blocked}
           onClick={() => setConfirmOpen(true)}
         >
           <CheckCircle2 className="h-4 w-4" /> Finalizar item
