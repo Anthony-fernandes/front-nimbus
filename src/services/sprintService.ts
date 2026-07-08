@@ -26,6 +26,10 @@ export type SprintMetrics = {
   capacity: number;
   capacity_used_pct: number;
   progress_pct: number;
+  bugs: number;
+  overdue: number;
+  risk: "baixo" | "medio" | "alto";
+  risk_reasons: string[];
 };
 
 export function getSprintMetrics(id: string) {

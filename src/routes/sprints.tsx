@@ -53,17 +53,37 @@ function SprintsPage() {
   });
   const pag = usePagination(sprints, `${teamFilter}|${statusFilter}|${searchTerm}`);
 
-  const active =
-    sprints.find((s) => s.status === "Em andamento") ||
-    sprints.find((s) => s.status === "Planejada") ||
-    sprints[0];
+  // ── Sprint em foco ─────────────────────────────────────────────
+  // Auto-seleção: sprint ativa mais recente da equipe → próxima planejada → mais recente.
+  const [focusId, setFocusId] = useState<string | null>(null);
+  useEffect(() => {
+    setFocusId(null); // trocar de equipe/filtros re-seleciona automaticamente
+  }, [teamFilter]);
+
+  const pickDefaultFocus = (list: Sprint[]) => {
+    const byStartDesc = (a: Sprint, b: Sprint) => (b.start_at || "").localeCompare(a.start_at || "");
+    const byStartAsc = (a: Sprint, b: Sprint) => (a.start_at || "").localeCompare(b.start_at || "");
+    const running = list.filter((s) => s.status === "Em andamento").sort(byStartDesc);
+    if (running.length) return running[0];
+    const planned = list.filter((s) => s.status === "Planejada").sort(byStartAsc);
+    if (planned.length) return planned[0];
+    return [...list].sort(byStartDesc)[0];
+  };
+  const focused = sprints.find((s) => s.id === focusId) ?? (sprints.length ? pickDefaultFocus(sprints) : undefined);
 
   const metricsQ = useQuery({
-    queryKey: ["sprint-metrics", active?.id],
-    queryFn: () => getSprintMetrics(active!.id),
-    enabled: Boolean(active),
+    queryKey: ["sprint-metrics", focused?.id],
+    queryFn: () => getSprintMetrics(focused!.id),
+    enabled: Boolean(focused),
   });
   const metrics = metricsQ.data;
+
+  const listStats = {
+    total: sprints.length,
+    running: sprints.filter((s) => s.status === "Em andamento").length,
+    planned: sprints.filter((s) => s.status === "Planejada").length,
+    finished: sprints.filter((s) => s.status === "Finalizada").length,
+  };
 
   if (pathname !== "/sprints") {
     return <Outlet />;
@@ -73,9 +93,9 @@ function SprintsPage() {
   const teamContextLabel =
     teamFilter === "none" ? "Sem equipe" : selectedTeam?.name || "Todas as equipes";
   const statusTone =
-    active?.status === "Em andamento"
+    focused?.status === "Em andamento"
       ? "bg-success/15 text-success"
-      : active?.status === "Finalizada"
+      : focused?.status === "Finalizada"
         ? "bg-muted text-muted-foreground"
         : "bg-info/15 text-info";
 
@@ -122,29 +142,55 @@ function SprintsPage() {
                 : "Crie a primeira sprint para começar o planejamento do time."}
             </p>
           </div>
-        ) : active ? (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="glass rounded-2xl p-5 shadow-card lg:col-span-2">
-              <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary shadow-glow">
-                    <Rocket className="h-5 w-5 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                      Sprint em destaque
-                    </div>
-                    <h3 className="font-semibold leading-tight">{active.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {active.team_name || "Sem equipe"}
-                      {active.start_at ? ` · ${active.start_at} a ${active.end_at || "--"}` : ""}
-                    </p>
-                  </div>
+        ) : focused ? (
+          <div className="space-y-3">
+            {/* Barra da sprint em foco: identifica claramente de qual sprint são os cards */}
+            <div className="glass flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 shadow-card">
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary shadow-glow">
+                  <Rocket className="h-4.5 w-4.5 text-primary-foreground" />
                 </div>
-                <span className={`rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wider ${statusTone}`}>
-                  {active.status || "Planejada"}
-                </span>
+                <div>
+                  <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Sprint em foco — os indicadores abaixo são somente desta sprint
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold leading-tight">{focused.name}</h3>
+                    <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusTone}`}>
+                      {focused.status || "Planejada"}
+                    </span>
+                    {focused.status === "Em andamento" && (
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-success" title="Sprint ativa" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {focused.team_name || "Sem equipe"}
+                    {focused.start_at ? ` · ${focused.start_at} a ${focused.end_at || "--"}` : ""}
+                  </p>
+                </div>
               </div>
+
+              {/* Seletor de sprint em foco */}
+              <select
+                value={focused.id}
+                onChange={(e) => setFocusId(e.target.value)}
+                className="h-9 max-w-full rounded-lg border border-border bg-background px-3 text-xs"
+                title="Trocar sprint em foco"
+              >
+                {[...sprints]
+                  .sort((a, b) => (b.start_at || "").localeCompare(a.start_at || ""))
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.status === "Em andamento" ? "● " : ""}
+                      {s.name} — {s.status || "Planejada"} · {s.team_name || "Sem equipe"}
+                      {s.start_at ? ` · ${s.start_at} a ${s.end_at || "--"}` : ""}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="glass rounded-2xl p-5 shadow-card lg:col-span-2">
 
               {metricsQ.isLoading ? (
                 <div className="grid h-40 place-items-center text-sm text-muted-foreground">
@@ -221,29 +267,69 @@ function SprintsPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-              <Mini
-                icon={Target}
-                label="Capacidade da sprint"
-                value={`${metrics?.capacity ?? active.capacity ?? 0} h`}
-                accent="primary"
-              />
-              <Mini
-                icon={CheckCircle2}
-                label="Story points"
-                value={metrics ? `${metrics.story_points_done}/${metrics.story_points_planned} sp` : "0 sp"}
-                accent="success"
-              />
-              <Mini icon={Zap} label="Entrega" value={`${metrics?.progress_pct ?? 0}%`} accent="accent" />
-              <Mini
-                icon={Rocket}
-                label={teamFilter ? `Sprints · ${teamContextLabel}` : "Sprints no total"}
-                value={String(sprints.length)}
-                accent="primary"
-              />
+              {/* Risco da sprint */}
+              <div className="glass rounded-2xl p-5 shadow-card">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Risco da sprint</div>
+                <div
+                  className={`mt-1 text-2xl font-semibold capitalize ${
+                    metrics?.risk === "alto"
+                      ? "text-destructive"
+                      : metrics?.risk === "medio"
+                        ? "text-warning"
+                        : "text-success"
+                  }`}
+                >
+                  {metrics?.risk === "medio" ? "Médio" : metrics?.risk === "alto" ? "Alto" : "Baixo"}
+                </div>
+                {metrics?.risk_reasons?.length ? (
+                  <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    {metrics.risk_reasons.map((reason) => (
+                      <li key={reason}>• {reason}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">Sem sinais de risco no momento.</p>
+                )}
+                <div className="mt-4 space-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
+                  <div className="flex justify-between">
+                    <span>Capacidade usada</span>
+                    <span className="font-semibold text-foreground">{metrics?.capacity_used_pct ?? 0}% de {metrics?.capacity ?? focused.capacity ?? 0}h</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Story points</span>
+                    <span className="font-semibold text-foreground">
+                      {metrics ? `${metrics.story_points_done}/${metrics.story_points_planned} sp` : "0 sp"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Horas</span>
+                    <span className="font-semibold text-foreground">
+                      {metrics ? `${metrics.hours_done.toFixed(0)}h / ${metrics.hours_planned.toFixed(0)}h` : "0h"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* KPIs da sprint em foco */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+              <Mini icon={Rocket} label="Total de itens" value={String(metrics?.total_items ?? 0)} accent="primary" />
+              <Mini icon={CheckCircle2} label="Concluídos" value={String(metrics?.done ?? 0)} accent="success" />
+              <Mini icon={Zap} label="Em andamento" value={String(metrics?.in_progress ?? 0)} accent="accent" />
+              <Mini icon={Target} label="Atrasados" value={String(metrics?.overdue ?? 0)} accent="primary" />
+              <Mini icon={Target} label="Bloqueados" value={String(metrics?.blocked ?? 0)} accent="primary" />
+              <Mini icon={Target} label="Bugs" value={String(metrics?.bugs ?? 0)} accent="accent" />
             </div>
           </div>
         ) : null}
+
+        {/* Visão geral da lista (secundária, não compete com a sprint em foco) */}
+        {sprints.length > 0 && (
+          <p className="px-1 text-xs text-muted-foreground">
+            Visão geral das sprints filtradas: {listStats.total} no total · {listStats.running} em andamento ·{" "}
+            {listStats.planned} planejadas · {listStats.finished} finalizadas
+          </p>
+        )}
 
         <div className="glass overflow-hidden rounded-2xl shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-4">
