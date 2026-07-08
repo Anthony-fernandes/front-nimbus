@@ -228,6 +228,8 @@ export type WorkItemSubTicket = {
   status: string;
   responsibleName?: string;
   category?: string;
+  /** Se true, o chamado pai só pode ser finalizado quando este subchamado encerrar. */
+  blocksParent?: boolean;
 };
 
 const SUBTICKET_DONE = ["Finalizado", "Cancelado", "Resolvido"];

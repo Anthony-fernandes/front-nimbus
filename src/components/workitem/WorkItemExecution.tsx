@@ -20,7 +20,7 @@ export function WorkItemExecution({
   subTickets,
   onSaveSubtasks,
   onLogTime,
-  onCreateSubTicket,
+  onOpenCreateSubTicket,
   onOpenSubTicket,
 }: {
   item: WorkItem;
@@ -30,14 +30,12 @@ export function WorkItemExecution({
   subTickets?: WorkItemSubTicket[];
   onSaveSubtasks: (subtasks: WorkItemSubtask[]) => Promise<void>;
   onLogTime: (payload: { date: string; hours: number; description: string }) => Promise<void>;
-  onCreateSubTicket?: (payload: { title: string; category: string }) => Promise<void>;
+  /** Abre o popup de criação de chamado já vinculado como subchamado. */
+  onOpenCreateSubTicket?: () => void;
   onOpenSubTicket?: (ticketId: string) => void;
 }) {
   const finished = isWorkItemFinished(item);
   const inProgress = ["Em atendimento", "Em progresso", "Em andamento"].includes(item.status);
-  const [newSubTicketTitle, setNewSubTicketTitle] = useState("");
-  const [newSubTicketCategory, setNewSubTicketCategory] = useState("");
-  const [creatingSubTicket, setCreatingSubTicket] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [newRequired, setNewRequired] = useState(false);
   const [savingSubtasks, setSavingSubtasks] = useState(false);
@@ -213,7 +211,14 @@ export function WorkItemExecution({
                       onClick={() => onOpenSubTicket?.(sub.ticketId)}
                     >
                       <td className="py-1.5 pr-3 font-mono text-xs text-primary">{sub.code}</td>
-                      <td className="max-w-[220px] truncate py-1.5 pr-3 font-medium">{sub.title}</td>
+                      <td className="max-w-[220px] truncate py-1.5 pr-3 font-medium">
+                        {sub.title}
+                        {sub.blocksParent && !isSubTicketFinished(sub) ? (
+                          <span className="ml-1.5 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
+                            bloqueia o pai
+                          </span>
+                        ) : null}
+                      </td>
                       <td className="py-1.5 pr-3 text-muted-foreground">{sub.category || "—"}</td>
                       <td className="py-1.5 pr-3 text-muted-foreground">{sub.responsibleName || "—"}</td>
                       <td className="py-1.5">
@@ -233,51 +238,15 @@ export function WorkItemExecution({
             </div>
           )}
 
-          {!finished && onCreateSubTicket && (
-            <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/60 pt-3">
-              <div className="min-w-[200px] flex-1">
-                <label className="mb-1 block text-[11px] text-muted-foreground">Título do subchamado</label>
-                <Input
-                  value={newSubTicketTitle}
-                  onChange={(e) => setNewSubTicketTitle(e.target.value)}
-                  placeholder="Ex.: Verificar fila de impressão"
-                  className="h-9"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] text-muted-foreground">Categoria / equipe</label>
-                <Input
-                  value={newSubTicketCategory}
-                  onChange={(e) => setNewSubTicketCategory(e.target.value)}
-                  placeholder="Ex.: Infraestrutura"
-                  className="h-9 w-44"
-                />
-              </div>
+          {!finished && onOpenCreateSubTicket && (
+            <div className="mt-3 border-t border-border/60 pt-3">
               <Button
                 size="sm"
                 variant="outline"
-                className="h-9 gap-1"
-                disabled={creatingSubTicket || !newSubTicketTitle.trim()}
-                onClick={() => {
-                  void (async () => {
-                    setCreatingSubTicket(true);
-                    try {
-                      await onCreateSubTicket({
-                        title: newSubTicketTitle.trim(),
-                        category: newSubTicketCategory.trim(),
-                      });
-                      setNewSubTicketTitle("");
-                      setNewSubTicketCategory("");
-                      toast.success("Subchamado criado e vinculado.");
-                    } catch (error) {
-                      toast.error(parseApiError(error, "Não foi possível criar o subchamado."));
-                    } finally {
-                      setCreatingSubTicket(false);
-                    }
-                  })();
-                }}
+                className="gap-1.5"
+                onClick={onOpenCreateSubTicket}
               >
-                <Plus className="h-3.5 w-3.5" /> Criar subchamado
+                <Plus className="h-3.5 w-3.5" /> Abrir subchamado
               </Button>
             </div>
           )}

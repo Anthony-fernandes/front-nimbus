@@ -15,8 +15,8 @@ import {
 } from "@/lib/workItem";
 import {
   createWorkItemComment,
-  createWorkItemSubTicket,
   getWorkItem,
+  linkWorkItemSubTicket,
   listWorkItemComments,
   listWorkItemHistory,
   listWorkItemSubTickets,
@@ -29,6 +29,7 @@ import {
   updateWorkItemSubtasks,
 } from "@/services/workItemService";
 import { parseApiError } from "@/services/utils";
+import { TicketForm } from "@/components/forms/TicketForm";
 import type { Ticket } from "@/lib/types";
 
 import { WorkItemHeader } from "./WorkItemHeader";
@@ -68,6 +69,9 @@ export function WorkItemModal({
   const [mutating, setMutating] = useState(false);
   // Navegação para dentro de um subchamado sem fechar o popup
   const [innerRef, setInnerRef] = useState<WorkItemRef | null>(null);
+  // Popup de criação de subchamado (formulário completo de chamado)
+  const [subTicketFormOpen, setSubTicketFormOpen] = useState(false);
+  const [subTicketBlocksParent, setSubTicketBlocksParent] = useState(true);
 
   useEffect(() => {
     if (open) {
@@ -110,7 +114,8 @@ export function WorkItemModal({
   const item = itemQuery.data;
   const comments = commentsQuery.data ?? [];
   const subTickets = subTicketsQuery.data ?? [];
-  const openSubTickets = subTickets.filter((s) => !isSubTicketFinished(s)).length;
+  // Só subchamados marcados como bloqueantes impedem a finalização do pai.
+  const openSubTickets = subTickets.filter((s) => s.blocksParent && !isSubTicketFinished(s)).length;
 
   const refresh = async () => {
     await Promise.all([
@@ -160,16 +165,6 @@ export function WorkItemModal({
       sprintId: item?.sprintId,
       projectId: item?.projectId,
     });
-    await refresh();
-  };
-
-  const createSubTicket = async (payload: { title: string; category: string }) => {
-    if (!item) return;
-    await createWorkItemSubTicket(
-      effRef!,
-      { title: item.title, clientId: (item.raw as Ticket).client || null },
-      payload,
-    );
     await refresh();
   };
 
@@ -277,7 +272,11 @@ export function WorkItemModal({
                         subTickets={effRef?.type === "ticket" ? subTickets : undefined}
                         onSaveSubtasks={saveSubtasks}
                         onLogTime={logTime}
-                        onCreateSubTicket={effRef?.type === "ticket" ? createSubTicket : undefined}
+                        onOpenCreateSubTicket={
+                          effRef?.type === "ticket"
+                            ? () => { setSubTicketBlocksParent(true); setSubTicketFormOpen(true); }
+                            : undefined
+                        }
                         onOpenSubTicket={(ticketId) => {
                           setInnerRef({ type: "ticket", id: ticketId });
                           setTab("descricao");
@@ -321,6 +320,42 @@ export function WorkItemModal({
               </aside>
             </div>
           </>
+        )}
+
+        {/* Criação de subchamado: formulário completo, já vinculado ao pai */}
+        {item && (
+          <Dialog open={subTicketFormOpen} onOpenChange={setSubTicketFormOpen}>
+            <DialogContent className="max-h-[92vh] w-[96vw] max-w-6xl overflow-y-auto">
+              <DialogTitle>
+                Novo subchamado de <span className="font-mono text-primary">#{item.code}</span>
+              </DialogTitle>
+              <label className="flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={subTicketBlocksParent}
+                  onChange={(e) => setSubTicketBlocksParent(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span>
+                  O chamado atual só pode ser finalizado quando este subchamado for finalizado
+                </span>
+              </label>
+              <TicketForm
+                mode="create"
+                initial={{
+                  title: "",
+                  description: `Subchamado de #${item.code} — ${item.title}`,
+                }}
+                onSaved={async (created) => {
+                  await linkWorkItemSubTicket(effRef!, created.id, subTicketBlocksParent);
+                  setSubTicketFormOpen(false);
+                  await refresh();
+                  toast.success("Subchamado criado e vinculado ao chamado principal.");
+                }}
+                onCancel={() => setSubTicketFormOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
         )}
 
         {/* Diálogos de fluxo */}

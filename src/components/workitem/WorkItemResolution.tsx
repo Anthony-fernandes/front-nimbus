@@ -115,7 +115,7 @@ export function WorkItemResolution({
         )}
         {openSubTickets > 0 && (
           <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
-            ⚠ {openSubTickets} subchamado(s) ainda aberto(s). Encerre-os antes de finalizar o chamado principal.
+            ⚠ {openSubTickets} subchamado(s) bloqueante(s) ainda aberto(s). Encerre-os antes de finalizar o chamado principal.
           </div>
         )}
 

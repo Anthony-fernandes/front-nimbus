@@ -235,11 +235,17 @@ export function TicketForm({
   mode = "create",
   onCancelHref = "/tickets",
   entityId,
+  onSaved,
+  onCancel,
 }: {
   initial?: Partial<TicketFormData>;
   mode?: "create" | "edit";
   onCancelHref?: string;
   entityId?: string;
+  /** Quando definido (uso em popup), é chamado no lugar da navegação pós-salvar. */
+  onSaved?: (ticket: { id: string }) => Promise<void> | void;
+  /** Quando definido (uso em popup), Cancelar chama isto em vez de navegar. */
+  onCancel?: () => void;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -627,7 +633,11 @@ export function TicketForm({
         queryClient.invalidateQueries({ queryKey: ["ticket", saved.id] }),
       ]);
       toast.success(mode === "create" ? "Chamado criado com sucesso." : "Chamado atualizado.");
-      navigate({ to: `/tickets/${saved.id}` });
+      if (onSaved) {
+        await onSaved(saved);
+      } else {
+        navigate({ to: `/tickets/${saved.id}` });
+      }
     } catch (error) {
       toast.error(parseApiError(error, "Erro ao salvar chamado."));
     }
@@ -1211,7 +1221,7 @@ export function TicketForm({
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => navigate({ to: onCancelHref })}
+            onClick={() => (onCancel ? onCancel() : navigate({ to: onCancelHref }))}
           >
             Cancelar
           </Button>

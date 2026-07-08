@@ -270,6 +270,7 @@ type RawRelation = {
   related_ticket_responsible?: string;
   related_ticket_category?: string;
   relation_type: string;
+  blocks_parent?: boolean;
 };
 
 export async function listWorkItemSubTickets(ref: WorkItemRef) {
@@ -286,24 +287,19 @@ export async function listWorkItemSubTickets(ref: WorkItemRef) {
     status: r.related_ticket_status || "Aberto",
     responsibleName: r.related_ticket_responsible || "",
     category: r.related_ticket_category || "",
+    blocksParent: Boolean(r.blocks_parent),
   }));
 }
 
-export async function createWorkItemSubTicket(
+export async function linkWorkItemSubTicket(
   ref: WorkItemRef,
-  parent: { title: string; clientId?: string | null },
-  payload: { title: string; category: string; responsibleId?: string; description?: string },
+  subTicketId: string,
+  blocksParent: boolean,
 ): Promise<void> {
-  const { data: created } = await api.post<Ticket>("/tickets/", {
-    title: payload.title,
-    description: payload.description || `Subchamado de: ${parent.title}`,
-    category: payload.category || "Atendimento",
-    ...(payload.responsibleId ? { responsible_technician: payload.responsibleId } : {}),
-    ...(parent.clientId ? { client: parent.clientId } : {}),
-  });
   await api.post("/tickets/relations/", {
     ticket: ref.id,
-    related_ticket: created.id,
+    related_ticket: subTicketId,
     relation_type: "subchamado",
+    blocks_parent: blocksParent,
   });
 }
