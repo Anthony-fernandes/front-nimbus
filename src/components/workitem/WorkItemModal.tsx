@@ -16,6 +16,7 @@ import {
 import {
   createWorkItemComment,
   getWorkItem,
+  getWorkItemAvailableActions,
   linkWorkItemSubTicket,
   listWorkItemComments,
   listWorkItemHistory,
@@ -105,6 +106,12 @@ export function WorkItemModal({
     queryFn: () => listWorkItemSubTickets(effRef!),
     enabled: enabled && effRef?.type === "ticket",
   });
+  const availableActionsQuery = useQuery({
+    queryKey: ["work-item-actions", ...keyBase],
+    queryFn: () => getWorkItemAvailableActions(effRef!),
+    enabled,
+    retry: false,
+  });
   const historyQuery = useQuery({
     queryKey: ["work-item-history", ...keyBase],
     queryFn: () => listWorkItemHistory(effRef!),
@@ -124,6 +131,7 @@ export function WorkItemModal({
       queryClient.invalidateQueries({ queryKey: ["work-item-time", ...keyBase] }),
       queryClient.invalidateQueries({ queryKey: ["work-item-subtickets", ...keyBase] }),
       queryClient.invalidateQueries({ queryKey: ["work-item-history", ...keyBase] }),
+      queryClient.invalidateQueries({ queryKey: ["work-item-actions", ...keyBase] }),
     ]);
     onChanged?.();
   };
@@ -200,9 +208,18 @@ export function WorkItemModal({
               </div>
             )}
 
+            {/* Aviso de status sem regras configuradas no workflow */}
+            {availableActionsQuery.data && availableActionsQuery.data.configured === false && (
+              <div className="border-b border-warning/30 bg-warning/10 px-5 py-2 text-xs text-warning">
+                {availableActionsQuery.data.detail ||
+                  `O status "${item.status}" não possui regras configuradas. Configure este status no workflow em Configurações para liberar as ações.`}
+              </div>
+            )}
+
             {/* Header fixo */}
             <WorkItemHeader
               item={item}
+              serverActions={availableActionsQuery.data ?? null}
               onStart={() => void changeStatus(startStatus, undefined, "Atendimento iniciado.")}
               onPause={() => setPauseOpen(true)}
               onSendToValidation={() => void changeStatus(validationStatus, undefined, "Enviado para validação.")}

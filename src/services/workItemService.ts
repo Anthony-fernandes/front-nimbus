@@ -27,6 +27,32 @@ export async function getWorkItem(ref: WorkItemRef): Promise<WorkItem> {
   return activityToWorkItem(data, ref.type);
 }
 
+// ── Ações disponíveis (regras do workflow no backend) ───────────────
+
+export type WorkItemAvailableActions = {
+  status: string;
+  configured: boolean;
+  detail?: string;
+  phase?: string;
+  is_final?: boolean;
+  custom?: boolean;
+  actions?: Record<string, string>;
+  blocked?: Record<string, string>;
+  transitions?: string[];
+  permissions?: Record<string, boolean>;
+  requirements?: Record<string, boolean>;
+};
+
+export async function getWorkItemAvailableActions(
+  ref: WorkItemRef,
+): Promise<WorkItemAvailableActions> {
+  const itemType = isTicketRef(ref) ? "ticket" : "activity";
+  const { data } = await api.get<WorkItemAvailableActions>(
+    `/work-items/${itemType}/${ref.id}/available-actions/`,
+  );
+  return data;
+}
+
 // ── Conversa ────────────────────────────────────────────────────────
 
 type RawComment = {

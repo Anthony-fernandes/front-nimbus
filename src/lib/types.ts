@@ -130,6 +130,10 @@ export type TicketWorkflowStatusConfig = {
   origin_statuses?: string[];
   next_statuses?: string[];
   system?: boolean;
+  item_type?: "ticket" | "activity";
+  phase?: string;
+  permissions?: Record<string, boolean>;
+  requirements?: Record<string, boolean>;
 };
 
 export type TicketStatusHistory = {

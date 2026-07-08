@@ -29,6 +29,16 @@ function normalizeStatusConfig(
     origin_statuses: Array.isArray(payload.origin_statuses) ? payload.origin_statuses : [],
     next_statuses: Array.isArray(payload.next_statuses) ? payload.next_statuses : [],
     system: Boolean(payload.system),
+    item_type: payload.item_type === "activity" ? "activity" : "ticket",
+    phase: typeof payload.phase === "string" ? payload.phase : "",
+    permissions:
+      payload.permissions && typeof payload.permissions === "object"
+        ? (payload.permissions as Record<string, boolean>)
+        : {},
+    requirements:
+      payload.requirements && typeof payload.requirements === "object"
+        ? (payload.requirements as Record<string, boolean>)
+        : {},
   };
 }
 
@@ -46,6 +56,10 @@ function buildStatusPayload(payload: Partial<TicketWorkflowStatusConfig>) {
     origin_statuses: payload.origin_statuses || [],
     next_statuses: payload.next_statuses || [],
     system: Boolean(payload.system),
+    item_type: payload.item_type === "activity" ? "activity" : "ticket",
+    phase: payload.phase || "",
+    permissions: payload.permissions || {},
+    requirements: payload.requirements || {},
   };
 }
 

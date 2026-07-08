@@ -7,6 +7,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { slugifyTicketWorkflowStatus } from "@/lib/ticketWorkflow";
+import {
+  ALL_PERMISSION_KEYS,
+  ALL_REQUIREMENT_KEYS,
+  PERMISSION_LABELS,
+  REQUIREMENT_LABELS,
+  WORKFLOW_ITEM_TYPES,
+  WORKFLOW_PHASES,
+  phasePermissionDefaults,
+} from "@/lib/workflowRules";
 import type { TicketWorkflowStatusConfig } from "@/lib/types";
 
 export type TicketStatusConfigFormData = {
@@ -23,6 +32,10 @@ export type TicketStatusConfigFormData = {
   originStatuses: string[];
   nextStatuses: string[];
   system: boolean;
+  itemType: "ticket" | "activity";
+  phase: string;
+  permissions: Record<string, boolean>;
+  requirements: Record<string, boolean>;
 };
 
 const EMPTY_FORM: TicketStatusConfigFormData = {
@@ -39,6 +52,10 @@ const EMPTY_FORM: TicketStatusConfigFormData = {
   originStatuses: [],
   nextStatuses: [],
   system: false,
+  itemType: "ticket",
+  phase: "",
+  permissions: {},
+  requirements: {},
 };
 
 export function toTicketStatusConfigFormData(
@@ -58,6 +75,10 @@ export function toTicketStatusConfigFormData(
     originStatuses: status?.origin_statuses || [],
     nextStatuses: status?.next_statuses || [],
     system: Boolean(status?.system),
+    itemType: status?.item_type === "activity" ? "activity" : "ticket",
+    phase: status?.phase || "",
+    permissions: status?.permissions || {},
+    requirements: status?.requirements || {},
   };
 }
 
@@ -88,6 +109,23 @@ export function TicketStatusConfigForm({
     key: K,
     value: TicketStatusConfigFormData[K],
   ) => setData((current) => ({ ...current, [key]: value }));
+
+  const handlePhaseChange = (phase: string) => {
+    setData((current) => ({
+      ...current,
+      phase,
+      // A fase sugere um conjunto padrão de permissões; o usuário pode ajustar depois
+      permissions: phase ? phasePermissionDefaults(phase) : current.permissions,
+      isFinal: phase === "final" ? true : current.isFinal,
+    }));
+  };
+
+  const toggleMap = (field: "permissions" | "requirements", key: string) => {
+    setData((current) => ({
+      ...current,
+      [field]: { ...current[field], [key]: !current[field][key] },
+    }));
+  };
 
   const toggleRelation = (
     field: "originStatuses" | "nextStatuses",
@@ -165,6 +203,80 @@ export function TicketStatusConfigForm({
               onChange={(event) => setField("order", Number(event.target.value || 0))}
             />
           </Field>
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Fase do fluxo"
+        description="A fase define o papel do status no processo e sugere as permissões padrão."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Tipo de item" required>
+            <select
+              value={data.itemType}
+              onChange={(event) => setField("itemType", event.target.value as "ticket" | "activity")}
+              disabled={data.system}
+              className="h-10 w-full rounded-xl border border-border bg-muted/20 px-3 text-sm"
+            >
+              {WORKFLOW_ITEM_TYPES.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Fase">
+            <select
+              value={data.phase}
+              onChange={(event) => handlePhaseChange(event.target.value)}
+              className="h-10 w-full rounded-xl border border-border bg-muted/20 px-3 text-sm"
+            >
+              <option value="">Sem fase definida</option>
+              {WORKFLOW_PHASES.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        {!data.phase && !data.system && (
+          <p className="mt-2 text-xs text-warning">
+            Status sem fase e sem permissões configuradas ficam bloqueados no fluxo até serem configurados.
+          </p>
+        )}
+      </FormSection>
+
+      <FormSection
+        title="Permissões do status"
+        description="O que pode ser feito enquanto o item estiver neste status. Ao trocar a fase, os padrões são sugeridos automaticamente."
+      >
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {ALL_PERMISSION_KEYS.map((key) => (
+            <ToggleField
+              key={key}
+              label={PERMISSION_LABELS[key]}
+              checked={Boolean(data.permissions[key])}
+              onCheckedChange={() => toggleMap("permissions", key)}
+            />
+          ))}
+        </div>
+        {(data.isFinal || data.phase === "final") && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Status finais têm proteções críticas: edição, atribuição, sprint e finalização ficam sempre bloqueadas; reabertura fica sempre liberada (com motivo obrigatório).
+          </p>
+        )}
+      </FormSection>
+
+      <FormSection
+        title="Exigências"
+        description="Condições obrigatórias para mover um item para este status."
+      >
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {ALL_REQUIREMENT_KEYS.map((key) => (
+            <ToggleField
+              key={key}
+              label={REQUIREMENT_LABELS[key]}
+              checked={Boolean(data.requirements[key])}
+              onCheckedChange={() => toggleMap("requirements", key)}
+            />
+          ))}
         </div>
       </FormSection>
 
