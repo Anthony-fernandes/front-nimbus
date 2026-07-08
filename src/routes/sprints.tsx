@@ -66,12 +66,31 @@ function SprintsPage() {
     sprints[0];
   const chartData = buildSprintCapacitySeries(sprints);
 
+  const selectedTeam = teams.find((t) => t.id === teamFilter);
+  const teamContextLabel =
+    teamFilter === "none" ? "Sem equipe" : selectedTeam?.name || "Todas as equipes";
+  const statusTone =
+    active?.status === "Em andamento"
+      ? "bg-success/15 text-success"
+      : active?.status === "Finalizada"
+        ? "bg-muted text-muted-foreground"
+        : "bg-info/15 text-info";
+
   return (
     <AppShell>
       <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Sprints</h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-semibold tracking-tight">Sprints</h1>
+              <span className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: selectedTeam?.color || "#94a3b8" }}
+                />
+                {teamContextLabel}
+              </span>
+            </div>
             <p className="text-sm text-muted-foreground">
               {isLoading ? "Carregando planejamento..." : `${sprints.length} sprints cadastradas`}
             </p>
@@ -86,34 +105,59 @@ function SprintsPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="glass rounded-2xl p-5 shadow-card lg:col-span-2">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary shadow-glow">
-                  <Rocket className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">{active?.name || "Nenhuma sprint cadastrada"}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {active?.start_at || "--"} a {active?.end_at || "--"}
-                  </p>
-                </div>
-              </div>
-              <span className="rounded bg-success/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-success">
-                {active?.status || "Planejada"}
-              </span>
+        {!isLoading && sprints.length === 0 ? (
+          <div className="glass grid place-items-center gap-2 rounded-2xl p-10 text-center shadow-card">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-primary shadow-glow">
+              <Rocket className="h-6 w-6 text-primary-foreground" />
             </div>
-            <BurndownChart data={chartData} />
+            <h3 className="font-semibold">
+              Nenhuma sprint {teamFilter ? `em "${teamContextLabel}"` : "cadastrada"}
+            </h3>
+            <p className="max-w-md text-sm text-muted-foreground">
+              {teamFilter
+                ? "Esta equipe ainda não possui sprints. Crie uma nova sprint ou selecione outra equipe na barra lateral."
+                : "Crie a primeira sprint para começar o planejamento do time."}
+            </p>
           </div>
+        ) : active ? (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="glass rounded-2xl p-5 shadow-card lg:col-span-2">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-primary shadow-glow">
+                    <Rocket className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Sprint em destaque
+                    </div>
+                    <h3 className="font-semibold leading-tight">{active.name}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {active.team_name || "Sem equipe"}
+                      {active.start_at ? ` · ${active.start_at} a ${active.end_at || "--"}` : ""}
+                    </p>
+                  </div>
+                </div>
+                <span className={`rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wider ${statusTone}`}>
+                  {active.status || "Planejada"}
+                </span>
+              </div>
+              <BurndownChart data={chartData} />
+            </div>
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-            <Mini icon={Target} label="Capacidade" value={`${active?.capacity ?? 0} h`} accent="primary" />
-            <Mini icon={CheckCircle2} label="Story points" value={`${active?.story_points ?? 0} sp`} accent="success" />
-            <Mini icon={Zap} label="Entrega" value={`${pct(active || ({} as Sprint))}%`} accent="accent" />
-            <Mini icon={Rocket} label="Sprints" value={String(sprints.length)} accent="primary" />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <Mini icon={Target} label="Capacidade da sprint" value={`${active.capacity ?? 0} h`} accent="primary" />
+              <Mini icon={CheckCircle2} label="Story points" value={`${active.story_points ?? 0} sp`} accent="success" />
+              <Mini icon={Zap} label="Entrega" value={`${pct(active)}%`} accent="accent" />
+              <Mini
+                icon={Rocket}
+                label={teamFilter ? `Sprints · ${teamContextLabel}` : "Sprints no total"}
+                value={String(sprints.length)}
+                accent="primary"
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="glass overflow-hidden rounded-2xl shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-4">
