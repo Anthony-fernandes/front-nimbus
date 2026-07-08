@@ -14,6 +14,7 @@ import { listSprints } from "@/services/sprintService";
 import { listTeams } from "@/services/teamService";
 import { cn } from "@/lib/utils";
 import type { WorkItemRef } from "@/lib/workItem";
+import { canSendToSprint } from "@/lib/workItemRules";
 
 export const Route = createFileRoute("/backlog")({
   head: () => ({ meta: [{ title: "Backlog · NimbusDesk" }] }),
@@ -127,6 +128,13 @@ function BacklogPage() {
   const sendToSprint = useMutation({
     mutationFn: async (sprintId: string) => {
       const chosen = items.filter((i) => selected.has(`${i.type}:${i.id}`));
+      const ineligible = chosen.filter((i) => !canSendToSprint(i.type === "ticket" ? "ticket" : "activity", i.status));
+      if (ineligible.length > 0) {
+        throw new Error(
+          `${ineligible.length} item(ns) não podem ir para sprint no status atual: ` +
+          ineligible.slice(0, 3).map((i) => `${i.code} (${i.status})`).join(", "),
+        );
+      }
       await Promise.all(
         chosen.map((i) =>
           i.type === "ticket"
@@ -142,7 +150,8 @@ function BacklogPage() {
       void queryClient.invalidateQueries({ queryKey: ["backlog"] });
       void queryClient.invalidateQueries({ queryKey: ["backlog-metrics"] });
     },
-    onError: () => toast.error("Não foi possível enviar os itens."),
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : "Não foi possível enviar os itens."),
   });
 
   if (currentPath !== "/backlog") {

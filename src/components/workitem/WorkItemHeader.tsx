@@ -14,6 +14,7 @@ import {
   type WorkItem,
 } from "@/lib/workItem";
 import { formatPriorityLabel } from "@/lib/labels";
+import { actionBlockReason, canPerformAction } from "@/lib/workItemRules";
 import { cn } from "@/lib/utils";
 
 function slaState(item: WorkItem): "breached" | "warning" | null {
@@ -45,6 +46,8 @@ export function WorkItemHeader({
   const sla = slaState(item);
   const inProgress = ["Em atendimento", "Em progresso", "Em andamento"].includes(item.status);
   const validationStatus = item.backend === "ticket" ? "Validacao" : "Em revisao";
+  const can = (action: Parameters<typeof canPerformAction>[2]) =>
+    canPerformAction(item.backend, item.status, action);
 
   return (
     <div className="space-y-2.5 border-b border-border bg-background/95 px-5 pb-3 pt-4 backdrop-blur">
@@ -107,24 +110,33 @@ export function WorkItemHeader({
           </Button>
         ) : (
           <>
-            {!inProgress && (
+            {!inProgress && can("start") && (
               <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={onStart}>
                 <Play className="h-3.5 w-3.5" /> Iniciar atendimento
               </Button>
             )}
-            {inProgress && (
+            {can("resume") && (
+              <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={onStart}>
+                <Play className="h-3.5 w-3.5" /> Retomar atendimento
+              </Button>
+            )}
+            {inProgress && can("pause") && (
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={onPause}>
                 <Pause className="h-3.5 w-3.5" /> Pausar
               </Button>
             )}
-            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={onSendToValidation}>
-              <Send className="h-3.5 w-3.5" /> Enviar p/ validação
-            </Button>
+            {can("validate") && (
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={onSendToValidation}>
+                <Send className="h-3.5 w-3.5" /> Enviar p/ validação
+              </Button>
+            )}
             <Button
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 border-success/40 text-xs text-success hover:bg-success/10 hover:text-success"
+              className="h-8 gap-1.5 border-success/40 text-xs text-success hover:bg-success/10 hover:text-success disabled:opacity-50"
               onClick={onGoToResolution}
+              disabled={!can("resolve")}
+              title={can("resolve") ? undefined : actionBlockReason("resolve")}
             >
               ✓ Finalizar
             </Button>
