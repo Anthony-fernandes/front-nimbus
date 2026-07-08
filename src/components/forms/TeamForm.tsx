@@ -184,7 +184,8 @@ export function TeamForm({
     if (mode === "edit" && entityId) {
       try {
         const saved = await addTeamMember({ team: entityId, user: userId });
-        setMembers((prev) => [...prev, { ...saved, user_name: userName }]);
+        setMembers((prev) => [...prev, { ...saved, user_name: saved.user_name || userName }]);
+        await queryClient.invalidateQueries({ queryKey: ["team-members", entityId] });
         toast.success(`${userName} adicionado(a).`);
       } catch {
         toast.error("Não foi possível adicionar o membro. Tente novamente.");
@@ -202,6 +203,7 @@ export function TeamForm({
       try {
         await removeTeamMember(member.id);
         setMembers((prev) => prev.filter((m) => m.id !== member.id));
+        if (entityId) await queryClient.invalidateQueries({ queryKey: ["team-members", entityId] });
         toast.success("Membro removido.");
       } catch {
         toast.error("Não foi possível remover o membro. Tente novamente.");
@@ -243,6 +245,7 @@ export function TeamForm({
       }
 
       await queryClient.invalidateQueries({ queryKey: ["teams"] });
+      await queryClient.invalidateQueries({ queryKey: ["team-members"] });
       toast.success(mode === "create" ? "Equipe criada!" : "Equipe atualizada.");
       navigate({ to: `/equipes/${saved.id}` });
     } catch {
