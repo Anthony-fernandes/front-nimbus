@@ -250,6 +250,9 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const path = useRouterState({ select: (router) => router.location.pathname });
+  const activeSprintTeam = useRouterState({
+    select: (router) => (router.location.search as { team?: string }).team || "",
+  });
   const user = externalUser || null;
   const clientUser = isClientUser(user);
   const internalMenu = getInternalMenu(user);
@@ -347,15 +350,18 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                       {sprintsOpen && (
                         <SidebarMenuSub>
                           <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild isActive={path === "/sprints"}>
-                              <Link to="/sprints">
+                            <SidebarMenuSubButton asChild isActive={path === "/sprints" && !activeSprintTeam}>
+                              <Link to="/sprints" search={{ team: "" }}>
                                 <span>Todas as sprints</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                           {sprintTeamGroups.map((group) => (
                             <SidebarMenuSubItem key={group.id}>
-                              <SidebarMenuSubButton asChild>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={path === "/sprints" && activeSprintTeam === group.id}
+                              >
                                 <Link to="/sprints" search={{ team: group.id }}>
                                   <span
                                     className="h-2 w-2 shrink-0 rounded-sm"
