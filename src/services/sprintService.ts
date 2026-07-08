@@ -11,6 +11,27 @@ export function listSprints(params?: Record<string, unknown>) {
   return listResource<Sprint>(ENDPOINT, params);
 }
 
+export type SprintMetrics = {
+  total_items: number;
+  activities: number;
+  tickets: number;
+  done: number;
+  in_progress: number;
+  pending: number;
+  blocked: number;
+  story_points_planned: number;
+  story_points_done: number;
+  hours_planned: number;
+  hours_done: number;
+  capacity: number;
+  capacity_used_pct: number;
+  progress_pct: number;
+};
+
+export function getSprintMetrics(id: string) {
+  return api.get<SprintMetrics>(`/sprints/${id}/metrics/`).then((r) => r.data);
+}
+
 export function getSprint(id: string) {
   return getResource<Sprint>(ENDPOINT, id);
 }

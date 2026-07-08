@@ -9,10 +9,15 @@ import { Input } from "@/components/ui/input";
 import { listTeams } from "@/services/teamService";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { BurndownChart } from "@/components/dashboard/Charts";
+import { getSprintMetrics, listSprints } from "@/services/sprintService";
 import type { Sprint } from "@/lib/types";
-import { buildSprintCapacitySeries } from "@/services/analytics";
-import { listSprints } from "@/services/sprintService";
+
+// Planejamento consumido: story points sobre a capacidade da sprint
+function pct(sprint: Sprint) {
+  return sprint.story_points
+    ? Math.min(100, Math.round(((sprint.story_points || 0) / (sprint.capacity || sprint.story_points || 1)) * 100))
+    : 0;
+}
 
 export const Route = createFileRoute("/sprints")({
   head: () => ({ meta: [{ title: "Sprints · NimbusDesk" }] }),
@@ -20,14 +25,6 @@ export const Route = createFileRoute("/sprints")({
   component: SprintsPage,
 });
 
-function pct(sprint: Sprint) {
-  return sprint.story_points
-    ? Math.min(
-        100,
-        Math.round(((sprint.story_points || 0) / (sprint.capacity || sprint.story_points || 1)) * 100),
-      )
-    : 0;
-}
 
 function SprintsPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -56,15 +53,21 @@ function SprintsPage() {
   });
   const pag = usePagination(sprints, `${teamFilter}|${statusFilter}|${searchTerm}`);
 
-  if (pathname !== "/sprints") {
-    return <Outlet />;
-  }
-
   const active =
     sprints.find((s) => s.status === "Em andamento") ||
     sprints.find((s) => s.status === "Planejada") ||
     sprints[0];
-  const chartData = buildSprintCapacitySeries(sprints);
+
+  const metricsQ = useQuery({
+    queryKey: ["sprint-metrics", active?.id],
+    queryFn: () => getSprintMetrics(active!.id),
+    enabled: Boolean(active),
+  });
+  const metrics = metricsQ.data;
+
+  if (pathname !== "/sprints") {
+    return <Outlet />;
+  }
 
   const selectedTeam = teams.find((t) => t.id === teamFilter);
   const teamContextLabel =
@@ -142,13 +145,96 @@ function SprintsPage() {
                   {active.status || "Planejada"}
                 </span>
               </div>
-              <BurndownChart data={chartData} />
+
+              {metricsQ.isLoading ? (
+                <div className="grid h-40 place-items-center text-sm text-muted-foreground">
+                  Carregando indicadores...
+                </div>
+              ) : !metrics || metrics.total_items === 0 ? (
+                <div className="grid h-40 place-items-center text-center text-sm text-muted-foreground">
+                  Nenhum item planejado nesta sprint ainda.
+                  <br />
+                  Use o planejamento para adicionar atividades e chamados.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Progresso geral */}
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Progresso da sprint</span>
+                      <span className="font-semibold text-foreground">
+                        {metrics.done}/{metrics.total_items} itens · {metrics.progress_pct}%
+                      </span>
+                    </div>
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted/40">
+                      {metrics.done > 0 && (
+                        <div className="bg-success" style={{ width: `${(metrics.done / metrics.total_items) * 100}%` }} />
+                      )}
+                      {metrics.in_progress > 0 && (
+                        <div className="bg-info" style={{ width: `${(metrics.in_progress / metrics.total_items) * 100}%` }} />
+                      )}
+                      {metrics.blocked > 0 && (
+                        <div className="bg-destructive" style={{ width: `${(metrics.blocked / metrics.total_items) * 100}%` }} />
+                      )}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-success" /> Concluídos {metrics.done}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-info" /> Em andamento {metrics.in_progress}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-muted-foreground/40" /> Pendentes {metrics.pending}
+                      </span>
+                      {metrics.blocked > 0 && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-destructive" /> Bloqueados {metrics.blocked}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Horas apontadas vs planejadas */}
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Horas apontadas</span>
+                      <span className="font-semibold text-foreground">
+                        {metrics.hours_done.toFixed(1)}h de {metrics.hours_planned.toFixed(1)}h planejadas
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted/40">
+                      <div
+                        className="h-full bg-primary"
+                        style={{ width: `${Math.min(100, metrics.hours_planned ? (metrics.hours_done / metrics.hours_planned) * 100 : 0)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Composição */}
+                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    <span>{metrics.activities} atividades</span>
+                    <span>{metrics.tickets} chamados</span>
+                    <span>Capacidade planejada: {metrics.capacity_used_pct}% de {metrics.capacity}h</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-              <Mini icon={Target} label="Capacidade da sprint" value={`${active.capacity ?? 0} h`} accent="primary" />
-              <Mini icon={CheckCircle2} label="Story points" value={`${active.story_points ?? 0} sp`} accent="success" />
-              <Mini icon={Zap} label="Entrega" value={`${pct(active)}%`} accent="accent" />
+              <Mini
+                icon={Target}
+                label="Capacidade da sprint"
+                value={`${metrics?.capacity ?? active.capacity ?? 0} h`}
+                accent="primary"
+              />
+              <Mini
+                icon={CheckCircle2}
+                label="Story points"
+                value={metrics ? `${metrics.story_points_done}/${metrics.story_points_planned} sp` : "0 sp"}
+                accent="success"
+              />
+              <Mini icon={Zap} label="Entrega" value={`${metrics?.progress_pct ?? 0}%`} accent="accent" />
               <Mini
                 icon={Rocket}
                 label={teamFilter ? `Sprints · ${teamContextLabel}` : "Sprints no total"}
