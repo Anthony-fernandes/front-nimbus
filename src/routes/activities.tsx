@@ -5,6 +5,8 @@ import { AlertCircle, Check, CheckCircle2, Circle, Clock, Pause, Plus, Timer, X 
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { TablePagination } from "@/components/app/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
 import { WorkItemModal } from "@/components/workitem/WorkItemModal";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -194,10 +196,6 @@ function ActivitiesPage() {
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [projectFilter, setProjectFilter] = useState("all");
 
-  if (pathname !== "/activities") {
-    return <Outlet />;
-  }
-
   const projectOptions = Array.from(
     new Map(
       rows
@@ -219,6 +217,12 @@ function ActivitiesPage() {
     const matchesProject = projectFilter === "all" || row.project === projectFilter;
     return matchesSearch && matchesStatus && matchesProject;
   });
+
+  const pag = usePagination(filteredRows, `${searchTerm}|${statusFilter}|${projectFilter}`);
+
+  if (pathname !== "/activities") {
+    return <Outlet />;
+  }
 
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredRows.length && filteredRows.length > 0) {
@@ -355,7 +359,7 @@ function ActivitiesPage() {
             <div className="col-span-1 text-right">Tempo</div>
           </div>
 
-          {filteredRows.map((row: Activity, index) => {
+          {pag.pageRows.map((row: Activity, index) => {
             const status = statusMap[row.status || "Backlog"] || statusMap.Backlog;
             const isSelected = selectedIds.has(row.id);
 
@@ -421,6 +425,14 @@ function ActivitiesPage() {
               </div>
             );
           })}
+          <TablePagination
+            page={pag.page}
+            totalPages={pag.totalPages}
+            total={pag.total}
+            pageSize={pag.pageSize}
+            onPageChange={pag.setPage}
+            onPageSizeChange={pag.setPageSize}
+          />
         </div>
       </div>
 

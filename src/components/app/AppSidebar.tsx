@@ -2,6 +2,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { BrandLogo } from "@/components/app/BrandLogo";
 import { useQuery } from "@tanstack/react-query";
 import { listChatConversations } from "@/services/chatService";
+import { listTeams } from "@/services/teamService";
+import { useState } from "react";
 import {
   BarChart3,
   Blocks,
@@ -23,6 +25,8 @@ import {
   MessagesSquare,
   PencilRuler,
   Rocket,
+  ChevronDown,
+  ChevronRight,
   ScrollText,
   Settings,
   Tag,
@@ -251,6 +255,15 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const clientName = getUserClientName(user);
   const isActive = (url: string) => (url === "/" ? path === "/" : path.startsWith(url));
 
+  const teamsQ = useQuery({
+    queryKey: ["teams"],
+    queryFn: listTeams,
+    enabled: !clientUser,
+    staleTime: 60000,
+  });
+  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
+  const teams = (teamsQ.data ?? []).filter((t) => (t.status || "Ativa") === "Ativa");
+
   const chatConvsQ = useQuery({
     queryKey: ["chat-conversations"],
     queryFn: listChatConversations,
@@ -310,6 +323,59 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* ── Equipes (navegação por contexto, estilo Monday) ── */}
+        {!clientUser && !collapsed && teams.length > 0 ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Equipes</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {teams.map((team) => {
+                  const expanded = expandedTeams[team.id] ?? false;
+                  const teamLinks = [
+                    { label: "Sprints", to: `/sprints?team=${team.id}` },
+                    { label: "Tarefas", to: `/backlog?team=${team.id}&type=task` },
+                    { label: "Chamados", to: `/backlog?team=${team.id}&type=ticket` },
+                    { label: "Bugs", to: `/backlog?team=${team.id}&type=bug` },
+                  ];
+                  return (
+                    <SidebarMenuItem key={team.id}>
+                      <SidebarMenuButton
+                        onClick={() =>
+                          setExpandedTeams((prev) => ({ ...prev, [team.id]: !expanded }))
+                        }
+                      >
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                          style={{ backgroundColor: team.color || "#6366f1" }}
+                        />
+                        <span className="truncate">{team.name}</span>
+                        {expanded ? (
+                          <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </SidebarMenuButton>
+                      {expanded && (
+                        <div className="ml-4 border-l border-border/60 pl-2">
+                          {teamLinks.map((link) => (
+                            <a
+                              key={link.label}
+                              href={link.to}
+                              className="block rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                            >
+                              {link.label}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
 
         {!clientUser && internalMenu.management.length ? (
           <SidebarGroup>

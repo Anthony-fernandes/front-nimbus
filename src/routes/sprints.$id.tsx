@@ -69,6 +69,7 @@ import {
 } from "@/services/sprintTicketPlanService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  listSprints,
   closeSprint,
   startSprint,
   deleteSprint,
@@ -924,6 +925,10 @@ function SprintDetail() {
   const [kanbanFilterPriority, setKanbanFilterPriority] = useState<string>("");
   const [kanbanShowFilters, setKanbanShowFilters] = useState(false);
 
+  const allSprintsQuery = useQuery({
+    queryKey: ["sprints"],
+    queryFn: () => listSprints(),
+  });
   const sprintQuery = useQuery({ queryKey: ["sprint", id], queryFn: () => getSprint(id) });
   const participantsQuery = useQuery({
     queryKey: ["sprint-participants", id],
@@ -1677,6 +1682,24 @@ function SprintDetail() {
           }
           actions={
             <>
+              <select
+                value={id}
+                onChange={(e) => {
+                  if (e.target.value && e.target.value !== id) {
+                    void navigate({ to: "/sprints/$id", params: { id: e.target.value } });
+                  }
+                }}
+                className="h-9 max-w-[260px] rounded-md border border-border bg-background px-2 text-xs"
+                title="Trocar de sprint"
+              >
+                {(allSprintsQuery.data ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                    {(s as { team_name?: string }).team_name ? ` · ${(s as { team_name?: string }).team_name}` : ""}
+                    {` (${s.status || "Planejada"})`}
+                  </option>
+                ))}
+              </select>
               {(sprintPlans.length > 0 || (ticketPlansQuery.data?.length ?? 0) > 0) ? (
                 <Button
                   type="button"

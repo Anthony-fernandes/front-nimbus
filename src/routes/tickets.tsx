@@ -36,6 +36,8 @@ import { api } from "@/services/api";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { TablePagination } from "@/components/app/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
 import { TableSkeleton } from "@/components/app/TableSkeleton";
 import { EmptyState } from "@/components/app/EmptyState";
 import { TicketWorkflowDialog, type TicketWorkflowDialogSubmitData } from "@/components/tickets/TicketWorkflowDialog";
@@ -281,6 +283,11 @@ function TicketsPage() {
         sortBy,
       }),
     [activeQuickFilter, filters, searchTerm, sortBy, tickets],
+  );
+
+  const pag = usePagination(
+    filteredTickets,
+    `${searchTerm}|${activeQuickFilter ?? ""}|${sortBy}|${JSON.stringify(filters)}`,
   );
 
   const activeAdvancedFilterCount = countActiveTicketFilters(filters);
@@ -812,7 +819,7 @@ function TicketsPage() {
             <>
             {/* Mobile card list */}
             <div className="md:hidden divide-y divide-border">
-              {filteredTickets.map((ticket) => (
+              {pag.pageRows.map((ticket) => (
                 <div
                   key={ticket.id}
                   onClick={() => setDetailTicketId(ticket.id)}
@@ -859,7 +866,7 @@ function TicketsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTickets.map((ticket) => {
+                  {pag.pageRows.map((ticket) => {
                     const actions = getAvailableTicketActions(ticket, statusConfigs, workflowPermissions);
                     const flowActions = actions.filter(
                       (action) => !["open_details", "edit"].includes(action.id),
@@ -953,6 +960,14 @@ function TicketsPage() {
                 </tbody>
               </table>
             </div>
+            <TablePagination
+              page={pag.page}
+              totalPages={pag.totalPages}
+              total={pag.total}
+              pageSize={pag.pageSize}
+              onPageChange={pag.setPage}
+              onPageSizeChange={pag.setPageSize}
+            />
             </>
           )}
         </div>

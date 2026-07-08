@@ -3,6 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Plus, Rocket, Target, Zap } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { TablePagination } from "@/components/app/TablePagination";
+import { usePagination } from "@/hooks/usePagination";
+import { Input } from "@/components/ui/input";
+import { listTeams } from "@/services/teamService";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BurndownChart } from "@/components/dashboard/Charts";
 import type { Sprint } from "@/lib/types";
@@ -11,6 +16,7 @@ import { listSprints } from "@/services/sprintService";
 
 export const Route = createFileRoute("/sprints")({
   head: () => ({ meta: [{ title: "Sprints · NimbusDesk" }] }),
+  validateSearch: (s) => ({ team: (s.team as string) || "" }),
   component: SprintsPage,
 });
 
@@ -25,10 +31,24 @@ function pct(sprint: Sprint) {
 
 function SprintsPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { data: sprints = [], isLoading } = useQuery({
+  const { team: teamParam } = Route.useSearch();
+  const [teamFilter, setTeamFilter] = useState(teamParam || "");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data: allSprints = [], isLoading } = useQuery({
     queryKey: ["sprints"],
     queryFn: () => listSprints(),
   });
+  const { data: teams = [] } = useQuery({ queryKey: ["teams"], queryFn: listTeams });
+
+  const sprints = allSprints.filter((s) => {
+    const teamId = (s as { team?: string | null }).team;
+    if (teamFilter && teamId !== teamFilter) return false;
+    if (statusFilter && s.status !== statusFilter) return false;
+    if (searchTerm && !s.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  });
+  const pag = usePagination(sprints, `${teamFilter}|${statusFilter}|${searchTerm}`);
 
   if (pathname !== "/sprints") {
     return <Outlet />;
@@ -90,8 +110,36 @@ function SprintsPage() {
         </div>
 
         <div className="glass overflow-hidden rounded-2xl shadow-card">
-          <div className="flex items-center justify-between border-b border-border p-4">
-            <h3 className="font-semibold">Histórico de sprints</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-4">
+            <h3 className="font-semibold">Sprints</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar sprint..."
+                className="h-8 w-44 text-xs"
+              />
+              <select
+                value={teamFilter}
+                onChange={(e) => setTeamFilter(e.target.value)}
+                className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+              >
+                <option value="">Todas as equipes</option>
+                {teams.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+              >
+                <option value="">Todos os status</option>
+                {["Planejada", "Em andamento", "Concluída", "Cancelada"].map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
             <a href="/sprints/new" className="text-xs text-primary hover:underline">
               + Nova sprint
             </a>
@@ -101,6 +149,7 @@ function SprintsPage() {
             <thead>
               <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-2.5 text-left font-medium">Sprint</th>
+                <th className="px-2 py-2.5 text-left font-medium">Equipe</th>
                 <th className="px-2 py-2.5 text-left font-medium">Status</th>
                 <th className="px-2 py-2.5 text-left font-medium">Capacidade</th>
                 <th className="px-2 py-2.5 text-left font-medium">SP</th>
@@ -108,12 +157,15 @@ function SprintsPage() {
               </tr>
             </thead>
             <tbody>
-              {sprints.map((sprint) => (
+              {pag.pageRows.map((sprint) => (
                 <tr key={sprint.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-3 font-medium">
                     <Link to="/sprints/$id" params={{ id: sprint.id }} className="hover:text-primary">
                       {sprint.name}
                     </Link>
+                  </td>
+                  <td className="px-2 py-3 text-xs text-muted-foreground">
+                    {(sprint as { team_name?: string }).team_name || "—"}
                   </td>
                   <td className="px-2 py-3">
                     <span className="rounded-md bg-muted/60 px-2 py-1 text-[11px] text-muted-foreground">
@@ -134,6 +186,14 @@ function SprintsPage() {
               ))}
             </tbody>
           </table>
+          <TablePagination
+            page={pag.page}
+            totalPages={pag.totalPages}
+            total={pag.total}
+            pageSize={pag.pageSize}
+            onPageChange={pag.setPage}
+            onPageSizeChange={pag.setPageSize}
+          />
         </div>
       </div>
     </AppShell>
