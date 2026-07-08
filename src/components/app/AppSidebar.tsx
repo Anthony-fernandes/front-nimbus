@@ -3,6 +3,7 @@ import { BrandLogo } from "@/components/app/BrandLogo";
 import { useQuery } from "@tanstack/react-query";
 import { listChatConversations } from "@/services/chatService";
 import { listTeams } from "@/services/teamService";
+import { listSprints } from "@/services/sprintService";
 import { useState } from "react";
 import {
   BarChart3,
@@ -58,7 +59,7 @@ import {
   isClientUser,
 } from "@/lib/auth";
 import { hasAnyPermission, hasPermission } from "@/lib/permissions";
-import type { User } from "@/lib/types";
+import type { Sprint, User } from "@/lib/types";
 
 type MenuItem = {
   title: string;
@@ -264,6 +265,25 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
   const teams = (teamsQ.data ?? []).filter((t) => (t.status || "Ativa") === "Ativa");
 
+  // Dropdown do item "Sprints": equipes → sprints de cada equipe
+  const [sprintsOpen, setSprintsOpen] = useState(false);
+  const [expandedSprintTeams, setExpandedSprintTeams] = useState<Record<string, boolean>>({});
+  const sprintsQ = useQuery({
+    queryKey: ["sidebar-sprints"],
+    queryFn: () => listSprints(),
+    enabled: !clientUser && sprintsOpen,
+    staleTime: 60000,
+  });
+  const sprintsByTeam = (sprintsQ.data ?? []).reduce<Record<string, Sprint[]>>((acc, sprint) => {
+    const key = sprint.team || "none";
+    (acc[key] = acc[key] || []).push(sprint);
+    return acc;
+  }, {});
+  const sprintTeamGroups = [
+    ...teams.map((t) => ({ id: t.id, name: t.name, color: t.color || "#6366f1" })),
+    ...(sprintsByTeam["none"]?.length ? [{ id: "none", name: "Sem equipe", color: "#94a3b8" }] : []),
+  ];
+
   const chatConvsQ = useQuery({
     queryKey: ["chat-conversations"],
     queryFn: listChatConversations,
@@ -304,6 +324,90 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
             <SidebarMenu>
               {(clientUser ? clientMenu : internalMenu.workspace).map((item) => {
                 const badge = item.url === "/chat" && unreadChatCount > 0 ? unreadChatCount : null;
+
+                // "Sprints" vira dropdown: equipes → sprints da equipe
+                if (!clientUser && item.url === "/sprints" && !collapsed) {
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton
+                        isActive={isActive(item.url)}
+                        tooltip={item.title}
+                        onClick={() => setSprintsOpen((open) => !open)}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span className="flex-1">{item.title}</span>
+                        {sprintsOpen ? (
+                          <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </SidebarMenuButton>
+                      {sprintsOpen && (
+                        <div className="ml-4 border-l border-border/60 pl-2">
+                          <Link
+                            to="/sprints"
+                            className="block rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                          >
+                            Todas as sprints
+                          </Link>
+                          {sprintsQ.isLoading && (
+                            <div className="px-2 py-1 text-xs text-muted-foreground">Carregando...</div>
+                          )}
+                          {sprintTeamGroups.map((group) => {
+                            const groupSprints = sprintsByTeam[group.id] ?? [];
+                            const expanded = expandedSprintTeams[group.id] ?? false;
+                            return (
+                              <div key={group.id}>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedSprintTeams((prev) => ({ ...prev, [group.id]: !expanded }))
+                                  }
+                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                                >
+                                  <span
+                                    className="h-2 w-2 shrink-0 rounded-sm"
+                                    style={{ backgroundColor: group.color }}
+                                  />
+                                  <span className="flex-1 truncate text-left">{group.name}</span>
+                                  {expanded ? (
+                                    <ChevronDown className="h-3 w-3 shrink-0" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3 shrink-0" />
+                                  )}
+                                </button>
+                                {expanded && (
+                                  <div className="ml-3 border-l border-border/60 pl-2">
+                                    {groupSprints.length === 0 ? (
+                                      <div className="px-2 py-1 text-[11px] text-muted-foreground/70">
+                                        Nenhuma sprint
+                                      </div>
+                                    ) : (
+                                      groupSprints.map((sprint) => (
+                                        <Link
+                                          key={sprint.id}
+                                          to="/sprints/$id"
+                                          params={{ id: sprint.id }}
+                                          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                                        >
+                                          <span className="truncate">{sprint.name}</span>
+                                          {sprint.status === "Em andamento" && (
+                                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
+                                          )}
+                                        </Link>
+                                      ))
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                }
+
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>

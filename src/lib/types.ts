@@ -628,6 +628,9 @@ export type TeamMember = {
 export type Sprint = {
   id: string;
   name: string;
+  team?: string | null;
+  team_name?: string;
+  team_color?: string;
   goal?: string;
   observations?: string;
   project?: string | null;
