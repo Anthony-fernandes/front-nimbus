@@ -1735,7 +1735,7 @@ function SprintDetail() {
                   className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
                   onClick={() => void handleStartSprint()}
                 >
-                  ▶ Iniciar Sprint
+                  Iniciar Sprint
                 </Button>
               )}
               {sprint.status === "Em andamento" && (
