@@ -23,7 +23,6 @@ const TICKET_ACTIONS: Record<string, Set<WorkItemAction>> = {
   "Aguardando Aprovacao": new Set(["cancel"]),
   Aprovado: new Set(["responsible", "sprint", "priority", "start"]),
   Reprovado: new Set(["reopen"]),
-  Backlog: new Set(["edit", "priority", "responsible", "sprint", "cancel", "start"]),
   "Aguardando atendimento": new Set(["edit", "start", "priority", "responsible", "sprint", "cancel"]),
   "Em atendimento": new Set(["edit", "pause", "validate", "resolve", "cancel", "responsible", "sprint", "priority"]),
   "Aguardando cliente": new Set(["resume", "pause", "cancel", "responsible"]),
@@ -74,7 +73,7 @@ export function actionBlockReason(action: WorkItemAction): string {
 }
 
 export const TICKET_SPRINT_ELIGIBLE = new Set([
-  "Triagem", "Aprovado", "Backlog", "Aguardando atendimento", "Em atendimento",
+  "Triagem", "Aprovado", "Aguardando atendimento", "Em atendimento",
 ]);
 export const ACTIVITY_SPRINT_ELIGIBLE = new Set([
   "Backlog", "A fazer", "Em progresso", "Bloqueado",

@@ -87,7 +87,8 @@ function BacklogPage() {
   const [typeFilter, setTypeFilter] = useState(typeParam || "");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [teamFilter, setTeamFilter] = useState(teamParam || "");
-  const [noSprintOnly, setNoSprintOnly] = useState(false);
+  // Regra de produto: Backlog padrão mostra apenas itens SEM sprint (não planejados)
+  const [planning, setPlanning] = useState<"unplanned" | "planned" | "all">("unplanned");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -99,7 +100,7 @@ function BacklogPage() {
     type: typeFilter || undefined,
     priority: priorityFilter || undefined,
     team: teamFilter || undefined,
-    no_sprint: noSprintOnly ? "true" : undefined,
+    planning,
   };
   const resetKey = JSON.stringify(params);
 
@@ -243,21 +244,22 @@ function BacklogPage() {
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={noSprintOnly}
-              onChange={(e) => setFilter(() => setNoSprintOnly(e.target.checked))}
-              className="h-3.5 w-3.5 accent-primary"
-            />
-            Só sem sprint
-          </label>
-          {(search || typeFilter || priorityFilter || teamFilter || noSprintOnly) && (
+          <select
+            value={planning}
+            onChange={(e) => setFilter(() => setPlanning(e.target.value as "unplanned" | "planned" | "all"))}
+            className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+            title="Backlog padrão mostra apenas itens sem sprint"
+          >
+            <option value="unplanned">Sem sprint (padrão)</option>
+            <option value="planned">Planejados (em sprint)</option>
+            <option value="all">Todos</option>
+          </select>
+          {(search || typeFilter || priorityFilter || teamFilter || planning !== "unplanned") && (
             <button
               type="button"
               onClick={() =>
                 setFilter(() => {
-                  setSearch(""); setTypeFilter(""); setPriorityFilter(""); setTeamFilter(""); setNoSprintOnly(false);
+                  setSearch(""); setTypeFilter(""); setPriorityFilter(""); setTeamFilter(""); setPlanning("unplanned");
                 })
               }
               className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
