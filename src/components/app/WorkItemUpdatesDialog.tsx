@@ -143,7 +143,7 @@ function getPriorityTone(priority?: string) {
 
 function getVisibilityLabel(visibility: TicketVisibility | undefined) {
   if (visibility === "client") return "Cliente pode ver";
-  return "Somente tecnicos";
+  return "Somente técnicos";
 }
 
 function getEventMessage(event: TicketTimelineEvent) {
@@ -198,7 +198,7 @@ function getPreviousProgress(events: TicketTimelineEvent[], doneHours: number, p
 function buildResponseMessage({ message, responseHours, accumulatedHours, plannedHours, progressPercent }: {
   message: string; responseHours: number; accumulatedHours: number; plannedHours: number; progressPercent: number;
 }) {
-  const lines = ["Resposta tecnica:"];
+  const lines = ["Resposta técnica:"];
   if (message.trim()) lines.push(message.trim());
   lines.push(`Horas nesta resposta: ${formatNumber(responseHours)}h`);
   lines.push(plannedHours > 0
@@ -225,7 +225,7 @@ function isActivityLogEvent(event: TicketTimelineEvent) {
 function getTimelineRecordKind(event: TicketTimelineEvent): TimelineRecordKind {
   const eventType = String(event.type || "").toLowerCase();
   const message = getEventMessage(event);
-  if (/^\s*resposta tecnica:/i.test(message) || extractProgressFromEvent(event) !== null || extractAccumulatedHoursFromEvent(event) !== null) return "response";
+  if (/^\s*resposta técnica:/i.test(message) || extractProgressFromEvent(event) !== null || extractAccumulatedHoursFromEvent(event) !== null) return "response";
   if (/^\s*comentario:/i.test(message) || eventType.includes("comment") || eventType.includes("coment")) return "comment";
   return isActivityLogEvent(event) ? "system" : "comment";
 }
@@ -237,7 +237,7 @@ function getDisplayMessage(event: TicketTimelineEvent, kind: TimelineRecordKind)
     return lines.filter((l) => !/^\s*comentario:\s*$/i.test(l) && !/^\s*visibilidade:/i.test(l)).join("\n").trim() || "Comentario registrado.";
   }
   if (kind === "response") {
-    return lines.filter((l) => !/^\s*resposta tecnica:\s*$/i.test(l)).join("\n").trim() || "Resposta tecnica registrada.";
+    return lines.filter((l) => !/^\s*resposta técnica:\s*$/i.test(l)).join("\n").trim() || "Resposta técnica registrada.";
   }
   return message;
 }
@@ -257,7 +257,7 @@ function getLogDescriptor(event: TicketTimelineEvent) {
     return { field: "Sprint", from: "-", to: message, kind: "text" as const };
   }
   if (progress !== null || hours !== null) {
-    return { field: "Resposta tecnica", from: "-", to: [hours !== null ? `${formatNumber(hours)}h` : null, progress !== null ? `${formatNumber(progress)}%` : null].filter(Boolean).join(" / "), kind: "text" as const };
+    return { field: "Resposta técnica", from: "-", to: [hours !== null ? `${formatNumber(hours)}h` : null, progress !== null ? `${formatNumber(progress)}%` : null].filter(Boolean).join(" / "), kind: "text" as const };
   }
   return { field: event.type || "Comentario", from: "-", to: message, kind: "text" as const };
 }
@@ -391,7 +391,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
   const detailQuery = useQuery({
     queryKey: ["work-item-updates-detail", item?.type, item?.id],
     queryFn: async () => {
-      if (!item) throw new Error("Item nao informado.");
+      if (!item) throw new Error("Item não informado.");
       return item.type === "ticket" ? getTicket(item.id) : getActivity(item.id);
     },
     enabled: open && Boolean(item),
@@ -414,7 +414,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
   const status = detail?.status || item?.status || "Backlog";
   const priority = detail?.priority || item?.priority || "Media";
   const typeLabel = (isTicket(item, detail) ? detail?.type : (detail as Activity | undefined)?.type) || item?.typeLabel || (item?.type === "ticket" ? "Chamado" : "Atividade");
-  const description = detail?.description || item?.description || "Sem descricao cadastrada.";
+  const description = detail?.description || item?.description || "Sem descrição cadastrada.";
   const plannedHours = item?.plannedHours ?? (isTicket(item, detail) ? detail?.est_hours : (detail as Activity | undefined)?.est_hours);
   const doneHours = (isTicket(item, detail) ? detail?.done_hours : (detail as Activity | undefined)?.done_hours) ?? item?.doneHours;
   const sprintName = item?.sprintName || (isTicket(item, detail) ? detail?.sprint_name : (detail as Activity | undefined)?.sprint_name) || "-";
@@ -424,7 +424,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
   const commentUpdateEvents = useMemo(() => sortedTimeline.filter((e) => getTimelineRecordKind(e) === "comment"), [sortedTimeline]);
   const visibleUpdateEvents = updatesTab === "response" ? responseUpdateEvents : commentUpdateEvents;
   const visibleUpdateKind: TimelineRecordKind = updatesTab === "response" ? "response" : "comment";
-  const emptyUpdatesMessage = updatesTab === "response" ? "Nenhuma resposta tecnica registrada ainda." : "Nenhum comentario registrado ainda.";
+  const emptyUpdatesMessage = updatesTab === "response" ? "Nenhuma resposta técnica registrada ainda." : "Nenhum comentario registrado ainda.";
   const plannedHoursNumber = toNumber(plannedHours, 0);
   const currentDoneHours = toNumber(doneHours, 0);
   const responseHoursListId = `response-hours-options-${item?.type || "item"}-${item?.id || "novo"}`;
@@ -478,7 +478,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
       setResponseHours("");
       setProgressPercent(String(Math.round(progressNumber)));
       await refreshAfterSubmit();
-      toast.success("Resposta tecnica registrada.");
+      toast.success("Resposta técnica registrada.");
     } catch (error) {
       toast.error(parseApiError(error, "Não foi possível registrar a resposta."));
     } finally {
@@ -571,14 +571,14 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
                 <section className="space-y-4">
                   <div className="rounded-lg border border-border bg-card">
                     <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                      <h3 className="text-lg font-semibold text-foreground">Informacoes</h3>
+                      <h3 className="text-lg font-semibold text-foreground">Informações</h3>
                       <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div className="grid gap-5 p-5 md:grid-cols-3">
                       <FieldBox label="Resp.">
                         <div className="flex items-center gap-2">
                           {responsibleNames.length === 0 ? (
-                            <span className="text-muted-foreground">Nao definido</span>
+                            <span className="text-muted-foreground">Não definido</span>
                           ) : responsibleNames.slice(0, 3).map((name) => (
                             <span key={name} title={name} className="grid h-7 w-7 place-items-center rounded-full bg-gradient-primary text-[10px] font-bold text-primary-foreground">
                               {getInitials(name)}
@@ -610,13 +610,13 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
                       </FieldBox>
                       <FieldBox label="Story points">{item?.storyPoints ?? "-"}</FieldBox>
                       <FieldBox label="Fim previsto">{formatDate(item?.plannedEndDate)}</FieldBox>
-                      <FieldBox label="Ultima atualizacao">{formatDateTime(detail?.updated_at)}</FieldBox>
+                      <FieldBox label="Última atualizacao">{formatDateTime(detail?.updated_at)}</FieldBox>
                     </div>
                   </div>
 
                   <div className="rounded-lg border border-border bg-card">
                     <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                      <h3 className="text-lg font-semibold text-foreground">Descricao</h3>
+                      <h3 className="text-lg font-semibold text-foreground">Descrição</h3>
                       <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div className="min-h-[220px] whitespace-pre-wrap px-8 py-9 text-sm leading-relaxed text-foreground/80">
@@ -652,7 +652,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
                       <form onSubmit={handleResponseSubmit} className="rounded-xl border border-border bg-muted/30 p-4">
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-foreground">Registrar resposta tecnica</p>
+                            <p className="text-sm font-semibold text-foreground">Registrar resposta técnica</p>
                             <p className="text-xs text-muted-foreground">
                               Progresso inicia em {formatNumber(previousProgress)}%, a porcentagem anterior registrada.
                             </p>
@@ -663,7 +663,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
                           value={responseMessage}
                           onChange={(e) => setResponseMessage(e.target.value)}
                           rows={4}
-                          placeholder="Descreva a resposta tecnica, o que foi feito ou o que ainda falta."
+                          placeholder="Descreva a resposta técnica, o que foi feito ou o que ainda falta."
                           className="min-h-24 w-full resize-none rounded-lg border border-border bg-input px-3 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-primary"
                         />
 
@@ -716,7 +716,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
                           </div>
                           <div className="mt-2 flex items-center justify-between gap-3">
                             <span>Tipo de registro</span>
-                            <strong className="text-foreground">Resposta tecnica</strong>
+                            <strong className="text-foreground">Resposta técnica</strong>
                           </div>
                         </div>
 
@@ -745,7 +745,7 @@ export function WorkItemUpdatesDialog({ open, item, onOpenChange }: WorkItemUpda
                               onChange={(e) => setCommentIsInternal(e.target.checked)}
                               className="h-4 w-4 rounded accent-primary"
                             />
-                            <span>Mensagem interna dos tecnicos</span>
+                            <span>Mensagem interna dos técnicos</span>
                           </label>
                         </div>
 

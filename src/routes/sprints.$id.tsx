@@ -1134,7 +1134,7 @@ function SprintDetail() {
   const getUserName = (userId: string | number) =>
     userMap.get(String(userId))
     || participants.find((participant) => String(participant.userId) === String(userId))?.userName
-    || "Usuario";
+    || "Usuário";
 
   const getUniqueNames = (names: Array<string | null | undefined>) =>
     Array.from(new Set(names.map((name) => name?.trim()).filter(Boolean))) as string[];
@@ -2630,7 +2630,7 @@ function SprintDetail() {
             {/* ── STEP 2: Chamados ── */}
             {wizardStep === 2 && (
               <TicketPlanningSection
-                description="Adicione chamados que serao trabalhados nesta sprint e defina responsaveis e horas planejadas para cada um."
+                description="Adicione chamados que serao trabalhados nesta sprint e defina responsáveis e horas planejadas para cada um."
                 users={users}
                 tickets={allTicketsForPlanning}
                 rows={wizardTicketRows}
@@ -3381,7 +3381,7 @@ function SprintDetail() {
 
               <TabsContent value="chamados" className="mt-0">
                 <TicketPlanningSection
-                  description="Adicione chamados que serao trabalhados nesta sprint e defina responsaveis e horas planejadas para cada um."
+                  description="Adicione chamados que serao trabalhados nesta sprint e defina responsáveis e horas planejadas para cada um."
                   users={users}
                   tickets={allTicketsForPlanning}
                   rows={unplannedTicketRows}
@@ -3602,14 +3602,14 @@ function SprintDetail() {
                 for (const row of unplannedTicketRows) {
                   const ticket = allTicketsForPlanning.find((item) => item.id === row.ticketId);
                   const label = ticket?.code ?? row.ticketId;
-                  if (!row.responsibleIds.length) { toast.error(`Chamado ${label}: adicione ao menos um responsavel.`); return; }
+                  if (!row.responsibleIds.length) { toast.error(`Chamado ${label}: adicione ao menos um responsável.`); return; }
                   if (!Number(row.plannedHours)) { toast.error(`Chamado ${label}: informe as horas planejadas.`); return; }
                   if (!row.plannedEndDate) { toast.error(`Chamado ${label}: informe a previsao de termino.`); return; }
                 }
                 for (const row of unplannedActivityRows) {
                   const activity = activities.find((item) => item.id === row.activityId);
                   const label = activity?.title ?? row.activityId;
-                  if (!row.responsibleIds.length) { toast.error(`Atividade "${label}": adicione ao menos um responsavel.`); return; }
+                  if (!row.responsibleIds.length) { toast.error(`Atividade "${label}": adicione ao menos um responsável.`); return; }
                   if (!Number(row.plannedHours)) { toast.error(`Atividade "${label}": informe as horas planejadas.`); return; }
                   if (!row.plannedEndDate) { toast.error(`Atividade "${label}": informe a previsao de termino.`); return; }
                 }

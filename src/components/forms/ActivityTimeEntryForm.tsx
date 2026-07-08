@@ -100,8 +100,8 @@ export function ActivityTimeEntryForm({
         required
         hint={
           calculateHourlyCost
-            ? "O custo por hora deste colaborador sera usado para gerar o custo automatico."
-            : "Apontamento operacional sem geracao automatica de custo."
+            ? "O custo por hora deste colaborador sera usado para gerar o custo automático."
+            : "Apontamento operacional sem geracao automática de custo."
         }
       >
         <UserPickerField

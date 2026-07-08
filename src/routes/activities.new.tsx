@@ -48,8 +48,8 @@ function buildTicketActivityDescription(ticket: Ticket) {
   const details = [
     `Atividade gerada a partir do chamado ${reference}.`,
     "",
-    `Cliente: ${ticket.client_name || "Nao informado"}`,
-    `Categoria: ${ticket.category_name || ticket.category || "Nao informada"}`,
+    `Cliente: ${ticket.client_name || "Não informado"}`,
+    `Categoria: ${ticket.category_name || ticket.category || "Não informada"}`,
     `Origem: chamado`,
     "",
     "Descrição do chamado:",
@@ -132,10 +132,10 @@ function NewActivityPage() {
               { label: "Nova" },
             ]}
             title="Nova atividade"
-            subtitle="Nao foi possivel carregar o chamado de origem."
+            subtitle="Não foi possível carregar o chamado de origem."
           />
           <div className="glass rounded-2xl border border-destructive/30 p-6 text-sm text-destructive">
-            O formulario nao foi aberto em branco porque o chamado de origem nao foi carregado.
+            O formulario não foi aberto em branco porque o chamado de origem não foi carregado.
             Tente novamente a partir da tela do chamado.
           </div>
         </div>

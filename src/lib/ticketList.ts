@@ -49,8 +49,8 @@ export const TICKET_SORT_OPTIONS: Array<{ value: TicketSortBy; label: string }> 
   { value: "sla_critical", label: "SLA mais critico primeiro" },
   { value: "client_asc", label: "Cliente A-Z" },
   { value: "client_desc", label: "Cliente Z-A" },
-  { value: "technician_asc", label: "Tecnico A-Z" },
-  { value: "technician_desc", label: "Tecnico Z-A" },
+  { value: "technician_asc", label: "Técnico A-Z" },
+  { value: "technician_desc", label: "Técnico Z-A" },
   { value: "status", label: "Status" },
 ];
 

@@ -53,7 +53,7 @@ export function ClientTicketRequestForm() {
     event.preventDefault();
 
     if (!clientId) {
-      toast.error("Seu usuário ainda nao esta vinculado a uma organização.");
+      toast.error("Seu usuário ainda não esta vinculado a uma organização.");
       return;
     }
 
@@ -92,7 +92,7 @@ export function ClientTicketRequestForm() {
       <div className="space-y-5 lg:col-span-2">
         <FormSection
           title="Abrir chamado"
-          description="Informe apenas os dados da solicitacao. Os campos internos serao definidos pela equipe tecnica."
+          description="Informe apenas os dados da solicitação. Os campos internos serao definidos pela equipe técnica."
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Título" required className="sm:col-span-2">
@@ -127,7 +127,7 @@ export function ClientTicketRequestForm() {
               <Textarea
                 value={data.description}
                 onChange={(event) => setField("description", event.target.value)}
-                placeholder="Conte o problema, o impacto e o que voce espera como solução."
+                placeholder="Conte o problema, o impacto e o que você espera como solução."
                 className="min-h-36"
                 required
               />
@@ -138,7 +138,7 @@ export function ClientTicketRequestForm() {
                 <div className="flex-1 text-sm">
                   <div className="font-medium">Adicionar anexos</div>
                   <div className="text-xs text-muted-foreground">
-                    Os anexos seguem disponiveis para complementar a abertura do chamado.
+                    Os anexos seguem disponíveis para complementar a abertura do chamado.
                   </div>
                 </div>
                 <input
@@ -167,8 +167,8 @@ export function ClientTicketRequestForm() {
         <FormSection title="Fluxo do portal do cliente">
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>O sistema usa seu usuário logado como solicitante do chamado.</p>
-            <p>Organização atendida, origem e status inicial sao definidos automaticamente.</p>
-            <p>A categorizacao interna e os demais campos tecnicos ficam restritos ao portal interno.</p>
+            <p>Organização atendida, origem e status inicial são definidos automaticamente.</p>
+            <p>A categorizacao interna e os demais campos técnicos ficam restritos ao portal interno.</p>
           </div>
         </FormSection>
 

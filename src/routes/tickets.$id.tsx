@@ -1002,7 +1002,7 @@ function TicketDetail() {
             <SectionCard title="Progresso do checklist">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-muted-foreground">
-                  {checklistDone} de {checklist.length} concluidos
+                  {checklistDone} de {checklist.length} concluídos
                 </div>
                 <div className="text-sm font-medium">{checklistProgress}%</div>
               </div>

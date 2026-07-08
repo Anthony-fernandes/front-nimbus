@@ -54,7 +54,7 @@ function toValidDate(value?: string | number | Date | null) {
 
 export function requireId(mode: "create" | "edit", id?: string) {
   if (mode === "edit" && !id) {
-    throw new Error("ID obrigatorio para atualizar o registro.");
+    throw new Error("ID obrigatório para atualizar o registro.");
   }
 }
 

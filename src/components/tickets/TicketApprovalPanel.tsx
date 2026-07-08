@@ -46,7 +46,7 @@ const APPROVAL_BADGE: Record<string, string> = {
   Aprovado: "bg-success/15 text-success",
   Reprovado: "bg-destructive/15 text-destructive",
   "Ajustes Solicitados": "bg-info/15 text-info",
-  "Nao requerido": "bg-muted text-muted-foreground",
+  "Não requerido": "bg-muted text-muted-foreground",
 };
 
 const DECISION_LABEL: Record<string, string> = {
@@ -80,7 +80,7 @@ export function TicketApprovalPanel({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
 
-  const approvalStatus = ticket.approval_status || "Nao requerido";
+  const approvalStatus = ticket.approval_status || "Não requerido";
   const showDecision = canDecide(ticket, currentUser);
   const canConvert =
     !ticket.converted_activity &&
@@ -115,7 +115,7 @@ export function TicketApprovalPanel({
       toast.error(parseApiError(error, "Não foi possível registrar a decisão.")),
   });
 
-  if (approvalStatus === "Nao requerido" && !ticket.converted_activity) {
+  if (approvalStatus === "Não requerido" && !ticket.converted_activity) {
     // Sem aprovação exigida e não convertido: nada a mostrar aqui.
     return null;
   }
@@ -137,7 +137,7 @@ export function TicketApprovalPanel({
         <span
           className={cn(
             "rounded-md px-2 py-1 text-[11px] font-medium",
-            APPROVAL_BADGE[approvalStatus] || APPROVAL_BADGE["Nao requerido"],
+            APPROVAL_BADGE[approvalStatus] || APPROVAL_BADGE["Não requerido"],
           )}
         >
           {approvalStatus}

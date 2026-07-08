@@ -46,7 +46,7 @@ function isMissingEndpoint(error: unknown) {
 function toCategoryServiceError(error: unknown) {
   if (isMissingEndpoint(error)) {
     return new Error(
-      "A API de categorias de chamados ainda nao esta disponivel no backend Django.",
+      "A API de categorias de chamados ainda não esta disponível no backend Django.",
     );
   }
 
@@ -54,7 +54,7 @@ function toCategoryServiceError(error: unknown) {
     return error;
   }
 
-  return new Error("Nao foi possivel acessar categorias de chamados.");
+  return new Error("Não foi possível acessar categorias de chamados.");
 }
 
 export async function listTicketCategories() {

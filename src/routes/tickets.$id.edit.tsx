@@ -28,7 +28,7 @@ function EditTicketPage() {
             { label: "Editar" },
           ]}
           title={`Editar ${id}`}
-          subtitle="Atualize informações, atribuicao e contexto. O status segue o workflow do chamado."
+          subtitle="Atualize informações, atribuição e contexto. O status segue o workflow do chamado."
         />
         {isLoading ? (
           <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">
@@ -37,7 +37,7 @@ function EditTicketPage() {
         ) : null}
         {isError ? (
           <div className="glass rounded-2xl p-6 text-sm text-destructive">
-            Nao foi possivel carregar o chamado.
+            Não foi possível carregar o chamado.
           </div>
         ) : null}
         {ticket ? (

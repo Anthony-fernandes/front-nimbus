@@ -192,7 +192,7 @@ export function TicketWorkflowDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {actionId === "categorize"
-              ? "Defina a triagem tecnica do chamado sem sair da listagem."
+              ? "Defina a triagem técnica do chamado sem sair da listagem."
               : actionId === "pause"
                 ? "A pausa exige justificativa para manter o histórico do atendimento."
                 : actionId === "wait_customer"
@@ -252,7 +252,7 @@ export function TicketWorkflowDialog({
               </Select>
             </Field>
 
-            <Field label="Tecnico responsável">
+            <Field label="Técnico responsável">
               <Select
                 value={data.responsibleTechnician || "__none__"}
                 onValueChange={(value) =>
@@ -279,14 +279,14 @@ export function TicketWorkflowDialog({
               hint={
                 selectedCategory
                   ? `SLA padrão da categoria: ${getCategoryDefaults(selectedCategory).sla}.`
-                  : "Opcional, mas recomendado para registrar contexto tecnico."
+                  : "Opcional, mas recomendado para registrar contexto técnico."
               }
             >
               <Textarea
                 value={data.triageNotes}
                 onChange={(event) => setField("triageNotes", event.target.value)}
                 rows={4}
-                placeholder="Contexto tecnico, hipoteses e direcionamento da triagem."
+                placeholder="Contexto técnico, hipoteses e direcionamento da triagem."
                 className="border-border bg-muted/20"
               />
             </Field>

@@ -158,7 +158,7 @@ export function SprintActivityPlanForm({
       ) : null}
 
       <Field
-        label="Responsaveis pela execucao"
+        label="Responsáveis pela execucao"
         hint="Opcional. Use quando a sprint ja tiver uma alocacao definida."
       >
         <UserPickerField
@@ -167,7 +167,7 @@ export function SprintActivityPlanForm({
           onChange={(selected) => set("responsibleIds", selected)}
           placeholder="Adicionar responsável..."
           emptySelectedText="Nenhum responsável planejado ainda."
-          selectedLabel="Responsaveis planejados"
+          selectedLabel="Responsáveis planejados"
         />
       </Field>
 

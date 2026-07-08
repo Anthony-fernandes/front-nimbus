@@ -297,7 +297,7 @@ export function ProjectForm({
             )}
             <Field
               label="Contato principal"
-              hint="Pessoa da organização que acompanha escopo, duvidas e validações do projeto."
+              hint="Pessoa da organização que acompanha escopo, dúvidas e validações do projeto."
             >
               <UserPickerField
                 options={organizationUserOptions}

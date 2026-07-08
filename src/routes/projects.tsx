@@ -164,7 +164,7 @@ function ProjectsPage() {
 
         {isError ? (
           <div className="glass rounded-2xl p-4 text-sm text-destructive">
-            Nao foi possivel carregar os projetos.
+            Não foi possível carregar os projetos.
           </div>
         ) : null}
 

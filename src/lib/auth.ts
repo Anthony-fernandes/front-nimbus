@@ -95,11 +95,11 @@ export function getRoleLabel(role: unknown) {
     case "ADMIN":
       return "Administrador";
     case "TECHNICIAN":
-      return "Tecnico";
+      return "Técnico";
     case "CLIENT":
       return "Cliente";
     default:
-      return "Usuario";
+      return "Usuário";
   }
 }
 
@@ -133,7 +133,7 @@ export function getUserDisplayName(user: Partial<User> | null | undefined) {
     [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
     user?.username ||
     user?.email ||
-    "Usuario"
+    "Usuário"
   );
 }
 

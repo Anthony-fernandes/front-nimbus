@@ -153,7 +153,7 @@ function SettingsPage() {
 
   const handleSubmit = async (data: TicketStatusConfigFormData) => {
     if (!canManageWorkflow) {
-      toast.error("Seu perfil nao pode alterar configurações de chamados.");
+      toast.error("Seu perfil não pode alterar configurações de chamados.");
       return;
     }
 
@@ -195,7 +195,7 @@ function SettingsPage() {
 
   const handleTagSubmit = async (data: ActivityTagConfigFormData) => {
     if (!canManageWorkflow) {
-      toast.error("Seu perfil nao pode alterar configurações.");
+      toast.error("Seu perfil não pode alterar configurações.");
       return;
     }
 
@@ -225,12 +225,12 @@ function SettingsPage() {
 
   const handleDelete = async (status: TicketWorkflowStatusConfig) => {
     if (!canManageWorkflow) {
-      toast.error("Seu perfil nao pode remover status.");
+      toast.error("Seu perfil não pode remover status.");
       return;
     }
 
     if (status.system) {
-      toast.error("Os status padrão do sistema nao podem ser removidos.");
+      toast.error("Os status padrão do sistema não podem ser removidos.");
       return;
     }
 
@@ -248,7 +248,7 @@ function SettingsPage() {
 
   const handleTagDelete = async (tag: ActivityTag) => {
     if (!canManageWorkflow) {
-      toast.error("Seu perfil nao pode remover tags.");
+      toast.error("Seu perfil não pode remover tags.");
       return;
     }
 
@@ -471,7 +471,7 @@ function SettingsPage() {
             icon={Workflow}
             label="Status totais"
             value={String(statusConfigs.length)}
-            description="Padroes do sistema e customizados."
+            description="Padrões do sistema e customizados."
           />
           <SummaryCard
             icon={Flag}
@@ -495,7 +495,7 @@ function SettingsPage() {
             icon={Tags}
             label="Tags ativas"
             value={String(activeTags.length)}
-            description="Disponiveis para novas atividades."
+            description="Disponíveis para novas atividades."
           />
         </div>
 
@@ -504,7 +504,7 @@ function SettingsPage() {
             <div className="border-b border-border px-4 py-3">
               <h2 className="font-semibold">Status de chamados</h2>
               <p className="text-xs text-muted-foreground">
-                Os status padrão ficam protegidos contra exclusao e os customizados podem ampliar o workflow.
+                Os status padrão ficam protegidos contra exclusão e os customizados podem ampliar o workflow.
               </p>
             </div>
 
@@ -575,10 +575,10 @@ function SettingsPage() {
                         {status.pauses_sla ? "Pausa SLA" : "Segue contando"}
                       </td>
                       <td className="px-2 py-3 text-muted-foreground">
-                        {status.allows_resume ? "Sim" : "Nao"}
+                        {status.allows_resume ? "Sim" : "Não"}
                       </td>
                       <td className="px-2 py-3 text-muted-foreground">
-                        {status.is_final ? "Sim" : "Nao"}
+                        {status.is_final ? "Sim" : "Não"}
                       </td>
                       <td className="px-2 py-3 text-muted-foreground">
                         {status.active ? "Ativo" : "Inativo"}
@@ -640,10 +640,10 @@ function SettingsPage() {
             </div>
 
             <div className="glass rounded-2xl p-5 shadow-card">
-              <h3 className="text-sm font-semibold">Boas praticas do fluxo</h3>
+              <h3 className="text-sm font-semibold">Boas práticas do fluxo</h3>
               <div className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <p>Use status customizados para pausas reais como "Aguardando fornecedor".</p>
-                <p>Marque "Permite retomar atendimento" quando o status interromper o trabalho tecnico.</p>
+                <p>Marque "Permite retomar atendimento" quando o status interromper o trabalho técnico.</p>
                 <p>Status finais bloqueiam novas ações de fluxo e mantem apenas consulta do chamado.</p>
                 <p>Os status padrão seguem protegidos para evitar quebra do processo base do NimbusDesk.</p>
               </div>
@@ -656,7 +656,7 @@ function SettingsPage() {
             <div className="border-b border-border px-4 py-3">
               <h2 className="font-semibold">Tags de atividades</h2>
               <p className="text-xs text-muted-foreground">
-                As tags sao pre-cadastradas aqui e apenas selecionadas na criação ou edição das atividades.
+                As tags são pre-cadastradas aqui e apenas selecionadas na criação ou edição das atividades.
               </p>
             </div>
 
@@ -756,7 +756,7 @@ function SettingsPage() {
               <div className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <p>Atividades novas selecionam apenas tags ativas cadastradas nesta tela.</p>
                 <p>Tags inativas continuam aparecendo em atividades antigas para preservar o histórico.</p>
-                <p>Tags em uso nao podem ser removidas, evitando quebra nos vinculos ja existentes.</p>
+                <p>Tags em uso não podem ser removidas, evitando quebra nos vinculos ja existentes.</p>
               </div>
             </div>
           </div>

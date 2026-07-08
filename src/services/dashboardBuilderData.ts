@@ -244,9 +244,9 @@ export function buildFilterOptions(context: DashboardDataContext): DashboardFilt
   return {
     period: [
       { value: "today", label: "Hoje" },
-      { value: "7d", label: "Ultimos 7 dias" },
-      { value: "30d", label: "Ultimos 30 dias" },
-      { value: "90d", label: "Ultimos 90 dias" },
+      { value: "7d", label: "Últimos 7 dias" },
+      { value: "30d", label: "Últimos 30 dias" },
+      { value: "90d", label: "Últimos 90 dias" },
       { value: "all", label: "Tudo" },
     ],
     team: uniqueOptions(
@@ -371,7 +371,7 @@ export function resolveComponentData(
     case "tickets_waiting_customer":
       return createKpi(ticketRows.filter(isTicketWaitingCustomer).length, "Dependencias aguardando cliente", component.tone || "warning");
     case "tickets_unassigned":
-      return createKpi(ticketRows.filter(isTicketUnassigned).length, "Chamados sem responsavel definido", component.tone || "destructive");
+      return createKpi(ticketRows.filter(isTicketUnassigned).length, "Chamados sem responsável definido", component.tone || "destructive");
     case "tickets_closed_today":
       return createKpi(ticketRows.filter(isTicketClosedToday).length, "Fechamentos no dia", component.tone || "success");
     case "tickets_by_status":
@@ -379,7 +379,7 @@ export function resolveComponentData(
     case "tickets_by_owner":
       return createSimpleBarOrTable(
         component.type,
-        countByLabel(ticketRows.map((ticket) => ticket.responsible_technician_name || ticket.technician_names?.[0] || "Sem responsavel")),
+        countByLabel(ticketRows.map((ticket) => ticket.responsible_technician_name || ticket.technician_names?.[0] || "Sem responsável")),
         "chamados",
       );
     case "tickets_by_priority":
@@ -403,11 +403,11 @@ export function resolveComponentData(
     case "sprint_items_total":
       return createKpi(selectedSprint?.metrics.totalItems ?? 0, selectedSprint?.sprint.name || "Sem sprint selecionada", component.tone || "primary");
     case "sprint_items_completed":
-      return createKpi(selectedSprint?.metrics.completed ?? 0, "Itens concluidos na sprint", component.tone || "success");
+      return createKpi(selectedSprint?.metrics.completed ?? 0, "Itens concluídos na sprint", component.tone || "success");
     case "sprint_items_in_progress":
-      return createKpi(selectedSprint?.metrics.inProgress ?? 0, "Itens em execucao no ciclo", component.tone || "primary");
+      return createKpi(selectedSprint?.metrics.inProgress ?? 0, "Itens em execução no ciclo", component.tone || "primary");
     case "sprint_items_not_started":
-      return createKpi(selectedSprint?.metrics.notStarted ?? 0, "Itens ainda nao iniciados", component.tone || "accent");
+      return createKpi(selectedSprint?.metrics.notStarted ?? 0, "Itens ainda não iniciados", component.tone || "accent");
     case "sprint_items_blocked":
       return createKpi(selectedSprint?.metrics.blocked ?? 0, "Impedimentos ativos na sprint", component.tone || "destructive");
     case "sprint_items_late":
@@ -418,7 +418,7 @@ export function resolveComponentData(
       return {
         kind: "progress",
         value: selectedSprint?.metrics.progress ?? 0,
-        label: `${selectedSprint?.metrics.progress ?? 0}% concluido`,
+        label: `${selectedSprint?.metrics.progress ?? 0}% concluído`,
         helper: selectedSprint?.metrics.daysRemainingLabel || "Sem sprint selecionada",
         tone: component.tone || "success",
       };
@@ -443,7 +443,7 @@ export function resolveComponentData(
     case "project_activity_distribution":
       return createActivityByProject(component.type, context.activities, effectiveFilters, component.limit || 8);
     case "users_active":
-      return createKpi(userRows.filter((user) => user.is_active !== false).length, "Equipe interna disponivel", component.tone || "success");
+      return createKpi(userRows.filter((user) => user.is_active !== false).length, "Equipe interna disponível", component.tone || "success");
     case "users_capacity_people":
       return createUserCapacityDataset(component.type, userRows, "capacity", component.limit || 8);
     case "users_occupancy_people":
@@ -455,7 +455,7 @@ export function resolveComponentData(
     default:
       return {
         kind: "text",
-        body: "Fonte de dados nao suportada para este componente.",
+        body: "Fonte de dados não suportada para este componente.",
       };
   }
 }
@@ -478,7 +478,7 @@ function getFilterLabel(key: DashboardFilterKey) {
     case "project":
       return "Projeto";
     case "responsible":
-      return "Responsavel";
+      return "Responsável";
     case "client":
       return "Cliente";
     case "status":
@@ -522,7 +522,7 @@ function createStatusDataset(
         { key: "value", label: "Volume", align: "right" },
       ],
       rows: rows.map((row) => ({ name: row.name, value: row.value })),
-      helper: "Distribuicao por status",
+      helper: "Distribuição por status",
     };
   }
 
@@ -542,7 +542,7 @@ function createStatusDataset(
     kind: "series",
     chartType: componentType === "bar" ? "bar" : "donut",
     data: rows,
-    helper: "Distribuicao atual",
+    helper: "Distribuição atual",
   };
 }
 
@@ -558,7 +558,7 @@ function createLineDataset(
         { key: "sla", label: "Chamados", align: "right" },
       ],
       rows,
-      helper: "Historico da serie temporal",
+      helper: "Histórico da serie temporal",
     };
   }
 
@@ -622,7 +622,7 @@ function createAttentionList(rows: Ticket[], limit: number): DashboardResolvedDa
         id: ticket.id,
         title: ticket.title,
         subtitle: `${ticket.code || ticket.id.slice(0, 8)} · ${formatTicketStatusLabel(ticket.status || "")}`,
-        meta: `Prazo ${ticket.due_at ? formatDate(ticket.due_at) : "nao informado"}`,
+        meta: `Prazo ${ticket.due_at ? formatDate(ticket.due_at) : "não informado"}`,
         badges: [
           ...(isCriticalTicket(ticket) ? [{ label: "Critico", tone: "destructive" as const }] : []),
           ...(isOperationalTicketLate(ticket) ? [{ label: "Atrasado", tone: "warning" as const }] : []),
@@ -641,11 +641,11 @@ function createOwnerDistribution(
     return {
       kind: "table",
       columns: [
-        { key: "name", label: "Responsavel" },
+        { key: "name", label: "Responsável" },
         { key: "chamados", label: "Itens", align: "right" },
       ],
       rows: rows.map((row) => ({ name: row.name, chamados: row.chamados })),
-      helper: "Distribuicao por responsavel",
+      helper: "Distribuição por responsável",
     };
   }
 
@@ -657,7 +657,7 @@ function createOwnerDistribution(
         title: row.name,
         meta: `${row.chamados} itens`,
       })),
-      helper: "Carga por responsavel",
+      helper: "Carga por responsável",
     };
   }
 
@@ -665,7 +665,7 @@ function createOwnerDistribution(
     kind: "series",
     chartType: "bar",
     data: rows,
-    helper: "Distribuicao da carga",
+    helper: "Distribuição da carga",
   };
 }
 
@@ -752,7 +752,7 @@ function createSprintAttentionList(rows: SprintDashboardItem[], limit: number): 
       id: item.key,
       title: item.title,
       subtitle: `${item.code} · ${item.ownerName}`,
-      meta: `Prazo ${item.dueAt ? formatDate(item.dueAt) : "nao informado"}`,
+      meta: `Prazo ${item.dueAt ? formatDate(item.dueAt) : "não informado"}`,
       badges: [
         ...(item.blocked ? [{ label: "Bloqueado", tone: "destructive" as const }] : []),
         ...(item.late ? [{ label: "Atrasado", tone: "warning" as const }] : []),
@@ -788,7 +788,7 @@ function createProjectDeliveries(
         due: formatDate(project.due_at),
         status: project.status || "Sem status",
       })),
-      helper: "Entregas proximas",
+      helper: "Entregas próximas",
     };
   }
 
@@ -1133,7 +1133,7 @@ function resolveCapacityStatusLabel(status: SprintCapacityRow["status"]) {
   if (status === "overloaded") return "Sobrecarregado";
   if (status === "attention") return "Atencao";
   if (status === "balanced") return "Saudavel";
-  return "Disponivel";
+  return "Disponível";
 }
 
 function resolveCapacityTone(status: SprintCapacityRow["status"]): DashboardTone {
@@ -1449,7 +1449,7 @@ function mergeTicketIntoSprintItems(map: Map<string, SprintDashboardItem>, ticke
   item.statusLabel = formatTicketStatusLabel(ticket.status || item.status);
   item.ownerIds = uniqueValues(...item.ownerIds, ...ownerIds);
   item.ownerNames = uniqueValues(...item.ownerNames, ...ownerNames);
-  item.ownerName = item.ownerNames[0] || "Sem responsavel";
+  item.ownerName = item.ownerNames[0] || "Sem responsável";
   item.teamLabel = ticket.team || item.teamLabel;
   item.dueAt = ticket.due_at || item.dueAt;
 
@@ -1479,7 +1479,7 @@ function mergeActivityIntoSprintItems(
   item.statusLabel = formatActivityStatusLabel(activity.status || item.status);
   item.ownerIds = uniqueValues(...item.ownerIds, ...ownerIds);
   item.ownerNames = uniqueValues(...item.ownerNames, ...ownerNames);
-  item.ownerName = item.ownerNames[0] || "Sem responsavel";
+  item.ownerName = item.ownerNames[0] || "Sem responsável";
   item.ownerRole = ownerRole || item.ownerRole;
   item.teamLabel = item.teamLabel || ownerRole;
   item.dueAt = activity.due_at || item.dueAt;
@@ -1552,7 +1552,7 @@ function finalizeSprintItem(item: SprintDashboardItem, sprint: Sprint, team: str
   return {
     ...item,
     statusLabel,
-    ownerName: item.ownerNames[0] || item.ownerName || "Sem responsavel",
+    ownerName: item.ownerNames[0] || item.ownerName || "Sem responsável",
     ownerRole: item.ownerRole || "Sem funcao",
     teamLabel: item.teamLabel || team,
     completed,
@@ -1566,7 +1566,7 @@ function buildOwnerDistribution(items: SprintDashboardItem[]) {
   const counts = new Map<string, number>();
 
   items.forEach((item) => {
-    const owner = item.ownerName || "Sem responsavel";
+    const owner = item.ownerName || "Sem responsável";
     counts.set(owner, (counts.get(owner) ?? 0) + 1);
   });
 
@@ -1792,7 +1792,7 @@ function createBaseSprintItem(key: string, id: string, type: "ticket" | "activit
     statusLabel: type === "ticket" ? "Aberto" : "Backlog",
     ownerIds: [],
     ownerNames: [],
-    ownerName: "Sem responsavel",
+    ownerName: "Sem responsável",
     ownerRole: "",
     teamLabel: "",
     plannedHours: 0,
@@ -1960,7 +1960,7 @@ function isBlockedStatus(status?: string | null) {
 
 function isNotStartedStatus(status?: string | null) {
   const normalized = normalizeComparisonValue(status);
-  return ["aberto", "backlog", "a fazer", "aguardando atendimento", "triagem", "planejada", "planejado", "nao iniciado"].includes(normalized);
+  return ["aberto", "backlog", "a fazer", "aguardando atendimento", "triagem", "planejada", "planejado", "não iniciado"].includes(normalized);
 }
 
 function buildSprintDayRange(

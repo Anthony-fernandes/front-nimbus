@@ -98,8 +98,8 @@ function toTicketServiceError(error: unknown, mode: SaveMode) {
 
   return new Error(
     mode === "edit"
-      ? "Nao foi possivel atualizar o chamado."
-      : "Nao foi possivel salvar o chamado.",
+      ? "Não foi possível atualizar o chamado."
+      : "Não foi possível salvar o chamado.",
   );
 }
 

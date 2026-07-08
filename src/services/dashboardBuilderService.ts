@@ -442,7 +442,7 @@ export async function duplicateDashboard(id: string) {
   const dashboards = readLocalStorage();
   const original = dashboards.find((dashboard) => dashboard.id === id);
   if (!original) {
-    throw new Error("Dashboard nao encontrado.");
+    throw new Error("Dashboard não encontrado.");
   }
 
   const createdAt = nowIso();

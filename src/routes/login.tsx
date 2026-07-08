@@ -338,7 +338,7 @@ function LoginForm() {
               {...register("username")}
               type="text"
               autoComplete="username"
-              placeholder="usuario ou email@empresa.com"
+              placeholder="usuário ou email@empresa.com"
               className={inputClass}
             />
           </div>

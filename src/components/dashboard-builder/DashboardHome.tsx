@@ -1951,7 +1951,7 @@ function DashboardSettingsPanel({
       <div>
         <div className="text-[13.5px] font-semibold tracking-tight">Configuração do dashboard</div>
         <p className="mt-1 text-[11.5px] text-muted-foreground">
-          Ajuste identidade, tipo de visao e filtros globais disponiveis.
+          Ajuste identidade, tipo de visao e filtros globais disponíveis.
         </p>
       </div>
 
@@ -1995,7 +1995,7 @@ function DashboardSettingsPanel({
           <div className="rounded-lg border border-border bg-surface/40 p-4">
             <div className="text-sm font-medium text-foreground">Filtros globais</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Cada dashboard decide quais filtros ficam disponiveis e quais valores padrão sao aplicados.
+              Cada dashboard decide quais filtros ficam disponíveis e quais valores padrão são aplicados.
             </p>
             <div className="mt-4 space-y-3">
               {sortFilters(dashboard.filters).map((filter) => (
@@ -2482,7 +2482,7 @@ function DashboardVersionHistoryPanel({ dashboard }: { dashboard: DashboardDefin
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-border bg-surface/40 p-5 text-sm text-muted-foreground">
-          Este dashboard ainda nao tem versoes salvas no histórico.
+          Este dashboard ainda não tem versoes salvas no histórico.
         </div>
       )}
     </div>
@@ -3060,7 +3060,7 @@ function DashboardSettingsDialog({
         <DialogHeader>
           <DialogTitle>Configurar dashboard</DialogTitle>
           <DialogDescription>
-            Ajuste nome, descrição, tipo e os filtros globais que ficarao disponiveis nesta visao.
+            Ajuste nome, descrição, tipo e os filtros globais que ficarao disponíveis nesta visao.
           </DialogDescription>
         </DialogHeader>
 

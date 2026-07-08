@@ -297,7 +297,7 @@ function ActivityDetail() {
     return (
       <AppShell>
         <div className="glass rounded-2xl p-6 text-sm text-destructive">
-          Atividade nao encontrada.
+          Atividade não encontrada.
         </div>
       </AppShell>
     );
@@ -314,7 +314,7 @@ function ActivityDetail() {
               <span>{activity.title}</span>
             </span>
           }
-          subtitle={`${activity.project_name || "Sem projeto"} · Responsável sugerido: ${activity.assignee_name || "Nao definido"}`}
+          subtitle={`${activity.project_name || "Sem projeto"} · Responsável sugerido: ${activity.assignee_name || "Não definido"}`}
           badges={
             <span className="flex items-center gap-2">
               <span className="rounded-md border border-warning/30 bg-warning/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warning">
@@ -417,7 +417,7 @@ function ActivityDetail() {
                       }
                     />
                     <DataCard
-                      label="Custo automatico"
+                      label="Custo automático"
                       value={
                         calculateHourlyCost
                           ? formatCurrency(totalGeneratedCost)
@@ -535,13 +535,13 @@ function ActivityDetail() {
                 <div className="glass rounded-2xl p-5 shadow-card">
                   <h3 className="text-sm font-semibold">Planejamento em sprints</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    O planejamento da atividade acontece dentro da sprint, com horas previstas e responsaveis.
+                    O planejamento da atividade acontece dentro da sprint, com horas previstas e responsáveis.
                   </p>
                 </div>
 
                 {sprintPlans.length === 0 ? (
                   <div className="glass rounded-2xl p-5 text-sm text-muted-foreground shadow-card">
-                    Esta atividade ainda nao foi planejada em nenhuma sprint.
+                    Esta atividade ainda não foi planejada em nenhuma sprint.
                   </div>
                 ) : (
                   sprintPlans.map((plan) => {
@@ -602,7 +602,7 @@ function ActivityDetail() {
                   <ol className="space-y-2 text-sm text-muted-foreground">
                     <li>Criado em {formatDateTime(activity.created_at)}</li>
                     <li>Atualizado em {formatDateTime(activity.updated_at)}</li>
-                    <li>Ultimo apontamento: {displayEntries[0] ? formatDateTime(displayEntries[0].updatedAt || displayEntries[0].createdAt) : "Nao informado"}</li>
+                    <li>Último apontamento: {displayEntries[0] ? formatDateTime(displayEntries[0].updatedAt || displayEntries[0].createdAt) : "Não informado"}</li>
                   </ol>
                 </div>
               </TabsContent>
@@ -789,8 +789,8 @@ function ActivityDetail() {
               icon={Wallet}
               text={
                 calculateHourlyCost
-                  ? `Os apontamentos geram custo automatico. Total atual: ${formatCurrency(totalGeneratedCost)}.`
-                  : "Os apontamentos desta atividade nao geram custo automatico."
+                  ? `Os apontamentos geram custo automático. Total atual: ${formatCurrency(totalGeneratedCost)}.`
+                  : "Os apontamentos desta atividade não geram custo automático."
               }
             />
           </aside>
@@ -812,7 +812,7 @@ function ActivityDetail() {
               {editingEntry ? "Editar apontamento" : "Novo apontamento de trabalho"}
             </DialogTitle>
             <DialogDescription>
-              Registre o tempo realmente trabalhado nesta atividade. O custo automatico sera gerado a partir daqui, se estiver habilitado.
+              Registre o tempo realmente trabalhado nesta atividade. O custo automático sera gerado a partir daqui, se estiver habilitado.
             </DialogDescription>
           </DialogHeader>
 

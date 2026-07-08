@@ -228,7 +228,7 @@ export function ProjectCostDialog({
               <div className="mt-3 rounded-xl border border-border/70 bg-background/40 px-4 py-3 text-sm text-muted-foreground">
                 {form.type === "hours"
                   ? "Use custo por hora quando quiser registrar esforco da equipe com base nas horas executadas."
-                  : "Use aquisicao / despesa para compras, servicos, licencas, infraestrutura e outros gastos avulsos."}
+                  : "Use aquisicao / despesa para compras, serviços, licencas, infraestrutura e outros gastos avulsos."}
               </div>
             </section>
 
@@ -351,7 +351,7 @@ export function ProjectCostDialog({
                     <Input
                       value={form.description}
                       onChange={(event) => set("description", event.target.value)}
-                      placeholder="Ex.: renovacao de licenca, deslocamento para reuniao, servico terceiro..."
+                      placeholder="Ex.: renovacao de licenca, deslocamento para reunião, serviço terceiro..."
                     />
                   </Field>
                   <Field label="Categoria" required>
@@ -394,7 +394,7 @@ export function ProjectCostDialog({
                     rows={4}
                     value={form.notes}
                     onChange={(event) => set("notes", event.target.value)}
-                    placeholder="Ex.: despesa aprovada na reuniao de kickoff, item comprado para homologacao..."
+                    placeholder="Ex.: despesa aprovada na reunião de kickoff, item comprado para homologacao..."
                   />
                 </Field>
               </section>

@@ -27,7 +27,7 @@ function ClientTicketNewPage() {
             { label: "Novo" },
           ]}
           title="Abrir chamado"
-          subtitle="Envie uma nova solicitacao para a equipe acompanhar pelo portal."
+          subtitle="Envie uma nova solicitação para a equipe acompanhar pelo portal."
         />
         {clientId ? <ClientTicketRequestForm /> : <ClientScopeNotice />}
       </div>

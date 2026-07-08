@@ -283,7 +283,7 @@ export function ActivityForm({
           ticketLinkWarning =
             error instanceof Error
               ? error.message
-              : "Nao foi possivel atualizar o vinculo da atividade com o chamado.";
+              : "Não foi possível atualizar o vinculo da atividade com o chamado.";
         }
 
       }
@@ -313,7 +313,7 @@ export function ActivityForm({
       toast.success(mode === "create" ? "Atividade criada." : "Atividade atualizada.");
       if (ticketLinkWarning) {
         toast.warning(
-          `A atividade foi criada, mas o vinculo com o chamado nao foi sincronizado pela API. ${ticketLinkWarning}`,
+          `A atividade foi criada, mas o vinculo com o chamado não foi sincronizado pela API. ${ticketLinkWarning}`,
         );
       }
       navigate({ to: `/activities/${saved.id}` });
@@ -333,7 +333,7 @@ export function ActivityForm({
             <Input
               value={data.title}
               onChange={(event) => set("title", event.target.value)}
-              placeholder="Ex.: Configurar status padroes de chamados"
+              placeholder="Ex.: Configurar status padrões de chamados"
               required
               maxLength={140}
             />
@@ -408,16 +408,16 @@ export function ActivityForm({
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <div className="text-muted-foreground">
-                  Cliente: <span className="text-foreground">{sourceTicketSnapshot.client_name || "Nao informado"}</span>
+                  Cliente: <span className="text-foreground">{sourceTicketSnapshot.client_name || "Não informado"}</span>
                 </div>
                 <div className="text-muted-foreground">
-                  Categoria: <span className="text-foreground">{sourceTicketSnapshot.category_name || sourceTicketSnapshot.category || "Nao informada"}</span>
+                  Categoria: <span className="text-foreground">{sourceTicketSnapshot.category_name || sourceTicketSnapshot.category || "Não informada"}</span>
                 </div>
                 <div className="text-muted-foreground">
-                  Projeto: <span className="text-foreground">{sourceTicketSnapshot.project_name || "Nao vinculado"}</span>
+                  Projeto: <span className="text-foreground">{sourceTicketSnapshot.project_name || "Não vinculado"}</span>
                 </div>
                 <div className="text-muted-foreground">
-                  Tecnico: <span className="text-foreground">{sourceTicketSnapshot.responsible_technician_name || sourceTicketSnapshot.technician_names?.[0] || "Nao definido"}</span>
+                  Técnico: <span className="text-foreground">{sourceTicketSnapshot.responsible_technician_name || sourceTicketSnapshot.technician_names?.[0] || "Não definido"}</span>
                 </div>
               </div>
             </div>
@@ -519,7 +519,7 @@ export function ActivityForm({
 
         <FormSection
           title="Tags da atividade"
-          description="Selecione apenas tags pre-cadastradas nas configurações. Nao e permitido criar tag livre nesta tela."
+          description="Selecione apenas tags pre-cadastradas nas configurações. Não e permitido criar tag livre nesta tela."
         >
           <Field
             label="Selecionar tags"

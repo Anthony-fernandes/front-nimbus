@@ -93,7 +93,7 @@ function SuperAdminContent() {
       setNewCompanyOpen(false);
       setCompanyForm(emptyCompanyForm);
     },
-    onError: () => toast.error("Nao foi possivel criar a empresa."),
+    onError: () => toast.error("Não foi possível criar a empresa."),
   });
 
   const setupAdminMutation = useMutation({
@@ -104,7 +104,7 @@ function SuperAdminContent() {
       setAdminDialogCompany(null);
       setAdminForm(emptyAdminForm);
     },
-    onError: () => toast.error("Nao foi possivel configurar o admin."),
+    onError: () => toast.error("Não foi possível configurar o admin."),
   });
 
   const toggleActiveMutation = useMutation({
@@ -114,7 +114,7 @@ function SuperAdminContent() {
       toast.success(vars.isActive ? "Empresa ativada." : "Empresa desativada.");
       void queryClient.invalidateQueries({ queryKey: ["superadmin-companies"] });
     },
-    onError: () => toast.error("Nao foi possivel alterar o status."),
+    onError: () => toast.error("Não foi possível alterar o status."),
   });
 
   return (
@@ -368,7 +368,7 @@ function SuperAdminContent() {
                 onClick={() => {
                   if (!adminDialogCompany) return;
                   if (!adminForm.username || !adminForm.email || !adminForm.password) {
-                    toast.error("Username, e-mail e senha sao obrigatórios.");
+                    toast.error("Username, e-mail e senha são obrigatórios.");
                     return;
                   }
                   setupAdminMutation.mutate({ companyId: adminDialogCompany.id, data: adminForm });

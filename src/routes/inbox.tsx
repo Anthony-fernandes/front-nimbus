@@ -193,7 +193,7 @@ function InboxPage() {
               {value === "all"
                 ? "Todos"
                 : value === "unread"
-                  ? "Nao lidos"
+                  ? "Não lidos"
                   : value === "favorites"
                     ? "Favoritos"
                     : "Arquivados"}
@@ -286,7 +286,7 @@ function InboxPage() {
                   </button>
                   <button
                     type="button"
-                    title={notification.is_read ? "Marcar como nao lido" : "Marcar como lido"}
+                    title={notification.is_read ? "Marcar como não lido" : "Marcar como lido"}
                     onClick={() =>
                       readMutation.mutate({ id: notification.id, read: !notification.is_read })
                     }

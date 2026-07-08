@@ -69,7 +69,7 @@ function ClientProjectDetailPage() {
           subtitle={`${project.status || "Planejado"} · entrega ${formatDate(project.due_at)}`}
           badges={
             <span className="rounded-md bg-primary/15 px-2 py-1 text-[11px] text-primary">
-              {project.progress ?? 0}% concluido
+              {project.progress ?? 0}% concluído
             </span>
           }
         />

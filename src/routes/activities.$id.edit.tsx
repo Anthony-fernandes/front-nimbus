@@ -38,7 +38,7 @@ function EditActivity() {
         ) : null}
         {isError ? (
           <div className="glass rounded-2xl p-6 text-sm text-destructive">
-            Nao foi possivel carregar a atividade.
+            Não foi possível carregar a atividade.
           </div>
         ) : null}
         {activity && initial ? (

@@ -86,7 +86,7 @@ const empty: MemberFormData = {
 
 const ROLE_OPTIONS: Array<{ value: AppUserRole; label: string }> = [
   { value: "ADMIN", label: "Administrador" },
-  { value: "TECHNICIAN", label: "Tecnico" },
+  { value: "TECHNICIAN", label: "Técnico" },
   { value: "CLIENT", label: "Cliente" },
 ];
 
@@ -393,7 +393,7 @@ export function MemberForm({
     event.preventDefault();
 
     if (!data.name.trim() || !data.email.trim()) {
-      toast.error("Nome e email sao obrigatórios");
+      toast.error("Nome e email são obrigatórios");
       return;
     }
 
@@ -604,7 +604,7 @@ export function MemberForm({
                 />
               </div>
             </Field>
-            <Field label="Horas disponiveis (semana)">
+            <Field label="Horas disponíveis (semana)">
               <Input
                 type="number"
                 min={0}
@@ -646,7 +646,7 @@ export function MemberForm({
 
         <FormSection
           title="Estrutura organizacional"
-          description="Vincule o usuário a departamentos, cargos e responsaveis de aprovacao."
+          description="Vincule o usuário a departamentos, cargos e responsáveis de aprovação."
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Departamento">
@@ -764,7 +764,7 @@ export function MemberForm({
       <div className="space-y-5">
         <div className="glass sticky top-20 space-y-4 rounded-2xl p-4 shadow-card">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <InfoStat label="Perfil" value={ROLE_OPTIONS.find((item) => item.value === data.role)?.label || "Tecnico"} />
+            <InfoStat label="Perfil" value={ROLE_OPTIONS.find((item) => item.value === data.role)?.label || "Técnico"} />
             <InfoStat label="Blocos ativos" value={String(selectedBlocks.length)} />
             <InfoStat label="Permissões finais" value={String(finalPermissionCount)} />
           </div>

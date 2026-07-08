@@ -34,7 +34,7 @@ async function decide(
     });
     return hydrateTicketWithWorkflow(response.data);
   } catch (error) {
-    throw toServiceError(error, "Nao foi possivel registrar a decisao de aprovacao.");
+    throw toServiceError(error, "Não foi possível registrar a decisão de aprovação.");
   }
 }
 
@@ -70,6 +70,6 @@ export async function convertTicketToActivity(
     });
     return response.data;
   } catch (error) {
-    throw toServiceError(error, "Nao foi possivel converter o chamado em atividade.");
+    throw toServiceError(error, "Não foi possível converter o chamado em atividade.");
   }
 }

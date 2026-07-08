@@ -110,7 +110,7 @@ function ClientPortalPage() {
         <div className="glass rounded-2xl p-5 shadow-card">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="font-semibold">Ultimos chamados</h3>
+                <h3 className="font-semibold">Últimos chamados</h3>
                 <p className="text-xs text-muted-foreground">Atualizações mais recentes da sua conta</p>
               </div>
               <Link

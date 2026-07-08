@@ -98,7 +98,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
     id: "status-open",
     name: "Aberto",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.OPEN,
-    description: "Chamado registrado e aguardando analise inicial.",
+    description: "Chamado registrado e aguardando análise inicial.",
     color: "#5ea8ff",
     active: true,
     order: 10,
@@ -114,7 +114,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
     id: "status-awaiting-approval",
     name: "Aguardando aprovacao",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.AWAITING_APPROVAL,
-    description: "Depende de aprovacao antes da triagem tecnica.",
+    description: "Depende de aprovação antes da triagem técnica.",
     color: "#f2c14e",
     active: true,
     order: 20,
@@ -146,7 +146,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
     id: "status-rejected",
     name: "Reprovado",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.REJECTED,
-    description: "Chamado reprovado na etapa de aprovacao.",
+    description: "Chamado reprovado na etapa de aprovação.",
     color: "#ff6b6b",
     active: true,
     is_final: true,
@@ -157,7 +157,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
     id: "status-triage",
     name: "Triagem",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.TRIAGE,
-    description: "Triagem tecnica em andamento.",
+    description: "Triagem técnica em andamento.",
     color: "#8b7bff",
     active: true,
     order: 50,
@@ -172,7 +172,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
     id: "status-awaiting-service",
     name: "Aguardando atendimento",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.AWAITING_SERVICE,
-    description: "Triagem concluida e pronto para iniciar atendimento.",
+    description: "Triagem concluída e pronto para iniciar atendimento.",
     color: "#5ea8ff",
     active: true,
     order: 60,
@@ -186,7 +186,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
     id: "status-in-progress",
     name: "Em atendimento",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.IN_PROGRESS,
-    description: "Atendimento tecnico ativo.",
+    description: "Atendimento técnico ativo.",
     color: "#5ea8ff",
     active: true,
     order: 70,
@@ -219,7 +219,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
     id: "status-validation",
     name: "Validacao",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.VALIDATION,
-    description: "Aguardando validacao da solucao ou retorno tecnico.",
+    description: "Aguardando validacao da solução ou retorno técnico.",
     color: "#5dd0c8",
     active: true,
     allows_resume: true,
@@ -251,7 +251,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
     id: "status-finished",
     name: "Finalizado",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.FINISHED,
-    description: "Chamado concluido com solucao registrada.",
+    description: "Chamado concluído com solução registrada.",
     color: "#25c281",
     active: true,
     is_final: true,
@@ -852,7 +852,7 @@ export function prepareTicketWorkflowAction(args: {
   const targetStatus = getTicketWorkflowActionTargetStatus(actionId, statusConfigs);
 
   if (!targetStatus) {
-    throw new Error("Nao foi possivel resolver o destino da acao selecionada.");
+    throw new Error("Não foi possível resolver o destino da acao selecionada.");
   }
 
   const currentUserId = currentUser?.id;
@@ -898,7 +898,7 @@ export function prepareTicketWorkflowAction(args: {
       transitionPayload = {
         status: targetStatus,
         approvalStatus: "rejected",
-        internalNotes: "Chamado reprovado na etapa de aprovacao.",
+        internalNotes: "Chamado reprovado na etapa de aprovação.",
       };
       reason = transitionPayload.internalNotes || "";
       break;
