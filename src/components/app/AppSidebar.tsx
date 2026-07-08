@@ -49,6 +49,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -342,36 +345,33 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                         )}
                       </SidebarMenuButton>
                       {sprintsOpen && (
-                        <div className="ml-4 border-l border-border/60 pl-2">
-                          <Link
-                            to="/sprints"
-                            className="block rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                          >
-                            Todas as sprints
-                          </Link>
-                          {sprintsQ.isLoading && (
-                            <div className="px-2 py-1 text-xs text-muted-foreground">Carregando...</div>
-                          )}
+                        <SidebarMenuSub>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={path === "/sprints"}>
+                              <Link to="/sprints">
+                                <span>Todas as sprints</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
                           {sprintTeamGroups.map((group) => (
-                            <Link
-                              key={group.id}
-                              to="/sprints"
-                              search={{ team: group.id }}
-                              className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                            >
-                              <span
-                                className="h-2 w-2 shrink-0 rounded-sm"
-                                style={{ backgroundColor: group.color }}
-                              />
-                              <span className="flex-1 truncate text-left">{group.name}</span>
-                              {sprintsByTeam[group.id]?.length ? (
-                                <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] leading-4">
-                                  {sprintsByTeam[group.id].length}
-                                </span>
-                              ) : null}
-                            </Link>
+                            <SidebarMenuSubItem key={group.id}>
+                              <SidebarMenuSubButton asChild>
+                                <Link to="/sprints" search={{ team: group.id }}>
+                                  <span
+                                    className="h-2 w-2 shrink-0 rounded-sm"
+                                    style={{ backgroundColor: group.color }}
+                                  />
+                                  <span className="flex-1 truncate">{group.name}</span>
+                                  {sprintsByTeam[group.id]?.length ? (
+                                    <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 text-[10px] leading-4 text-muted-foreground">
+                                      {sprintsByTeam[group.id].length}
+                                    </span>
+                                  ) : null}
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
                           ))}
-                        </div>
+                        </SidebarMenuSub>
                       )}
                     </SidebarMenuItem>
                   );
