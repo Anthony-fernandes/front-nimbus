@@ -267,7 +267,6 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
 
   // Dropdown do item "Sprints": equipes → sprints de cada equipe
   const [sprintsOpen, setSprintsOpen] = useState(false);
-  const [expandedSprintTeams, setExpandedSprintTeams] = useState<Record<string, boolean>>({});
   const sprintsQ = useQuery({
     queryKey: ["sidebar-sprints"],
     queryFn: () => listSprints(),
@@ -353,55 +352,25 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                           {sprintsQ.isLoading && (
                             <div className="px-2 py-1 text-xs text-muted-foreground">Carregando...</div>
                           )}
-                          {sprintTeamGroups.map((group) => {
-                            const groupSprints = sprintsByTeam[group.id] ?? [];
-                            const expanded = expandedSprintTeams[group.id] ?? false;
-                            return (
-                              <div key={group.id}>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setExpandedSprintTeams((prev) => ({ ...prev, [group.id]: !expanded }))
-                                  }
-                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                                >
-                                  <span
-                                    className="h-2 w-2 shrink-0 rounded-sm"
-                                    style={{ backgroundColor: group.color }}
-                                  />
-                                  <span className="flex-1 truncate text-left">{group.name}</span>
-                                  {expanded ? (
-                                    <ChevronDown className="h-3 w-3 shrink-0" />
-                                  ) : (
-                                    <ChevronRight className="h-3 w-3 shrink-0" />
-                                  )}
-                                </button>
-                                {expanded && (
-                                  <div className="ml-3 border-l border-border/60 pl-2">
-                                    {groupSprints.length === 0 ? (
-                                      <div className="px-2 py-1 text-[11px] text-muted-foreground/70">
-                                        Nenhuma sprint
-                                      </div>
-                                    ) : (
-                                      groupSprints.map((sprint) => (
-                                        <Link
-                                          key={sprint.id}
-                                          to="/sprints/$id"
-                                          params={{ id: sprint.id }}
-                                          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                                        >
-                                          <span className="truncate">{sprint.name}</span>
-                                          {sprint.status === "Em andamento" && (
-                                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
-                                          )}
-                                        </Link>
-                                      ))
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                          {sprintTeamGroups.map((group) => (
+                            <Link
+                              key={group.id}
+                              to="/sprints"
+                              search={{ team: group.id }}
+                              className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                            >
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-sm"
+                                style={{ backgroundColor: group.color }}
+                              />
+                              <span className="flex-1 truncate text-left">{group.name}</span>
+                              {sprintsByTeam[group.id]?.length ? (
+                                <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] leading-4">
+                                  {sprintsByTeam[group.id].length}
+                                </span>
+                              ) : null}
+                            </Link>
+                          ))}
                         </div>
                       )}
                     </SidebarMenuItem>

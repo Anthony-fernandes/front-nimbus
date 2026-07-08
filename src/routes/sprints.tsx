@@ -7,7 +7,7 @@ import { TablePagination } from "@/components/app/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { Input } from "@/components/ui/input";
 import { listTeams } from "@/services/teamService";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BurndownChart } from "@/components/dashboard/Charts";
 import type { Sprint } from "@/lib/types";
@@ -35,6 +35,11 @@ function SprintsPage() {
   const [teamFilter, setTeamFilter] = useState(teamParam || "");
   const [statusFilter, setStatusFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Mantém o filtro sincronizado quando a navegação vem da sidebar já dentro de /sprints
+  useEffect(() => {
+    setTeamFilter(teamParam || "");
+  }, [teamParam]);
   const { data: allSprints = [], isLoading } = useQuery({
     queryKey: ["sprints"],
     queryFn: () => listSprints(),
@@ -43,7 +48,8 @@ function SprintsPage() {
 
   const sprints = allSprints.filter((s) => {
     const teamId = (s as { team?: string | null }).team;
-    if (teamFilter && teamId !== teamFilter) return false;
+    if (teamFilter === "none" && teamId) return false;
+    if (teamFilter && teamFilter !== "none" && teamId !== teamFilter) return false;
     if (statusFilter && s.status !== statusFilter) return false;
     if (searchTerm && !s.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
@@ -128,6 +134,7 @@ function SprintsPage() {
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
+                <option value="none">Sem equipe</option>
               </select>
               <select
                 value={statusFilter}
