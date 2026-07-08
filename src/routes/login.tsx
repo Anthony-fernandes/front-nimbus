@@ -1,16 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
-  BarChart3,
-  Clock,
   Eye,
   EyeOff,
-  KanbanSquare,
   Loader2,
   LockKeyhole,
   Mail,
   ShieldCheck,
-  Ticket,
   UserRound,
 } from "lucide-react";
 import { useState } from "react";
@@ -39,97 +35,33 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-const FEATURES = [
-  {
-    icon: Ticket,
-    title: "Central de chamados",
-    description: "Abertura, triagem, SLA e resolução documentada em um fluxo único.",
-  },
-  {
-    icon: KanbanSquare,
-    title: "Projetos, sprints e kanban",
-    description: "Atividades, capacidade por técnico e planejamento visual.",
-  },
-  {
-    icon: Clock,
-    title: "SLA sob controle",
-    description: "Prazos por prioridade, categoria e cliente, com alertas antes do estouro.",
-  },
-  {
-    icon: BarChart3,
-    title: "Relatórios e indicadores",
-    description: "CSAT, reaberturas, produtividade e exportação para Excel.",
-  },
-];
+const APP_VERSION = "v1.0.0";
 
 function LoginPage() {
   const { reason } = Route.useSearch();
   return (
     <div className="grid min-h-screen w-full bg-background text-foreground lg:grid-cols-[1.1fr_1fr]">
-      {/* ── Painel institucional ─────────────────────────────────── */}
-      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-border/60 p-10 lg:flex xl:p-14">
+      {/* ── Painel institucional (minimalista) ───────────────────── */}
+      <div className="relative hidden flex-col items-center justify-center overflow-hidden border-r border-border/60 p-10 lg:flex">
         {/* Fundo decorativo */}
         <div className="absolute inset-0 bg-gradient-primary opacity-[0.07]" />
         <div className="absolute -top-40 -left-24 h-[28rem] w-[28rem] rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-40 -right-24 h-[28rem] w-[28rem] rounded-full bg-accent/20 blur-3xl" />
-        <div
-          className="absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, color-mix(in oklch, currentColor 12%, transparent) 1px, transparent 0)",
-            backgroundSize: "28px 28px",
-            color: "var(--muted-foreground, #888)",
-          }}
-        />
 
-        {/* Marca */}
-        <div className="relative flex items-center gap-3">
-          <BrandLogo className="h-14 w-14" />
-          <div>
-            <div className="text-xl font-bold tracking-tight">
-              Nimbus<span className="text-gradient">Desk</span>
-            </div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Service Desk &amp; Gestão Operacional
-            </div>
+        {/* Logo + nome + frase */}
+        <div className="relative flex flex-col items-center text-center">
+          <BrandLogo className="h-28 w-28" />
+          <div className="mt-5 text-3xl font-bold tracking-tight">
+            Nimbus<span className="text-gradient">Desk</span>
           </div>
-        </div>
-
-        {/* Mensagem + features */}
-        <div className="relative max-w-lg">
-          <h1 className="text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
+          <p className="mt-2 max-w-xs text-sm text-muted-foreground">
             Toda a operação de suporte da sua equipe em um só lugar.
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Chamados, projetos, sprints, SLA e relatórios conectados — do primeiro contato ao
-            encerramento com resolução registrada.
           </p>
-
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            {FEATURES.map(({ icon: Icon, title, description }) => (
-              <div
-                key={title}
-                className="rounded-xl border border-border/70 bg-background/50 p-3.5 backdrop-blur transition-colors hover:border-primary/30"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="text-sm font-semibold">{title}</span>
-                </div>
-                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* Rodapé institucional */}
-        <div className="relative flex items-center justify-between text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} NimbusDesk · Todos os direitos reservados</span>
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-success" />
-            Conexão segura · Autenticação em duas etapas
-          </span>
+        {/* Versão */}
+        <div className="absolute bottom-8 text-xs text-muted-foreground">
+          {APP_VERSION} · © {new Date().getFullYear()} NimbusDesk
         </div>
       </div>
 
