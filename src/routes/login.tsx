@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -39,6 +39,14 @@ const APP_VERSION = "v1.0.0";
 
 function LoginPage() {
   const { reason } = Route.useSearch();
+
+  // Sessão expirada: mostrar como alerta temporário (toast), não fixo na tela.
+  useEffect(() => {
+    if (reason === "timeout") {
+      toast.warning("Sua sessão expirou por inatividade. Entre novamente.");
+    }
+  }, [reason]);
+
   return (
     <div className="grid min-h-screen w-full bg-background text-foreground lg:grid-cols-[1.1fr_1fr]">
       {/* ── Painel institucional (minimalista) ───────────────────── */}
@@ -86,12 +94,6 @@ function LoginPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Entre com suas credenciais para gerenciar chamados e atividades.
             </p>
-
-            {reason === "timeout" && (
-              <div className="mt-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
-                Sua sessão expirou por inatividade. Por favor, entre novamente.
-              </div>
-            )}
 
             <LoginForm />
           </div>
