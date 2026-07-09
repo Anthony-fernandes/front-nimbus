@@ -36,6 +36,34 @@ export function getSprintMetrics(id: string) {
   return api.get<SprintMetrics>(`/sprints/${id}/metrics/`).then((r) => r.data);
 }
 
+export type SprintItem = {
+  id: string;
+  plan_id: string;
+  type: "activity" | "ticket" | "bug";
+  title: string;
+  code: string;
+  status: string;
+  kanban_column: string;
+  priority: string;
+  assignee_ids: string[];
+  assignee_name: string;
+  planned_hours: number;
+  executed_hours: number;
+  story_points: number | null;
+  project_name: string;
+};
+
+export type SprintItemsResponse = {
+  sprint_id: string;
+  items: SprintItem[];
+  totals: { activities: number; tickets: number; bugs: number; total: number };
+};
+
+// Fonte ÚNICA dos itens da sprint (Planejamento = Kanban = indicadores).
+export function getSprintItems(id: string) {
+  return api.get<SprintItemsResponse>(`/sprints/${id}/items/`).then((r) => r.data);
+}
+
 export function getSprint(id: string) {
   return getResource<Sprint>(ENDPOINT, id);
 }

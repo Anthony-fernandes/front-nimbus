@@ -77,7 +77,9 @@ import {
   getSprintRetrospective,
   getSprintReview,
   getSprintVelocity,
+  getSprintItems,
   saveSprintRetrospective,
+  type SprintItem,
 } from "@/services/sprintService";
 import { formatDate, toNumber , parseApiError} from "@/services/utils";
 import { listUsers } from "@/services/userService";
@@ -124,23 +126,26 @@ function normalizeKanbanPriority(priority?: string | null) {
   return priority || PRIORITY_OPTIONS[2];
 }
 
+// Colunas oficiais (mesmas do backend common/sprint_items.py):
+// Backlog, A fazer, Em progresso, Em revisão, Bloqueado, Concluído.
 function getActivityKanbanColumn(status?: string | null) {
   const normalized = normalizeKanbanText(status);
-  if (normalized.includes("conclu") || normalized.includes("final")) return "Finalizado";
-  if (normalized.includes("revis") || normalized.includes("valid")) return "ValidaÃ§Ã£o";
-  if (normalized.includes("paus")) return "Pausado";
-  if (normalized.includes("bloque") || normalized.includes("aguard")) return "Aguardando cliente";
-  if (normalized.includes("progres") || normalized.includes("andamento")) return "Em atendimento";
-  return "Triagem";
+  if (normalized.includes("conclu") || normalized.includes("final") || normalized.includes("done")) return "Concluído";
+  if (normalized.includes("revis") || normalized.includes("valid") || normalized.includes("homolog")) return "Em revisão";
+  if (normalized.includes("bloque") || normalized.includes("paus") || normalized.includes("aguard")) return "Bloqueado";
+  if (normalized.includes("progres") || normalized.includes("andamento")) return "Em progresso";
+  if (normalized.includes("backlog")) return "Backlog";
+  return "A fazer";
 }
 
 function getActivityStatusForKanbanColumn(column: string) {
   const normalized = normalizeKanbanText(column);
-  if (normalized.includes("final")) return "Concluido";
-  if (normalized.includes("valid")) return "Em revisao";
-  if (normalized.includes("aguard") || normalized.includes("paus")) return "Bloqueado";
-  if (normalized.includes("atendimento")) return "Em progresso";
-  return "Backlog";
+  if (normalized.includes("conclu") || normalized.includes("final")) return "Concluido";
+  if (normalized.includes("revis") || normalized.includes("valid")) return "Em revisao";
+  if (normalized.includes("bloque") || normalized.includes("aguard") || normalized.includes("paus")) return "Bloqueado";
+  if (normalized.includes("progres") || normalized.includes("andamento")) return "Em progresso";
+  if (normalized.includes("backlog")) return "Backlog";
+  return "A fazer";
 }
 
 const FIBONACCI_SP = [1, 2, 3, 5, 8, 13, 21] as const;
@@ -948,6 +953,11 @@ function SprintDetail() {
     queryKey: ["sprint-activity-plans", id],
     queryFn: () => listSprintPlansBySprint(id),
   });
+  // Fonte ÚNICA dos itens da sprint (Kanban/indicadores): backend junta e mapeia colunas.
+  const sprintItemsQuery = useQuery({
+    queryKey: ["sprint-items", id],
+    queryFn: () => getSprintItems(id),
+  });
   const allPlansQuery = useQuery({
     queryKey: ["all-sprint-activity-plans"],
     queryFn: () => listSprintActivityPlans(),
@@ -1059,14 +1069,14 @@ function SprintDetail() {
     const [type, itemId] = cardKey.split(":");
     if (!itemId) return;
     // Concluir exige resolução documentada — abre o popup no fluxo de finalização.
-    if (nextColumn === "Finalizado") {
+    if (nextColumn === "Concluído") {
       setWiTab("resolucao");
       setWiRef({ type: type === "activity" ? "sprint_activity" : "ticket", id: itemId });
       toast.info("Preencha a resolução para concluir este item.");
       return;
     }
-    // Pausar/Bloquear exige motivo registrado.
-    if (nextColumn === "Pausado" || nextColumn === "Aguardando cliente") {
+    // Bloquear exige motivo registrado.
+    if (nextColumn === "Bloqueado") {
       setKanbanPauseCard({ key: cardKey, column: nextColumn });
       return;
     }
@@ -1199,61 +1209,51 @@ function SprintDetail() {
     () => sprintPlans.map((plan) => plan.activityId),
     [sprintPlans],
   );
+  // Cards do Kanban derivam da fonte ÚNICA (/sprints/:id/items). Nenhum item é descartado:
+  // a coluna vem do backend (kanban_column), incluindo 'Não mapeado' se o status for desconhecido.
   const kanbanCards = useMemo<KanbanCard[]>(() => {
-    const ticketPlanByTicket = new Map((ticketPlansQuery.data ?? []).map((plan) => [plan.ticketId, plan]));
-    const activityById = new Map(kanbanLocalActivities.map((activity) => [activity.id, activity]));
+    const items = sprintItemsQuery.data?.items ?? [];
+    return items.map((it: SprintItem) => ({
+      key: `${it.type === "ticket" ? "ticket" : "activity"}:${it.id}`,
+      type: (it.type === "ticket" ? "ticket" : "activity") as "ticket" | "activity",
+      id: it.id,
+      status: it.kanban_column,
+      title: it.title,
+      code: it.code,
+      priority: it.priority,
+      subtitle: it.project_name || (it.type === "ticket" ? "Chamado" : "Atividade"),
+      tags: [],
+      responsibleIds: it.assignee_ids.map(String),
+      hoursLabel: `${it.planned_hours ?? 0}h`,
+      metaLabel: it.status,
+    }));
+  }, [sprintItemsQuery.data]);
 
-    const ticketCards = kanbanLocalTickets.map((ticket) => {
-      const plan = ticketPlanByTicket.get(ticket.id);
-      const responsibleIds = plan?.responsibleIds?.length
-        ? plan.responsibleIds.map(String)
-        : [
-            ...(ticket.technicians || []).map(String),
-            ...(ticket.responsible_technician ? [String(ticket.responsible_technician)] : []),
-          ];
-      return {
-        key: `ticket:${ticket.id}`,
-        type: "ticket" as const,
-        id: ticket.id,
-        status: ticket.status || "Triagem",
-        title: ticket.title,
-        code: ticket.code || ticket.id.slice(0, 8),
-        priority: ticket.priority,
-        subtitle: ticket.client_name || ticket.organization_name || "Chamado",
-        tags: ticket.tags || [],
-        responsibleIds,
-        hoursLabel: plan ? `${plan.plannedHours ?? 0}h` : `${ticket.est_hours || 0}h`,
-        metaLabel: ticket.sla || "Chamado",
-      };
-    });
-
-    const activityCards = sprintPlans.flatMap((plan) => {
-      const activity = activityById.get(plan.activityId) || activityMap.get(plan.activityId);
-      if (!activity) return [];
-      const responsibleIds = plan.responsibleIds?.length
-        ? plan.responsibleIds.map(String)
-        : [
-            ...(activity.assignees || []).map(String),
-            ...(activity.assignee ? [String(activity.assignee)] : []),
-          ];
-      return [{
-        key: `activity:${activity.id}`,
-        type: "activity" as const,
-        id: activity.id,
-        status: getActivityKanbanColumn(activity.status),
-        title: activity.title,
-        code: activity.ticket_code || activity.id.slice(0, 8),
-        priority: plan.priority || activity.priority,
-        subtitle: activity.project_name || activity.ticket_code || "Atividade",
-        tags: activity.tags || [],
-        responsibleIds,
-        hoursLabel: `${plan.plannedHours ?? activity.est_hours ?? 0}h`,
-        metaLabel: activity.status || "Backlog",
-      }];
-    });
-
-    return [...ticketCards, ...activityCards];
-  }, [activityMap, kanbanLocalActivities, kanbanLocalTickets, sprintPlans, ticketPlansQuery.data]);
+  // Colunas dinâmicas: as 6 oficiais de atividade + quaisquer colunas extras presentes
+  // nos itens (status de chamado) + 'Não mapeado', garantindo que nada suma.
+  const sprintKanbanCols = useMemo(() => {
+    const base = [
+      { name: "Backlog", label: "Backlog", accent: "bg-muted-foreground" },
+      { name: "A fazer", label: "A fazer", accent: "bg-muted-foreground" },
+      { name: "Em progresso", label: "Em progresso", accent: "bg-primary" },
+      { name: "Em revisão", label: "Em revisão", accent: "bg-accent" },
+      { name: "Bloqueado", label: "Bloqueado", accent: "bg-info" },
+      { name: "Concluído", label: "Concluído", accent: "bg-success" },
+    ];
+    const known = new Set(base.map((c) => c.name));
+    const extras: { name: string; label: string; accent: string }[] = [];
+    for (const card of kanbanCards) {
+      if (!known.has(card.status)) {
+        known.add(card.status);
+        extras.push({
+          name: card.status,
+          label: card.status,
+          accent: card.status === "Não mapeado" ? "bg-destructive" : "bg-warning",
+        });
+      }
+    }
+    return [...base, ...extras];
+  }, [kanbanCards]);
 
   const openTicketUpdates = (ticket: PlanningTicketItem | Ticket, plan?: SprintTicketPlan) => {
     const fullTicket = ticket as Ticket;
@@ -2414,7 +2414,7 @@ function SprintDetail() {
       <WorkItemBlockDialog
         open={Boolean(kanbanPauseCard)}
         onOpenChange={(open) => { if (!open) setKanbanPauseCard(null); }}
-        title={kanbanPauseCard?.column === "Pausado" ? "Pausar item" : "Bloquear / aguardar"}
+        title="Bloquear item"
         description="Informe o motivo — ele fica registrado no histórico do item."
         actionLabel="Confirmar"
         saving={kanbanUpdateMutation.isPending || kanbanActivityUpdateMutation.isPending}
