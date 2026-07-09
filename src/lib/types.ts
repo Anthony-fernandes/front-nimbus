@@ -631,6 +631,9 @@ export type Sprint = {
   team?: string | null;
   team_name?: string;
   team_color?: string;
+  progress_pct?: number;
+  points_planned?: number;
+  points_done?: number;
   goal?: string;
   observations?: string;
   project?: string | null;

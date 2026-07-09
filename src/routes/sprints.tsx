@@ -12,11 +12,9 @@ import { Button } from "@/components/ui/button";
 import { getSprintMetrics, listSprints } from "@/services/sprintService";
 import type { Sprint } from "@/lib/types";
 
-// Planejamento consumido: story points sobre a capacidade da sprint
+// Progresso real da sprint (itens concluídos ÷ itens planejados), calculado no backend
 function pct(sprint: Sprint) {
-  return sprint.story_points
-    ? Math.min(100, Math.round(((sprint.story_points || 0) / (sprint.capacity || sprint.story_points || 1)) * 100))
-    : 0;
+  return Math.min(100, Math.max(0, Math.round(sprint.progress_pct ?? 0)));
 }
 
 export const Route = createFileRoute("/sprints")({
@@ -396,7 +394,7 @@ function SprintsPage() {
                     </span>
                   </td>
                   <td className="px-2 py-3 font-mono text-xs">{sprint.capacity} h</td>
-                  <td className="px-2 py-3 font-mono text-xs">{sprint.story_points} sp</td>
+                  <td className="px-2 py-3 font-mono text-xs">{sprint.points_done ?? 0}/{sprint.points_planned ?? 0} sp</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="h-1.5 max-w-[160px] flex-1 overflow-hidden rounded-full bg-muted">
