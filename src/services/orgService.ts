@@ -7,8 +7,8 @@ import {
   updateResource,
 } from "./crud";
 
-const DEPARTMENTS = "/users/departments";
-const POSITIONS = "/users/positions";
+const DEPARTMENTS = "/departments";
+const POSITIONS = "/positions";
 
 export function listDepartments() {
   return listResource<Department>(DEPARTMENTS);

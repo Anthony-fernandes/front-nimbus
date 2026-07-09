@@ -275,7 +275,7 @@ export function TicketForm({
     if (templates.length > 0) return;
     setTemplatesLoading(true);
     try {
-      const res = await api.get("/ticket-templates/");
+      const res = await api.get("/tickets/ticket-templates/");
       setTemplates(res.data as TicketTemplate[]);
     } catch {
       // ignore
