@@ -9,7 +9,7 @@ import { getUserClientId } from "@/lib/auth";
 import type { User } from "@/lib/types";
 import { getStoredUser } from "@/services/authService";
 import { getProject } from "@/services/projectService";
-import { formatCurrency, formatDate } from "@/services/utils";
+import { formatDate } from "@/services/utils";
 
 export const Route = createFileRoute("/client/projects/$id")({
   head: () => ({ meta: [{ title: "Projeto do cliente · NimbusDesk" }] }),
@@ -74,10 +74,10 @@ function ClientProjectDetailPage() {
           }
         />
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {/* Portal do cliente não expõe dados financeiros internos (orçamento/custo). */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Stat icon={FolderKanban} label="Status" value={project.status || "Planejado"} />
-          <Stat icon={TriangleAlert} label="Risco" value={`${Math.max(0, 100 - Number(project.progress ?? 0))}%`} />
-          <Stat icon={FolderKanban} label="Orçamento" value={formatCurrency(project.budget)} />
+          <Stat icon={TriangleAlert} label="Andamento" value={`${project.progress ?? 0}%`} />
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -112,7 +112,6 @@ function ClientProjectDetailPage() {
                   ["Responsável", project.owner_name || "-"],
                   ["Início", formatDate(project.start_at)],
                   ["Entrega", formatDate(project.due_at)],
-                  ["Custo realizado", formatCurrency(project.real_cost)],
                 ].map(([label, value]) => (
                   <div key={label} className="flex items-center justify-between gap-3">
                     <dt className="text-xs text-muted-foreground">{label}</dt>
