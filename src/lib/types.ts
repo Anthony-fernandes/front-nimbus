@@ -270,6 +270,21 @@ export type Organization = {
 
 export type Client = Organization;
 
+export type ProjectMetrics = {
+  progress: number;
+  calculated_status: string;
+  health: string;
+  activities_count: number;
+  completed_activities_count: number;
+  pending_activities_count: number;
+  stages_count: number;
+  completed_stages_count: number;
+  has_calculation_basis: boolean;
+  calculation_basis: "activities" | "stages" | "none";
+  can_complete: boolean;
+  calculation_message: string;
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -307,7 +322,9 @@ export type Project = {
   cost_entries?: ProjectCost[];
   costs?: ProjectCost[];
   project_costs?: ProjectCost[];
-  health?: "on_track" | "at_risk" | "delayed" | string;
+  health?: "on_track" | "at_risk" | "delayed" | "sem_base" | string;
+  calculated_status?: string;
+  metrics?: ProjectMetrics;
   created_at?: string;
   updated_at?: string;
 };

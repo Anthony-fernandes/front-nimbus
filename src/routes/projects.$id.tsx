@@ -114,10 +114,21 @@ function ProjectDetail() {
   const activities = Array.isArray(activitiesQuery.data) ? activitiesQuery.data : [];
   const stages = normalizeProjectStages(project?.checklist) as ProjectStage[];
   const costs = Array.isArray(costsQuery.data) ? costsQuery.data : [];
-  const progressSummary = useMemo(
-    () => getProjectProgressSummary({ checklist: stages }, activities),
-    [activities, stages],
-  );
+  // Fonte ÚNICA: métricas calculadas no backend (mesmas da listagem). Fallback local
+  // só se a API não trouxer metrics (compatibilidade).
+  const progressSummary = useMemo(() => {
+    const m = project?.metrics;
+    if (m) {
+      return {
+        percent: m.progress,
+        source: m.calculation_basis,
+        completedCount: m.calculation_basis === "stages" ? m.completed_stages_count : m.completed_activities_count,
+        totalCount: m.calculation_basis === "stages" ? m.stages_count : m.activities_count,
+        helperText: m.calculation_message,
+      };
+    }
+    return getProjectProgressSummary({ checklist: stages }, activities);
+  }, [project?.metrics, activities, stages]);
   const summary = useMemo(
     () => calculateProjectCostSummary(costs, project?.budget),
     [costs, project?.budget],
