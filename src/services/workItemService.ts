@@ -254,6 +254,12 @@ export async function updateWorkItemResponsible(ref: WorkItemRef, userId: string
   await api.patch(`/activities/${ref.id}/`, { assignee: userId });
 }
 
+// Vencimento = prazo para terminar. O backend registra a mudança na auditoria.
+export async function updateWorkItemDueAt(ref: WorkItemRef, dueAt: string | null): Promise<void> {
+  const url = isTicketRef(ref) ? `/tickets/${ref.id}/` : `/activities/${ref.id}/`;
+  await api.patch(url, { due_at: dueAt || null });
+}
+
 export async function updateWorkItemSubtasks(
   ref: WorkItemRef,
   subtasks: WorkItemSubtask[],

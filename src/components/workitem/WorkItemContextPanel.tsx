@@ -25,14 +25,25 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
+function toDateInputValue(value?: string | null) {
+  if (!value) return "";
+  // Aceita ISO ou 'YYYY-MM-DD'; usa só a parte da data para o <input type="date">.
+  return String(value).slice(0, 10);
+}
+
 export function WorkItemContextPanel({
   item,
   onChangeResponsible,
+  onChangeDueAt,
 }: {
   item: WorkItem;
   onChangeResponsible: (userId: string) => void;
+  onChangeDueAt?: (dueAt: string | null) => void;
 }) {
   const [editingResponsible, setEditingResponsible] = useState(false);
+  const [editingDueAt, setEditingDueAt] = useState(false);
+  // Vencimento é editável para itens de sprint (fonte do prazo para terminar).
+  const canEditDueAt = Boolean(onChangeDueAt);
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: () => listUsers(),
@@ -59,7 +70,45 @@ export function WorkItemContextPanel({
         <Row label="Prioridade">{formatPriorityLabel(item.priority)}</Row>
         {item.slaDueAt ? <Row label="SLA">{formatDateTime(item.slaDueAt)}</Row> : null}
         {item.createdAt ? <Row label="Abertura">{formatDateTime(item.createdAt)}</Row> : null}
-        {item.dueAt ? <Row label="Vencimento">{formatDateTime(item.dueAt)}</Row> : null}
+        {canEditDueAt ? (
+          editingDueAt ? (
+            <div className="flex items-center gap-1.5 py-1">
+              <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">Vencimento</span>
+              <input
+                type="date"
+                defaultValue={toDateInputValue(item.dueAt)}
+                autoFocus
+                className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
+                onBlur={(e) => {
+                  const next = e.target.value || null;
+                  if (next !== toDateInputValue(item.dueAt)) onChangeDueAt?.(next);
+                  setEditingDueAt(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  if (e.key === "Escape") setEditingDueAt(false);
+                }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2 py-1">
+              <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">Vencimento</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium">{item.dueAt ? formatDateTime(item.dueAt) : "Sem vencimento"}</span>
+                <button
+                  type="button"
+                  className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                  onClick={() => setEditingDueAt(true)}
+                  title="Editar vencimento"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )
+        ) : item.dueAt ? (
+          <Row label="Vencimento">{formatDateTime(item.dueAt)}</Row>
+        ) : null}
         {item.estHours ? <Row label="Estimativa">{item.estHours}h</Row> : null}
       </Block>
 

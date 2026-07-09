@@ -26,6 +26,7 @@ import {
   reopenWorkItem,
   resolveWorkItem,
   updateWorkItemResponsible,
+  updateWorkItemDueAt,
   updateWorkItemStatus,
   updateWorkItemSubtasks,
 } from "@/services/workItemService";
@@ -332,6 +333,15 @@ export function WorkItemModal({
                       () => updateWorkItemResponsible(effRef!, userId),
                       "Responsável atualizado.",
                     )
+                  }
+                  onChangeDueAt={
+                    item.sprintId
+                      ? (dueAt) =>
+                          void runMutation(
+                            () => updateWorkItemDueAt(effRef!, dueAt),
+                            "Vencimento atualizado.",
+                          )
+                      : undefined
                   }
                 />
               </aside>
