@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { API_BASE_URL } from "@/services/api";
 import {
   archiveConversation,
+  convertConversationToTicket,
   createChatConversation,
   deleteChatMessage,
   forwardChatMessage,
@@ -475,6 +476,16 @@ function ChatPage() {
     } catch { toast.error("Não foi possível encaminhar a mensagem."); }
   }
 
+  async function handleConvertToTicket(convId: string) {
+    setConvMenuId(null);
+    try {
+      const res = await convertConversationToTicket(convId);
+      void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
+      if (res?.detail) toast.info(res.detail);
+      else toast.success(`Chamado ${res?.code || ""} criado a partir da conversa.`);
+    } catch { toast.error("Não foi possível criar o chamado."); }
+  }
+
   async function handleArchive(convId: string) {
     setConvMenuId(null);
     try {
@@ -669,6 +680,13 @@ function ChatPage() {
                         ref={convMenuRef}
                         className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-border bg-popover py-1 shadow-lg"
                       >
+                        <button
+                          type="button"
+                          onClick={() => void handleConvertToTicket(conv.id)}
+                          className="flex w-full items-center gap-2 px-3 py-1.5 text-sm transition hover:bg-muted"
+                        >
+                          <Ticket size={14} /> Criar chamado
+                        </button>
                         <button
                           type="button"
                           onClick={() => void handleArchive(conv.id)}

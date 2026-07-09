@@ -63,6 +63,12 @@ export async function forwardChatMessage(messageId: string, conversationId: stri
   return r.data;
 }
 
+// Chat → Chamado: converte a conversa em chamado e vincula o histórico.
+export async function convertConversationToTicket(id: string, payload?: { title?: string; priority?: string }) {
+  const r = await api.post(`/communication/chat-conversations/${id}/convert-to-ticket/`, payload || {});
+  return r.data as { id: string; code?: string; detail?: string; ticket?: { id: string } };
+}
+
 export async function archiveConversation(id: string) {
   await api.post(`/communication/chat-conversations/${id}/archive/`);
 }

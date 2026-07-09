@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, BookOpen, CheckCircle2, ChevronDown, ChevronUp, Flag,
-  Lock, Pencil, Pin, PinOff, Tag, Trash2, Unlock,
+  Lock, Pencil, Pin, PinOff, Tag, Ticket, Trash2, Unlock,
 } from "lucide-react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -28,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import type { ForumComment, ForumReply, ForumTopic } from "@/lib/types";
 import {
-  convertForumTopicToKb, createForumComment, createForumReply,
+  convertForumTopicToKb, convertForumTopicToTicket, createForumComment, createForumReply,
   deleteForumComment, deleteForumReply, deleteForumTopic, flagContent,
   getForumTopic, listForumComments, listForumReplies, listForumReplyEdits,
   listForumTopicEdits, listKnowledgeCategories,
@@ -405,6 +405,16 @@ function ForumTopicPage() {
   });
   const pinMut = useMutation({ mutationFn: () => pinForumTopic(id), onSuccess: () => { toast.success("Status atualizado."); inv(); }, onError: () => toast.error("Ação não permitida.") });
   const lockMut = useMutation({ mutationFn: () => lockForumTopic(id), onSuccess: () => { toast.success("Status atualizado."); inv(); }, onError: () => toast.error("Ação não permitida.") });
+  const convertTicketMut = useMutation({
+    mutationFn: () => convertForumTopicToTicket(id),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["forum-topic", id] });
+      if (data?.detail) toast.info(data.detail);
+      else toast.success(`Chamado ${data?.code || ""} criado a partir do tópico.`);
+    },
+    onError: () => toast.error("Não foi possível converter o tópico em chamado."),
+  });
+
   const convertMut = useMutation({
     mutationFn: () => convertForumTopicToKb(id, convertCategory || undefined),
     onSuccess: (article) => {
@@ -488,6 +498,16 @@ function ForumTopicPage() {
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                     <button type="button" onClick={() => setConvertOpen(true)} className="flex items-center gap-1 hover:text-blue-400 transition-colors">
                       <BookOpen className="h-3 w-3" /> Converter para KB
+                    </button>
+                    <span className="opacity-30">·</span>
+                    <button
+                      type="button"
+                      onClick={() => convertTicketMut.mutate()}
+                      disabled={convertTicketMut.isPending || Boolean(topic?.converted_ticket)}
+                      className="flex items-center gap-1 hover:text-primary transition-colors disabled:opacity-50"
+                      title={topic?.converted_ticket ? "Este tópico já virou chamado" : "Abrir um chamado a partir deste tópico"}
+                    >
+                      <Ticket className="h-3 w-3" /> {topic?.converted_ticket ? "Chamado vinculado" : "Converter em chamado"}
                     </button>
                     {isAuthor && (
                       <>

@@ -505,6 +505,12 @@ export async function convertForumTopicToKb(topicId: string, categoryId?: string
   return response.data;
 }
 
+// Fórum → Chamado: converte um tópico em chamado e vincula os dois.
+export async function convertForumTopicToTicket(topicId: string) {
+  const response = await api.post(`/communication/forum-topics/${topicId}/convert-to-ticket/`, {});
+  return response.data as { id: string; code?: string; detail?: string; ticket?: { id: string } };
+}
+
 export async function convertDoubtsQuestionToKb(questionId: string, categoryId?: string): Promise<KnowledgeArticle> {
   const response = await api.post<KnowledgeArticle>(
     `/communication/doubts-questions/${questionId}/convert-to-kb/`,
