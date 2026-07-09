@@ -17,11 +17,14 @@ export type WorkItemAction =
   | "responsible"
   | "sprint";
 
+// Espelho ESTRITO de common/status_rules.py::TICKET_ACTIONS. Fonte da verdade real em runtime:
+// GET /work-items/:type/:id/available-actions (consumido em WorkItemModal/WorkItemHeader).
+// Este mapa é só fallback quando a chamada falha — nunca oferece ação que o backend rejeita.
 const TICKET_ACTIONS: Record<string, Set<WorkItemAction>> = {
   Aberto: new Set(["edit", "priority", "responsible", "cancel"]),
-  Triagem: new Set(["edit", "priority", "responsible", "cancel", "sprint", "start"]),
+  Triagem: new Set(["edit", "priority", "responsible", "cancel", "sprint"]),
   "Aguardando Aprovacao": new Set(["cancel"]),
-  Aprovado: new Set(["responsible", "sprint", "priority", "start"]),
+  Aprovado: new Set(["responsible", "sprint", "priority"]),
   Reprovado: new Set(["reopen"]),
   "Aguardando atendimento": new Set(["edit", "start", "priority", "responsible", "sprint", "cancel"]),
   "Em atendimento": new Set(["edit", "pause", "validate", "resolve", "cancel", "responsible", "sprint", "priority"]),
