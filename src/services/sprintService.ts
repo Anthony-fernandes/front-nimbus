@@ -64,6 +64,11 @@ export function getSprintItems(id: string) {
   return api.get<SprintItemsResponse>(`/sprints/${id}/items/`).then((r) => r.data);
 }
 
+// Sprint ativa do técnico logado (fonte do filtro padrão do Kanban geral).
+export function getMyActiveSprint() {
+  return api.get<{ sprint: Sprint | null }>("/sprints/my-active/").then((r) => r.data.sprint);
+}
+
 export function getSprint(id: string) {
   return getResource<Sprint>(ENDPOINT, id);
 }

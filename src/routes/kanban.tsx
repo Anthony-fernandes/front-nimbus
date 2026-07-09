@@ -10,6 +10,7 @@ import { WorkItemBlockDialog } from "@/components/workitem/WorkItemDialogs";
 import type { Ticket } from "@/lib/types";
 import { listTickets, updateTicket } from "@/services/ticketService";
 import { listUsers } from "@/services/userService";
+import { getMyActiveSprint, getSprintItems } from "@/services/sprintService";
 
 const EMPTY_TICKETS: Ticket[] = [];
 
@@ -66,8 +67,29 @@ function KanbanPage() {
   const [drawerTicketId, setDrawerTicketId] = useState<string | null>(null);
   const [drawerTab, setDrawerTab] = useState<"conversa" | "resolucao">("conversa");
   const [pausePendingId, setPausePendingId] = useState<string | null>(null);
+  // Filtro padrão: escopo na sprint ativa do técnico logado.
+  const [scopeToSprint, setScopeToSprint] = useState(true);
 
   const { data: users = [] } = useQuery({ queryKey: ["form-users"], queryFn: () => listUsers() });
+
+  // Sprint ativa do usuário (fonte única: backend). Define o escopo padrão do Kanban.
+  const { data: activeSprint, isLoading: activeSprintLoading } = useQuery({
+    queryKey: ["my-active-sprint"],
+    queryFn: () => getMyActiveSprint(),
+  });
+  const { data: activeSprintItems } = useQuery({
+    queryKey: ["sprint-items", activeSprint?.id],
+    queryFn: () => getSprintItems(activeSprint!.id),
+    enabled: Boolean(activeSprint?.id),
+  });
+  // IDs de chamados que pertencem à sprint ativa (para escopar o Kanban geral).
+  const sprintTicketIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const it of activeSprintItems?.items ?? []) {
+      if (it.type === "ticket") set.add(String(it.id));
+    }
+    return set;
+  }, [activeSprintItems]);
 
   useEffect(() => {
     setLocalTickets(tickets);
@@ -84,10 +106,15 @@ function KanbanPage() {
     },
   });
 
+  // Escopo ativo: só quando o técnico TEM sprint ativa e o toggle está ligado.
+  const sprintScopeActive = scopeToSprint && Boolean(activeSprint?.id);
+
   const groupedTickets = useMemo(() => {
     const byTech = (t: (typeof localTickets)[number]) =>
       !filterTech || (t.technicians || []).map(String).includes(filterTech);
     const byPrio = (t: (typeof localTickets)[number]) => !filterPriority || t.priority === filterPriority;
+    const bySprint = (t: (typeof localTickets)[number]) =>
+      !sprintScopeActive || sprintTicketIds.has(String(t.id));
     const known = new Set<string>(statusCols.map((c) => c.name));
 
     const cols: Array<{ name: string; label: string; accent: string; cards: typeof localTickets }> =
@@ -97,6 +124,7 @@ function KanbanPage() {
         accent: column.accent,
         cards: localTickets
           .filter((t) => (t.status || "Triagem") === column.name)
+          .filter(bySprint)
           .filter(byTech)
           .filter(byPrio),
       }));
@@ -104,13 +132,14 @@ function KanbanPage() {
     // Balde para status encerrados/desconhecidos — garante que nenhum card suma.
     const leftovers = localTickets
       .filter((t) => !known.has(t.status || "Triagem"))
+      .filter(bySprint)
       .filter(byTech)
       .filter(byPrio);
     if (leftovers.length) {
       cols.push({ name: "__closed__", label: "Encerrados", accent: "bg-muted-foreground", cards: leftovers });
     }
     return cols;
-  }, [localTickets, filterTech, filterPriority]);
+  }, [localTickets, filterTech, filterPriority, sprintScopeActive, sprintTicketIds]);
 
   const applyMove = (ticketId: string, nextStatus: string, reason?: string) => {
     const currentTicket = localTickets.find((ticket) => ticket.id === ticketId);
@@ -172,6 +201,28 @@ function KanbanPage() {
             <p className="text-sm text-muted-foreground">
               Fluxo de trabalho · {localTickets.length} cards
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {activeSprint?.id ? (
+                <>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-medium text-primary">
+                    Sprint ativa: {activeSprint.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setScopeToSprint((v) => !v)}
+                    className="rounded-full border border-border px-2.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                  >
+                    {scopeToSprint ? "Mostrando só a sprint ativa · ver todos" : "Ver só a sprint ativa"}
+                  </button>
+                </>
+              ) : (
+                !activeSprintLoading && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2.5 py-0.5 text-[11px] font-medium text-warning">
+                    Você não está vinculado a nenhuma Sprint ativa
+                  </span>
+                )
+              )}
+            </div>
           </div>
           <div className="flex gap-2 text-xs items-center">
   <button
