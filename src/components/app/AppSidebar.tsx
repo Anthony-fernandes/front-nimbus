@@ -126,17 +126,12 @@ function getInternalMenu(user: User | null | undefined) {
       icon: ListTodo,
       visible: hasAnyPermission(user, ["activities.view", "projects.view"]),
     },
-    { title: "Conhecimento", url: "/knowledge", icon: BookOpen, visible: true },
-    { title: "Fórum", url: "/forum", icon: MessagesSquare, visible: true },
-    { title: "Dúvidas", url: "/doubts", icon: HelpCircle, visible: true },
-    { title: "Central de Ajuda", url: "/help", icon: LifeBuoy, visible: true },
     {
       title: "Categorias de Conteúdo",
       url: "/categories",
       icon: Tag,
       visible: getUserRole(user) !== "CLIENT",
     },
-    { title: "Chat", url: "/chat", icon: MessageCircle, visible: true },
     { title: "Meu perfil", url: "/profile", icon: Settings, visible: getUserRole(user) !== "CLIENT" },
   ].filter((item) => item.visible);
 
@@ -273,6 +268,7 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
 
   // Dropdown do item "Sprints": equipes → sprints de cada equipe
   const [sprintsOpen, setSprintsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const sprintsQ = useQuery({
     queryKey: ["sidebar-sprints"],
     queryFn: () => listSprints(),
@@ -402,6 +398,61 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* ── Central de Ajuda: agrupa autoatendimento (Base, FAQ, Fórum, Chat) ── */}
+        {!clientUser && !collapsed ? (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={["/help", "/knowledge", "/forum", "/doubts", "/chat"].some((u) => isActive(u))}
+                    tooltip="Central de Ajuda"
+                    onClick={() => setHelpOpen((open) => !open)}
+                  >
+                    <LifeBuoy className="h-4 w-4 shrink-0" />
+                    <span className="flex-1">Central de Ajuda</span>
+                    {unreadChatCount > 0 && (
+                      <span className="ml-auto mr-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                        {unreadChatCount > 99 ? "99+" : unreadChatCount}
+                      </span>
+                    )}
+                    {helpOpen ? (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </SidebarMenuButton>
+                  {helpOpen && (
+                    <SidebarMenuSub>
+                      {[
+                        { title: "Visão geral", url: "/help", icon: LifeBuoy },
+                        { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
+                        { title: "Dúvidas / FAQ", url: "/doubts", icon: HelpCircle },
+                        { title: "Fórum / Comunidade", url: "/forum", icon: MessagesSquare },
+                        { title: "Chat de Atendimento", url: "/chat", icon: MessageCircle },
+                      ].map((sub) => (
+                        <SidebarMenuSubItem key={sub.url}>
+                          <SidebarMenuSubButton asChild isActive={isActive(sub.url)}>
+                            <Link to={sub.url}>
+                              <sub.icon className="h-3.5 w-3.5" />
+                              <span className="flex-1">{sub.title}</span>
+                              {sub.url === "/chat" && unreadChatCount > 0 && (
+                                <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                                  {unreadChatCount > 99 ? "99+" : unreadChatCount}
+                                </span>
+                              )}
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
 
         {/* ── Equipes (navegação por contexto, estilo Monday) ── */}
         {!clientUser && !collapsed && teams.length > 0 ? (
