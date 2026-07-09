@@ -112,7 +112,7 @@ const SYSTEM_TICKET_WORKFLOW_STATUSES: TicketWorkflowStatusConfig[] = [
   },
   {
     id: "status-awaiting-approval",
-    name: "Aguardando aprovacao",
+    name: "Aguardando Aprovacao",
     slug: TICKET_WORKFLOW_STATUS_SLUGS.AWAITING_APPROVAL,
     description: "Depende de aprovação antes da triagem técnica.",
     color: "#f2c14e",

@@ -570,7 +570,7 @@ export function TicketForm({
       approvalRequired: defaults.approvalRequired,
       requiresClientValidation: defaults.requiresClientValidation,
       status:
-        current.status === "Aberto" || current.status === "Aguardando aprovacao"
+        current.status === "Aberto" || current.status === "Aguardando Aprovacao"
           ? resolveTicketOpeningStatus(category)
           : current.status,
     }));

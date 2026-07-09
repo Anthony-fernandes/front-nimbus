@@ -25,14 +25,21 @@ const priorityClr: Record<string, string> = {
   Baixa: "bg-muted text-muted-foreground",
 };
 
+// Cobre todos os status operacionais oficiais de chamado (common/status_rules.py).
 const statusCols = [
-  { name: "Triagem", label: "Backlog", accent: "bg-muted-foreground" },
-  { name: "Em atendimento", label: "Em progresso", accent: "bg-primary" },
-  { name: "Aguardando cliente", label: "Aguardando", accent: "bg-warning" },
-  { name: "Valida\u00e7\u00e3o", label: "Homologacao", accent: "bg-accent" },
+  { name: "Aberto", label: "Aberto", accent: "bg-muted-foreground" },
+  { name: "Triagem", label: "Triagem", accent: "bg-muted-foreground" },
+  { name: "Aguardando Aprovacao", label: "Aguardando aprova\u00e7\u00e3o", accent: "bg-warning" },
+  { name: "Aguardando atendimento", label: "Aguardando atendimento", accent: "bg-info" },
+  { name: "Em atendimento", label: "Em atendimento", accent: "bg-primary" },
+  { name: "Aguardando cliente", label: "Aguardando cliente", accent: "bg-warning" },
+  { name: "Valida\u00e7\u00e3o", label: "Valida\u00e7\u00e3o", accent: "bg-accent" },
   { name: "Pausado", label: "Pausado", accent: "bg-info" },
   { name: "Finalizado", label: "Finalizado", accent: "bg-success" },
 ] as const;
+
+// Status finais/encerrados que n\u00e3o ganham coluna pr\u00f3pria mas n\u00e3o devem sumir.
+const CLOSED_STATUSES = ["Cancelado", "Reprovado", "Aprovado"];
 
 function initials(names?: string[]) {
   const value = names?.[0] || "NA";
@@ -77,16 +84,33 @@ function KanbanPage() {
     },
   });
 
-  const groupedTickets = useMemo(
-    () => statusCols.map(column => ({
-      ...column,
-      cards: localTickets
-        .filter(t => (t.status || "Triagem") === column.name)
-        .filter(t => !filterTech || (t.technicians || []).map(String).includes(filterTech))
-        .filter(t => !filterPriority || t.priority === filterPriority),
-    })),
-    [localTickets, filterTech, filterPriority],
-  );
+  const groupedTickets = useMemo(() => {
+    const byTech = (t: (typeof localTickets)[number]) =>
+      !filterTech || (t.technicians || []).map(String).includes(filterTech);
+    const byPrio = (t: (typeof localTickets)[number]) => !filterPriority || t.priority === filterPriority;
+    const known = new Set<string>(statusCols.map((c) => c.name));
+
+    const cols: Array<{ name: string; label: string; accent: string; cards: typeof localTickets }> =
+      statusCols.map((column) => ({
+        name: column.name,
+        label: column.label,
+        accent: column.accent,
+        cards: localTickets
+          .filter((t) => (t.status || "Triagem") === column.name)
+          .filter(byTech)
+          .filter(byPrio),
+      }));
+
+    // Balde para status encerrados/desconhecidos — garante que nenhum card suma.
+    const leftovers = localTickets
+      .filter((t) => !known.has(t.status || "Triagem"))
+      .filter(byTech)
+      .filter(byPrio);
+    if (leftovers.length) {
+      cols.push({ name: "__closed__", label: "Encerrados", accent: "bg-muted-foreground", cards: leftovers });
+    }
+    return cols;
+  }, [localTickets, filterTech, filterPriority]);
 
   const applyMove = (ticketId: string, nextStatus: string, reason?: string) => {
     const currentTicket = localTickets.find((ticket) => ticket.id === ticketId);

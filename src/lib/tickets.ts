@@ -48,7 +48,7 @@ export function calcPriorityFromMatrix(impact: string, urgency: string): string 
 
 export const TICKET_STATUS_OPTIONS = [
   "Aberto",
-  "Aguardando aprovacao",
+  "Aguardando Aprovacao",
   "Aprovado",
   "Reprovado",
   "Triagem",
@@ -75,7 +75,7 @@ export function isApprovalRequired(category?: Partial<TicketCategory> | null) {
 }
 
 export function resolveTicketOpeningStatus(category?: Partial<TicketCategory> | null) {
-  return isApprovalRequired(category) ? "Aguardando aprovacao" : "Aberto";
+  return isApprovalRequired(category) ? "Aguardando Aprovacao" : "Aberto";
 }
 
 export function getTicketStatusClass(status?: string | null) {
@@ -129,7 +129,7 @@ export function getTicketPriorityClass(priority?: string | null) {
 }
 
 export function isFinalTicketStatus(status?: string | null) {
-  return normalizeValue(status) === "FINALIZADO";
+  return ["FINALIZADO", "CANCELADO", "REPROVADO"].includes(normalizeValue(status));
 }
 
 export function canTicketReturnToService(status?: string | null) {

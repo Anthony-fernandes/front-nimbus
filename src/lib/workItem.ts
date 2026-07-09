@@ -129,7 +129,7 @@ export const ACTIVITY_WORK_STATUSES = [
   "Bloqueado",
 ];
 
-const TICKET_DONE = ["Finalizado", "Cancelado", "Resolvido"];
+const TICKET_DONE = ["Finalizado", "Cancelado", "Reprovado", "Resolvido"];
 const ACTIVITY_DONE = ["Concluída", "Concluido", "Concluído", "Cancelada", "Cancelado", "Done"];
 
 export function isWorkItemFinished(item: WorkItem): boolean {

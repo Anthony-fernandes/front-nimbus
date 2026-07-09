@@ -1028,16 +1028,7 @@ function TicketsPage() {
 
             <div className="h-4 w-px bg-border" />
 
-            {/* Fechar chamados */}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="gap-1.5 text-xs text-green-600 hover:bg-green-500/10 hover:text-green-600"
-              disabled={bulkSaving}
-              onClick={() => { setBulkAction("status"); setBulkValue("Finalizado"); }}
-            >
-              <CheckCheck className="h-3.5 w-3.5" /> Fechar
-            </Button>
+            {/* Finalizar exige resolução documentada por chamado — feito no detalhe, não em massa. */}
 
             {/* Cancelar seleção */}
             <Button
