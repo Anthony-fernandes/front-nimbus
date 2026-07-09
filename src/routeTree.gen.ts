@@ -19,6 +19,7 @@ import { Route as SlaRouteImport } from './routes/sla'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PermissionBlocksRouteImport } from './routes/permission-blocks'
 import { Route as OrgRouteImport } from './routes/org'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -41,6 +42,7 @@ import { Route as ClientRouteImport } from './routes/client'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as BacklogRouteImport } from './routes/backlog'
+import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AprovacoesRouteImport } from './routes/aprovacoes'
 import { Route as ActivitiesRouteImport } from './routes/activities'
@@ -146,6 +148,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PermissionBlocksRoute = PermissionBlocksRouteImport.update({
@@ -256,6 +263,11 @@ const CategoriesRoute = CategoriesRouteImport.update({
 const BacklogRoute = BacklogRouteImport.update({
   id: '/backlog',
   path: '/backlog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsRoute = AutomationsRouteImport.update({
+  id: '/automations',
+  path: '/automations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditRoute = AuditRouteImport.update({
@@ -545,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
   '/audit': typeof AuditRoute
+  '/automations': typeof AutomationsRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/categories': typeof CategoriesRoute
   '/chat': typeof ChatRoute
@@ -567,6 +580,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
+  '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -635,6 +649,7 @@ export interface FileRoutesByTo {
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
   '/audit': typeof AuditRoute
+  '/automations': typeof AutomationsRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/categories': typeof CategoriesRoute
   '/chat': typeof ChatRoute
@@ -657,6 +672,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
+  '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -726,6 +742,7 @@ export interface FileRoutesById {
   '/activities': typeof ActivitiesRouteWithChildren
   '/aprovacoes': typeof AprovacoesRoute
   '/audit': typeof AuditRoute
+  '/automations': typeof AutomationsRoute
   '/backlog': typeof BacklogRouteWithChildren
   '/categories': typeof CategoriesRoute
   '/chat': typeof ChatRoute
@@ -748,6 +765,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/org': typeof OrgRoute
   '/permission-blocks': typeof PermissionBlocksRoute
+  '/profile': typeof ProfileRoute
   '/projects': typeof ProjectsRouteWithChildren
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -818,6 +836,7 @@ export interface FileRouteTypes {
     | '/activities'
     | '/aprovacoes'
     | '/audit'
+    | '/automations'
     | '/backlog'
     | '/categories'
     | '/chat'
@@ -840,6 +859,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/org'
     | '/permission-blocks'
+    | '/profile'
     | '/projects'
     | '/reports'
     | '/settings'
@@ -908,6 +928,7 @@ export interface FileRouteTypes {
     | '/activities'
     | '/aprovacoes'
     | '/audit'
+    | '/automations'
     | '/backlog'
     | '/categories'
     | '/chat'
@@ -930,6 +951,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/org'
     | '/permission-blocks'
+    | '/profile'
     | '/projects'
     | '/reports'
     | '/settings'
@@ -998,6 +1020,7 @@ export interface FileRouteTypes {
     | '/activities'
     | '/aprovacoes'
     | '/audit'
+    | '/automations'
     | '/backlog'
     | '/categories'
     | '/chat'
@@ -1020,6 +1043,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/org'
     | '/permission-blocks'
+    | '/profile'
     | '/projects'
     | '/reports'
     | '/settings'
@@ -1089,6 +1113,7 @@ export interface RootRouteChildren {
   ActivitiesRoute: typeof ActivitiesRouteWithChildren
   AprovacoesRoute: typeof AprovacoesRoute
   AuditRoute: typeof AuditRoute
+  AutomationsRoute: typeof AutomationsRoute
   BacklogRoute: typeof BacklogRouteWithChildren
   CategoriesRoute: typeof CategoriesRoute
   ChatRoute: typeof ChatRoute
@@ -1111,6 +1136,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   OrgRoute: typeof OrgRoute
   PermissionBlocksRoute: typeof PermissionBlocksRoute
+  ProfileRoute: typeof ProfileRoute
   ProjectsRoute: typeof ProjectsRouteWithChildren
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -1202,6 +1228,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/permission-blocks': {
@@ -1356,6 +1389,13 @@ declare module '@tanstack/react-router' {
       path: '/backlog'
       fullPath: '/backlog'
       preLoaderRoute: typeof BacklogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automations': {
+      id: '/automations'
+      path: '/automations'
+      fullPath: '/automations'
+      preLoaderRoute: typeof AutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audit': {
@@ -2081,6 +2121,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivitiesRoute: ActivitiesRouteWithChildren,
   AprovacoesRoute: AprovacoesRoute,
   AuditRoute: AuditRoute,
+  AutomationsRoute: AutomationsRoute,
   BacklogRoute: BacklogRouteWithChildren,
   CategoriesRoute: CategoriesRoute,
   ChatRoute: ChatRoute,
@@ -2103,6 +2144,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   OrgRoute: OrgRoute,
   PermissionBlocksRoute: PermissionBlocksRoute,
+  ProfileRoute: ProfileRoute,
   ProjectsRoute: ProjectsRouteWithChildren,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
