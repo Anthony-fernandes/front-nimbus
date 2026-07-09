@@ -83,7 +83,11 @@ import { Route as AtividadesIdRouteImport } from './routes/atividades.$id'
 import { Route as ActivitiesNewRouteImport } from './routes/activities.new'
 import { Route as ActivitiesIdRouteImport } from './routes/activities.$id'
 import { Route as TicketsIdEditRouteImport } from './routes/tickets.$id.edit'
+import { Route as TeamsIdTarefasRouteImport } from './routes/teams.$id.tarefas'
+import { Route as TeamsIdSprintsRouteImport } from './routes/teams.$id.sprints'
 import { Route as TeamsIdEditRouteImport } from './routes/teams.$id.edit'
+import { Route as TeamsIdChamadosRouteImport } from './routes/teams.$id.chamados'
+import { Route as TeamsIdBugsRouteImport } from './routes/teams.$id.bugs'
 import { Route as SprintsIdEditarRouteImport } from './routes/sprints.$id.editar'
 import { Route as SprintsIdEditRouteImport } from './routes/sprints.$id.edit'
 import { Route as ProjetosIdEditarRouteImport } from './routes/projetos.$id.editar'
@@ -470,9 +474,29 @@ const TicketsIdEditRoute = TicketsIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => TicketsIdRoute,
 } as any)
+const TeamsIdTarefasRoute = TeamsIdTarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => TeamsIdRoute,
+} as any)
+const TeamsIdSprintsRoute = TeamsIdSprintsRouteImport.update({
+  id: '/sprints',
+  path: '/sprints',
+  getParentRoute: () => TeamsIdRoute,
+} as any)
 const TeamsIdEditRoute = TeamsIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
+  getParentRoute: () => TeamsIdRoute,
+} as any)
+const TeamsIdChamadosRoute = TeamsIdChamadosRouteImport.update({
+  id: '/chamados',
+  path: '/chamados',
+  getParentRoute: () => TeamsIdRoute,
+} as any)
+const TeamsIdBugsRoute = TeamsIdBugsRouteImport.update({
+  id: '/bugs',
+  path: '/bugs',
   getParentRoute: () => TeamsIdRoute,
 } as any)
 const SprintsIdEditarRoute = SprintsIdEditarRouteImport.update({
@@ -640,7 +664,11 @@ export interface FileRoutesByFullPath {
   '/projetos/$id/editar': typeof ProjetosIdEditarRoute
   '/sprints/$id/edit': typeof SprintsIdEditRoute
   '/sprints/$id/editar': typeof SprintsIdEditarRoute
+  '/teams/$id/bugs': typeof TeamsIdBugsRoute
+  '/teams/$id/chamados': typeof TeamsIdChamadosRoute
   '/teams/$id/edit': typeof TeamsIdEditRoute
+  '/teams/$id/sprints': typeof TeamsIdSprintsRoute
+  '/teams/$id/tarefas': typeof TeamsIdTarefasRoute
   '/tickets/$id/edit': typeof TicketsIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -732,7 +760,11 @@ export interface FileRoutesByTo {
   '/projetos/$id/editar': typeof ProjetosIdEditarRoute
   '/sprints/$id/edit': typeof SprintsIdEditRoute
   '/sprints/$id/editar': typeof SprintsIdEditarRoute
+  '/teams/$id/bugs': typeof TeamsIdBugsRoute
+  '/teams/$id/chamados': typeof TeamsIdChamadosRoute
   '/teams/$id/edit': typeof TeamsIdEditRoute
+  '/teams/$id/sprints': typeof TeamsIdSprintsRoute
+  '/teams/$id/tarefas': typeof TeamsIdTarefasRoute
   '/tickets/$id/edit': typeof TicketsIdEditRoute
 }
 export interface FileRoutesById {
@@ -825,7 +857,11 @@ export interface FileRoutesById {
   '/projetos/$id/editar': typeof ProjetosIdEditarRoute
   '/sprints/$id/edit': typeof SprintsIdEditRoute
   '/sprints/$id/editar': typeof SprintsIdEditarRoute
+  '/teams/$id/bugs': typeof TeamsIdBugsRoute
+  '/teams/$id/chamados': typeof TeamsIdChamadosRoute
   '/teams/$id/edit': typeof TeamsIdEditRoute
+  '/teams/$id/sprints': typeof TeamsIdSprintsRoute
+  '/teams/$id/tarefas': typeof TeamsIdTarefasRoute
   '/tickets/$id/edit': typeof TicketsIdEditRoute
 }
 export interface FileRouteTypes {
@@ -919,7 +955,11 @@ export interface FileRouteTypes {
     | '/projetos/$id/editar'
     | '/sprints/$id/edit'
     | '/sprints/$id/editar'
+    | '/teams/$id/bugs'
+    | '/teams/$id/chamados'
     | '/teams/$id/edit'
+    | '/teams/$id/sprints'
+    | '/teams/$id/tarefas'
     | '/tickets/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1011,7 +1051,11 @@ export interface FileRouteTypes {
     | '/projetos/$id/editar'
     | '/sprints/$id/edit'
     | '/sprints/$id/editar'
+    | '/teams/$id/bugs'
+    | '/teams/$id/chamados'
     | '/teams/$id/edit'
+    | '/teams/$id/sprints'
+    | '/teams/$id/tarefas'
     | '/tickets/$id/edit'
   id:
     | '__root__'
@@ -1103,7 +1147,11 @@ export interface FileRouteTypes {
     | '/projetos/$id/editar'
     | '/sprints/$id/edit'
     | '/sprints/$id/editar'
+    | '/teams/$id/bugs'
+    | '/teams/$id/chamados'
     | '/teams/$id/edit'
+    | '/teams/$id/sprints'
+    | '/teams/$id/tarefas'
     | '/tickets/$id/edit'
   fileRoutesById: FileRoutesById
 }
@@ -1678,11 +1726,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TicketsIdEditRouteImport
       parentRoute: typeof TicketsIdRoute
     }
+    '/teams/$id/tarefas': {
+      id: '/teams/$id/tarefas'
+      path: '/tarefas'
+      fullPath: '/teams/$id/tarefas'
+      preLoaderRoute: typeof TeamsIdTarefasRouteImport
+      parentRoute: typeof TeamsIdRoute
+    }
+    '/teams/$id/sprints': {
+      id: '/teams/$id/sprints'
+      path: '/sprints'
+      fullPath: '/teams/$id/sprints'
+      preLoaderRoute: typeof TeamsIdSprintsRouteImport
+      parentRoute: typeof TeamsIdRoute
+    }
     '/teams/$id/edit': {
       id: '/teams/$id/edit'
       path: '/edit'
       fullPath: '/teams/$id/edit'
       preLoaderRoute: typeof TeamsIdEditRouteImport
+      parentRoute: typeof TeamsIdRoute
+    }
+    '/teams/$id/chamados': {
+      id: '/teams/$id/chamados'
+      path: '/chamados'
+      fullPath: '/teams/$id/chamados'
+      preLoaderRoute: typeof TeamsIdChamadosRouteImport
+      parentRoute: typeof TeamsIdRoute
+    }
+    '/teams/$id/bugs': {
+      id: '/teams/$id/bugs'
+      path: '/bugs'
+      fullPath: '/teams/$id/bugs'
+      preLoaderRoute: typeof TeamsIdBugsRouteImport
       parentRoute: typeof TeamsIdRoute
     }
     '/sprints/$id/editar': {
@@ -2032,11 +2108,19 @@ const SprintsRouteWithChildren =
   SprintsRoute._addFileChildren(SprintsRouteChildren)
 
 interface TeamsIdRouteChildren {
+  TeamsIdBugsRoute: typeof TeamsIdBugsRoute
+  TeamsIdChamadosRoute: typeof TeamsIdChamadosRoute
   TeamsIdEditRoute: typeof TeamsIdEditRoute
+  TeamsIdSprintsRoute: typeof TeamsIdSprintsRoute
+  TeamsIdTarefasRoute: typeof TeamsIdTarefasRoute
 }
 
 const TeamsIdRouteChildren: TeamsIdRouteChildren = {
+  TeamsIdBugsRoute: TeamsIdBugsRoute,
+  TeamsIdChamadosRoute: TeamsIdChamadosRoute,
   TeamsIdEditRoute: TeamsIdEditRoute,
+  TeamsIdSprintsRoute: TeamsIdSprintsRoute,
+  TeamsIdTarefasRoute: TeamsIdTarefasRoute,
 }
 
 const TeamsIdRouteWithChildren =
@@ -2168,3 +2252,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

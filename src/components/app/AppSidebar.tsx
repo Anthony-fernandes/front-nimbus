@@ -463,10 +463,10 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                 {teams.map((team) => {
                   const expanded = expandedTeams[team.id] ?? false;
                   const teamLinks = [
-                    { label: "Sprints", to: `/sprints?team=${team.id}` },
-                    { label: "Tarefas", to: `/backlog?team=${team.id}&type=task` },
-                    { label: "Chamados", to: `/backlog?team=${team.id}&type=ticket` },
-                    { label: "Bugs", to: `/backlog?team=${team.id}&type=bug` },
+                    { label: "Sprints", to: `/teams/${team.id}/sprints` },
+                    { label: "Tarefas", to: `/teams/${team.id}/tarefas` },
+                    { label: "Chamados", to: `/teams/${team.id}/chamados` },
+                    { label: "Bugs", to: `/teams/${team.id}/bugs` },
                   ];
                   return (
                     <SidebarMenuItem key={team.id}>
@@ -489,13 +489,15 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                       {expanded && (
                         <div className="ml-4 border-l border-border/60 pl-2">
                           {teamLinks.map((link) => (
-                            <a
+                            <Link
                               key={link.label}
-                              href={link.to}
-                              className="block rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                              to={link.to}
+                              className={`block rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted/40 hover:text-foreground ${
+                                path === link.to ? "bg-muted/50 font-medium text-foreground" : "text-muted-foreground"
+                              }`}
                             >
                               {link.label}
-                            </a>
+                            </Link>
                           ))}
                         </div>
                       )}
