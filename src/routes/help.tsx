@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, HelpCircle, MessageSquare, Search, LifeBuoy, ExternalLink } from "lucide-react";
+import { BookOpen, HelpCircle, MessageSquare, Search, LifeBuoy, ExternalLink, MessageCircle } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -192,10 +192,15 @@ function HelpPage() {
             {/* CTA */}
             <div className="glass rounded-2xl p-6 shadow-card text-center space-y-3">
               <p className="text-sm font-medium">Não encontrou o que procura?</p>
-              <p className="text-xs text-muted-foreground">Abra um chamado e nossa equipe irá ajudar você.</p>
-              <Button asChild size="sm" className="gap-1.5">
-                <Link to="/tickets/new"><ExternalLink className="h-3.5 w-3.5" /> Abrir um chamado</Link>
-              </Button>
+              <p className="text-xs text-muted-foreground">Fale com o suporte pelo chat ou abra um chamado.</p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button asChild size="sm" variant="outline" className="gap-1.5">
+                  <Link to="/chat"><MessageCircle className="h-3.5 w-3.5" /> Iniciar chat</Link>
+                </Button>
+                <Button asChild size="sm" className="gap-1.5">
+                  <Link to="/tickets/new"><ExternalLink className="h-3.5 w-3.5" /> Abrir um chamado</Link>
+                </Button>
+              </div>
             </div>
           </>
         )}

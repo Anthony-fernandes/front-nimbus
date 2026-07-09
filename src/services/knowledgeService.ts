@@ -469,16 +469,7 @@ export async function markMessageRead(messageId: string) {
   return r.data;
 }
 
-// ─── User Last Seen ───────────────────────────────────────────────────────────
 
-export async function updateLastSeen() {
-  await api.post("/communication/last-seen/");
-}
-
-export async function getLastSeen(userId: string) {
-  const r = await api.get<{ user: string; last_seen: string | null }>(`/communication/last-seen/${userId}/`);
-  return r.data;
-}
 
 // ─── Forum Badges ─────────────────────────────────────────────────────────────
 
