@@ -1321,8 +1321,8 @@ function getProjectStatusBadgeClass(status?: string | null) {
   return "border-border bg-muted/40 text-muted-foreground";
 }
 
-function normalizeComparisonValue(value?: string | null) {
-  return (value || "")
+function normalizeComparisonValue(value?: string | number | null) {
+  return String(value ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
