@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
-  Outlet,
   Link,
   createRootRouteWithContext,
   useRouter,
@@ -16,6 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/app/ErrorBoundary";
 import { ItemDrawerProvider } from "@/context/ItemDrawerContext";
 import { ItemDrawer } from "@/components/app/ItemDrawer";
+import { PersistentAppShell } from "@/components/app/AppShell";
 import { API_BASE_URL } from "@/services/api";
 import { getAccessToken, getStoredUser, isAuthenticated } from "@/services/session";
 import { updateUser } from "@/services/userService";
@@ -242,7 +242,7 @@ function RootComponent() {
         <ItemDrawerProvider>
           <GlobalNotificationSocket />
           <ErrorBoundary>
-            <Outlet />
+            <PersistentAppShell />
           </ErrorBoundary>
           <ItemDrawer />
           <Toaster richColors position="top-right" theme={toasterTheme} />

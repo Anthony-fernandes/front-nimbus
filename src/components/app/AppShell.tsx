@@ -1,7 +1,7 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { Bell, Check, CheckCheck, Command, LogOut, Menu, Plus, Search, Settings } from "lucide-react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -72,11 +72,48 @@ function canCreateFromPath(pathname: string, user: User | null) {
   return false;
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+// Sinaliza que um AppShell (com sidebar) já está montado acima na árvore.
+// Quando true, um <AppShell> aninhado (usado dentro de cada tela) apenas
+// repassa os filhos — evitando remontar a sidebar a cada navegação.
+const ShellMountedContext = createContext(false);
+
+// Rotas de página inteira que NÃO devem ter a sidebar/topbar (login, etc.).
+const BARE_PATHS = ["/login", "/client/login", "/forgot-password", "/onboarding", "/access-denied"];
+
+function isBarePath(pathname: string) {
+  return BARE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
+ * Shell persistente: renderizado UMA vez no root ao redor do <Outlet />.
+ * Em rotas "com chrome", monta a sidebar/topbar uma única vez e só troca o
+ * conteúdo ao navegar (a sidebar não recarrega). Em rotas bare, renderiza o
+ * conteúdo puro.
+ */
+export function PersistentAppShell() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  if (isBarePath(pathname)) {
+    return <Outlet />;
+  }
   return (
-    <SidebarProvider>
-      <AppShellInner>{children}</AppShellInner>
-    </SidebarProvider>
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const alreadyMounted = useContext(ShellMountedContext);
+  // Já existe um shell acima (o persistente do root): apenas repassa o conteúdo.
+  if (alreadyMounted) {
+    return <>{children}</>;
+  }
+  return (
+    <ShellMountedContext.Provider value={true}>
+      <SidebarProvider>
+        <AppShellInner>{children}</AppShellInner>
+      </SidebarProvider>
+    </ShellMountedContext.Provider>
   );
 }
 
