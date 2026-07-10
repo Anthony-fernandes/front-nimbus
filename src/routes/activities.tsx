@@ -25,12 +25,26 @@ import { formatActivityStatusLabel, formatPriorityLabel } from "@/lib/labels";
 import type { Activity } from "@/lib/types";
 import { listActivities, updateActivity } from "@/services/activityService";
 import { listActivityTimeEntries, saveActivityTimeEntry } from "@/services/activityTimeEntryService";
+import { listTeams } from "@/services/teamService";
+import { listSprints } from "@/services/sprintService";
 import { getStoredUser } from "@/services/authService";
 
 export const Route = createFileRoute("/activities")({
   head: () => ({ meta: [{ title: "Atividades · NimbusDesk" }] }),
+  // team = contexto da equipe; kind = "bug" (Bugs) | "task" (Tarefas) | "" (todas)
+  validateSearch: (s) => ({
+    team: (s.team as string) || "",
+    kind: ((s.kind as string) === "bug" || (s.kind as string) === "task" ? (s.kind as string) : "") as
+      | "bug"
+      | "task"
+      | "",
+  }),
   component: ActivitiesPage,
 });
+
+function isBugActivity(a: Activity) {
+  return (a.type || "").toLowerCase().includes("bug");
+}
 
 const statusMap: Record<string, { cls: string; Icon: typeof Circle }> = {
   "A fazer": { cls: "text-muted-foreground", Icon: Circle },
@@ -170,12 +184,34 @@ function TimeEntryDialog({
 
 function ActivitiesPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { team: teamParam, kind } = Route.useSearch();
   const queryClient = useQueryClient();
   const user = getStoredUser();
 
-  const { data: rows = [], isLoading } = useQuery({
+  const { data: allRows = [], isLoading } = useQuery({
     queryKey: ["activities"],
     queryFn: () => listActivities(),
+  });
+
+  // Contexto de equipe: atividade pertence à equipe se o responsável é membro
+  // ou está numa sprint da equipe. Bugs/Tarefas separam por tipo.
+  const { data: teams = [] } = useQuery({ queryKey: ["teams"], queryFn: listTeams, enabled: Boolean(teamParam) });
+  const { data: allSprints = [] } = useQuery({ queryKey: ["sprints"], queryFn: () => listSprints(), enabled: Boolean(teamParam) });
+  const selectedTeam = teams.find((t) => t.id === teamParam);
+  const memberIds = new Set((selectedTeam?.members ?? []).map((m) => String(m.user)));
+  const teamSprintIds = new Set(
+    allSprints.filter((s) => String((s as { team?: string | null }).team || "") === teamParam).map((s) => String(s.id)),
+  );
+  const belongsToTeam = (a: Activity) =>
+    !teamParam ||
+    (a.assignee && memberIds.has(String(a.assignee))) ||
+    (a.assignees || []).some((id) => memberIds.has(String(id))) ||
+    (a.sprint && teamSprintIds.has(String(a.sprint)));
+
+  const rows = allRows.filter((a: Activity) => {
+    if (kind === "bug" && !isBugActivity(a)) return false;
+    if (kind === "task" && isBugActivity(a)) return false;
+    return belongsToTeam(a);
   });
 
   // Today's time entries for the summary card
@@ -267,16 +303,31 @@ function ActivitiesPage() {
 
   const allSelected = filteredRows.length > 0 && selectedIds.size === filteredRows.length;
 
+  const pageTitle = kind === "bug" ? "Bugs" : kind === "task" ? "Tarefas" : "Atividades";
+  const itemNoun = kind === "bug" ? "bugs" : kind === "task" ? "tarefas" : "atividades";
+
   return (
     <AppShell>
       <div className="space-y-5">
         <PageHeader
-          crumbs={[{ label: "Workspace", to: "/" }, { label: "Atividades" }]}
-          title="Atividades"
+          crumbs={[{ label: "Workspace", to: "/" }, { label: pageTitle }]}
+          title={
+            teamParam ? (
+              <span className="flex items-center gap-2.5">
+                {pageTitle}
+                <span className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: selectedTeam?.color || "#94a3b8" }} />
+                  {selectedTeam?.name || "Equipe"}
+                </span>
+              </span>
+            ) : (
+              pageTitle
+            )
+          }
           subtitle={
             isLoading
-              ? "Carregando atividades..."
-              : `${rows.length} atividades cadastradas entre backlog e projetos`
+              ? `Carregando ${itemNoun}...`
+              : `${rows.length} ${itemNoun}${teamParam ? ` da equipe ${selectedTeam?.name || ""}` : " cadastradas entre backlog e projetos"}`
           }
           actions={
             <Button

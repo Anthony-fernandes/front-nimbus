@@ -248,6 +248,9 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const activeSprintTeam = useRouterState({
     select: (router) => (router.location.search as { team?: string }).team || "",
   });
+  const currentSearch = useRouterState({
+    select: (router) => router.location.search as { team?: string; kind?: string },
+  });
   const user = externalUser || null;
   const clientUser = isClientUser(user);
   const internalMenu = getInternalMenu(user);
@@ -462,11 +465,12 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
               <SidebarMenu>
                 {teams.map((team) => {
                   const expanded = expandedTeams[team.id] ?? false;
+                  // Reutiliza as telas REAIS do sistema, apenas com o contexto da equipe.
                   const teamLinks = [
-                    { label: "Sprints", to: `/teams/${team.id}/sprints` },
-                    { label: "Tarefas", to: `/teams/${team.id}/tarefas` },
-                    { label: "Chamados", to: `/teams/${team.id}/chamados` },
-                    { label: "Bugs", to: `/teams/${team.id}/bugs` },
+                    { label: "Sprints", to: "/sprints", search: { team: team.id } },
+                    { label: "Tarefas", to: "/activities", search: { team: team.id, kind: "task" } },
+                    { label: "Chamados", to: "/tickets", search: { team: team.id } },
+                    { label: "Bugs", to: "/activities", search: { team: team.id, kind: "bug" } },
                   ];
                   return (
                     <SidebarMenuItem key={team.id}>
@@ -488,17 +492,24 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                       </SidebarMenuButton>
                       {expanded && (
                         <div className="ml-4 border-l border-border/60 pl-2">
-                          {teamLinks.map((link) => (
-                            <Link
-                              key={link.label}
-                              to={link.to}
-                              className={`block rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted/40 hover:text-foreground ${
-                                path === link.to ? "bg-muted/50 font-medium text-foreground" : "text-muted-foreground"
-                              }`}
-                            >
-                              {link.label}
-                            </Link>
-                          ))}
+                          {teamLinks.map((link) => {
+                            const active =
+                              path === link.to &&
+                              currentSearch.team === team.id &&
+                              (currentSearch.kind || "") === ((link.search as { kind?: string }).kind || "");
+                            return (
+                              <Link
+                                key={link.label}
+                                to={link.to}
+                                search={link.search}
+                                className={`block rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted/40 hover:text-foreground ${
+                                  active ? "bg-muted/50 font-medium text-foreground" : "text-muted-foreground"
+                                }`}
+                              >
+                                {link.label}
+                              </Link>
+                            );
+                          })}
                         </div>
                       )}
                     </SidebarMenuItem>

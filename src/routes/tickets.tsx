@@ -102,12 +102,14 @@ import { cn } from "@/lib/utils";
 import { getStoredUser } from "@/services/authService";
 import { listTicketCategories } from "@/services/ticketCategoryService";
 import { listTickets, transitionTicket } from "@/services/ticketService";
+import { listTeams } from "@/services/teamService";
 import { listTicketWorkflowStatuses } from "@/services/ticketWorkflowService";
 import { listUsers } from "@/services/userService";
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/tickets")({
   head: () => ({ meta: [{ title: "Chamados · NimbusDesk" }] }),
+  validateSearch: (s) => ({ team: (s.team as string) || "" }),
   component: TicketsPage,
 });
 
@@ -245,9 +247,25 @@ function TicketsPage() {
     [users],
   );
 
+  // Contexto de equipe: escopa a lista real de chamados pela equipe selecionada
+  // (chamado da equipe, ou técnico responsável/atribuído é membro da equipe).
+  const { team: teamParam } = Route.useSearch();
+  const { data: teams = [] } = useQuery({ queryKey: ["teams"], queryFn: listTeams, enabled: Boolean(teamParam) });
+  const selectedTeam = teams.find((t) => t.id === teamParam);
+  const scopedTickets = useMemo(() => {
+    if (!teamParam) return tickets;
+    const memberIds = new Set((selectedTeam?.members ?? []).map((m) => String(m.user)));
+    return tickets.filter(
+      (t) =>
+        String(t.team || "") === teamParam ||
+        (t.responsible_technician && memberIds.has(String(t.responsible_technician))) ||
+        (t.technicians || []).some((id) => memberIds.has(String(id))),
+    );
+  }, [tickets, teamParam, selectedTeam]);
+
   const stats = QUICK_FILTER_CARDS.map((card) => ({
     ...card,
-    count: tickets.filter((ticket) => matchesTicketQuickFilter(ticket, card.value)).length,
+    count: scopedTickets.filter((ticket) => matchesTicketQuickFilter(ticket, card.value)).length,
   }));
 
   const statusOptions = useMemo(
@@ -276,13 +294,13 @@ function TicketsPage() {
 
   const filteredTickets = useMemo(
     () =>
-      applyTicketListView(tickets, {
+      applyTicketListView(scopedTickets, {
         activeQuickFilter,
         filters,
         searchTerm,
         sortBy,
       }),
-    [activeQuickFilter, filters, searchTerm, sortBy, tickets],
+    [activeQuickFilter, filters, searchTerm, sortBy, scopedTickets],
   );
 
   const pag = usePagination(
@@ -444,9 +462,21 @@ function TicketsPage() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Chamados</h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-semibold tracking-tight">Chamados</h1>
+              {teamParam ? (
+                <span className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: selectedTeam?.color || "#94a3b8" }} />
+                  {selectedTeam?.name || "Equipe"}
+                </span>
+              ) : null}
+            </div>
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "Carregando central..." : `${tickets.length} chamados na central`}
+              {isLoading
+                ? "Carregando central..."
+                : teamParam
+                  ? `${scopedTickets.length} chamados da equipe ${selectedTeam?.name || ""}`
+                  : `${tickets.length} chamados na central`}
             </p>
           </div>
           {canCreateTickets ? (
