@@ -473,9 +473,8 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                   // a sidebar saiba que o contexto é de equipe (e NÃO acenda menu global).
                   const teamLinks = [
                     { label: "Sprints", to: "/sprints", search: { team: team.id, context: "team" } },
-                    { label: "Tarefas", to: "/activities", search: { team: team.id, kind: "task" as const, context: "team" } },
+                    { label: "Tarefas", to: "/activities", search: { team: team.id, context: "team" } },
                     { label: "Chamados", to: "/tickets", search: { team: team.id, context: "team" } },
-                    { label: "Bugs", to: "/activities", search: { team: team.id, kind: "bug" as const, context: "team" } },
                   ];
                   return (
                     <SidebarMenuItem key={team.id}>
