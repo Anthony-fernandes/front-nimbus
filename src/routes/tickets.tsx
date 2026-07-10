@@ -1163,15 +1163,14 @@ function TicketsPage() {
                 <SelectValue placeholder="Selecionar status..." />
               </SelectTrigger>
               <SelectContent>
+                {/* Estados finais (Finalizado/Cancelado) NÃO entram no bulk: exigem
+                    resolução/motivo por item — feito só no fluxo individual. */}
                 {[
                   "Triagem",
                   "Aguardando atendimento",
                   "Em atendimento",
                   "Aguardando cliente",
                   "Validacao",
-                  "Pausado",
-                  "Cancelado",
-                  "Finalizado",
                 ].map((s) => (
                   <SelectItem key={s} value={s}>{s}</SelectItem>
                 ))}
@@ -1217,26 +1216,6 @@ function TicketsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Bulk close confirmation */}
-        <Dialog
-          open={bulkAction === "status" && bulkValue === "Finalizado"}
-          onOpenChange={(open) => { if (!open) { setBulkAction(null); setBulkValue(""); } }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Fechar chamados</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Tem certeza que deseja fechar {selectedIds.size} chamado(s)? O status será alterado para "Finalizado".
-            </p>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => { setBulkAction(null); setBulkValue(""); }}>Cancelar</Button>
-              <Button disabled={bulkSaving} onClick={applyBulkAction}>
-                {bulkSaving ? "Salvando..." : "Fechar chamados"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <WorkItemModal

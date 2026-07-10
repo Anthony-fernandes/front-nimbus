@@ -224,8 +224,6 @@ function ActivitiesPage() {
 
   const hoursToday = todayEntries.reduce((sum, e) => sum + (e.hours ?? 0), 0);
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkSaving, setBulkSaving] = useState(false);
   const [timeEntryActivity, setTimeEntryActivity] = useState<Activity | null>(null);
   const [detailActivityId, setDetailActivityId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -260,48 +258,6 @@ function ActivitiesPage() {
     return <Outlet />;
   }
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredRows.length && filteredRows.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredRows.map((r: Activity) => r.id)));
-    }
-  };
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const clearSelection = () => setSelectedIds(new Set());
-
-  const concludeSelected = async () => {
-    if (selectedIds.size === 0) return;
-    setBulkSaving(true);
-    try {
-      await Promise.all(
-        Array.from(selectedIds).map((id) =>
-          updateActivity(id, { status: "Concluída" }),
-        ),
-      );
-      await queryClient.invalidateQueries({ queryKey: ["activities"] });
-      toast.success(`${selectedIds.size} atividade(s) concluída(s).`);
-      clearSelection();
-    } catch {
-      toast.error("Não foi possível concluir as atividades selecionadas.");
-    } finally {
-      setBulkSaving(false);
-    }
-  };
-
-  const allSelected = filteredRows.length > 0 && selectedIds.size === filteredRows.length;
 
   const pageTitle = kind === "bug" ? "Bugs" : kind === "task" ? "Tarefas" : "Atividades";
   const itemNoun = kind === "bug" ? "bugs" : kind === "task" ? "tarefas" : "atividades";
@@ -392,13 +348,6 @@ function ActivitiesPage() {
         <div className="glass overflow-hidden rounded-2xl shadow-card">
           <div className="grid grid-cols-12 gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground">
             <div className="col-span-1 flex items-center gap-2">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary cursor-pointer"
-                checked={allSelected}
-                onChange={toggleSelectAll}
-                aria-label="Selecionar todos"
-              />
               <span>ID</span>
             </div>
             <div className="col-span-3">Atividade</div>
@@ -412,23 +361,14 @@ function ActivitiesPage() {
 
           {pag.pageRows.map((row: Activity, index) => {
             const status = statusMap[row.status || "Backlog"] || statusMap.Backlog;
-            const isSelected = selectedIds.has(row.id);
 
             return (
               <div
                 key={row.id}
-                className={`animate-fade-in-up grid grid-cols-12 items-center gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors hover:bg-muted/30 ${isSelected ? "bg-primary/5" : ""}`}
+                className="animate-fade-in-up grid grid-cols-12 items-center gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors hover:bg-muted/30"
                 style={{ animationDelay: `${index * 30}ms` }}
               >
                 <div className="col-span-1 flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-primary cursor-pointer shrink-0"
-                    checked={isSelected}
-                    onChange={() => toggleSelect(row.id)}
-                    aria-label={`Selecionar atividade ${row.id.slice(0, 8)}`}
-                    onClick={(e) => e.stopPropagation()}
-                  />
                   <button
                     type="button"
                     onClick={() => setDetailActivityId(row.id)}
@@ -486,33 +426,6 @@ function ActivitiesPage() {
           />
         </div>
       </div>
-
-      {/* Bulk action bar */}
-      {selectedIds.size > 0 ? (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-border bg-background/95 px-5 py-3 shadow-card backdrop-blur">
-          <span className="text-sm font-medium text-muted-foreground">
-            {selectedIds.size} selecionada(s)
-          </span>
-          <div className="h-4 w-px bg-border" />
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 text-xs"
-            disabled={bulkSaving}
-            onClick={concludeSelected}
-          >
-            <Check className="h-3.5 w-3.5" /> Concluir selecionadas
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="gap-1.5 text-xs text-muted-foreground"
-            onClick={clearSelection}
-          >
-            <X className="h-3.5 w-3.5" /> Cancelar seleção
-          </Button>
-        </div>
-      ) : null}
 
       <WorkItemModal
         workRef={detailActivityId ? { type: "project_activity", id: detailActivityId } : null}
