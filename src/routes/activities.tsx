@@ -32,13 +32,13 @@ import { getStoredUser } from "@/services/authService";
 export const Route = createFileRoute("/activities")({
   head: () => ({ meta: [{ title: "Atividades · NimbusDesk" }] }),
   // team = contexto da equipe; kind = "bug" (Bugs) | "task" (Tarefas) | "" (todas)
-  validateSearch: (s) => ({
-    team: (s.team as string) || "",
-    kind: ((s.kind as string) === "bug" || (s.kind as string) === "task" ? (s.kind as string) : "") as
-      | "bug"
-      | "task"
-      | "",
-  }),
+  validateSearch: (s): { team?: string; kind?: "bug" | "task"; context?: string } => {
+    const out: { team?: string; kind?: "bug" | "task"; context?: string } = {};
+    if (s.team) out.team = String(s.team);
+    if (s.kind === "bug" || s.kind === "task") out.kind = s.kind;
+    if (s.context) out.context = String(s.context);
+    return out;
+  },
   component: ActivitiesPage,
 });
 

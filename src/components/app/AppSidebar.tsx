@@ -249,8 +249,11 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
     select: (router) => (router.location.search as { team?: string }).team || "",
   });
   const currentSearch = useRouterState({
-    select: (router) => router.location.search as { team?: string; kind?: string },
+    select: (router) => router.location.search as { team?: string; kind?: string; context?: string },
   });
+  // Contexto de equipe explícito (?context=team): quando ativo, NENHUM item do
+  // menu global deve ficar ativo — só o item interno da equipe.
+  const inTeamContext = currentSearch.context === "team";
   const user = externalUser || null;
   const clientUser = isClientUser(user);
   const internalMenu = getInternalMenu(user);
@@ -258,7 +261,10 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const displayName = getUserDisplayName(user);
   const initials = getUserInitials(user);
   const clientName = getUserClientName(user);
-  const isActive = (url: string) => (url === "/" ? path === "/" : path.startsWith(url));
+  // Item global só fica ativo fora do contexto de equipe. Assim, /sprints?context=team
+  // (Equipe > Sprints) NÃO acende "Workspace > Sprints".
+  const isActive = (url: string) =>
+    !inTeamContext && (url === "/" ? path === "/" : path.startsWith(url));
 
   const teamsQ = useQuery({
     queryKey: ["teams"],
@@ -266,7 +272,6 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
     enabled: !clientUser,
     staleTime: 60000,
   });
-  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
   const teams = (teamsQ.data ?? []).filter((t) => (t.status || "Ativa") === "Ativa");
 
   // Dropdown do item "Sprints": equipes → sprints de cada equipe
@@ -349,8 +354,8 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                       {sprintsOpen && (
                         <SidebarMenuSub>
                           <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild isActive={path === "/sprints" && !activeSprintTeam}>
-                              <Link to="/sprints" search={{ team: "" }}>
+                            <SidebarMenuSubButton asChild isActive={!inTeamContext && path === "/sprints" && !activeSprintTeam}>
+                              <Link to="/sprints" search={{ team: "", context: "" }}>
                                 <span>Todas as sprints</span>
                               </Link>
                             </SidebarMenuSubButton>
@@ -359,9 +364,9 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
                             <SidebarMenuSubItem key={group.id}>
                               <SidebarMenuSubButton
                                 asChild
-                                isActive={path === "/sprints" && activeSprintTeam === group.id}
+                                isActive={!inTeamContext && path === "/sprints" && activeSprintTeam === group.id}
                               >
-                                <Link to="/sprints" search={{ team: group.id }}>
+                                <Link to="/sprints" search={{ team: group.id, context: "" }}>
                                   <span
                                     className="h-2 w-2 shrink-0 rounded-sm"
                                     style={{ backgroundColor: group.color }}
@@ -464,54 +469,45 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {teams.map((team) => {
-                  const expanded = expandedTeams[team.id] ?? false;
-                  // Reutiliza as telas REAIS do sistema, apenas com o contexto da equipe.
+                  // Reutiliza as telas REAIS do sistema, marcando context=team para que
+                  // a sidebar saiba que o contexto é de equipe (e NÃO acenda menu global).
                   const teamLinks = [
-                    { label: "Sprints", to: "/sprints", search: { team: team.id } },
-                    { label: "Tarefas", to: "/activities", search: { team: team.id, kind: "task" } },
-                    { label: "Chamados", to: "/tickets", search: { team: team.id } },
-                    { label: "Bugs", to: "/activities", search: { team: team.id, kind: "bug" } },
+                    { label: "Sprints", to: "/sprints", search: { team: team.id, context: "team" } },
+                    { label: "Tarefas", to: "/activities", search: { team: team.id, kind: "task" as const, context: "team" } },
+                    { label: "Chamados", to: "/tickets", search: { team: team.id, context: "team" } },
+                    { label: "Bugs", to: "/activities", search: { team: team.id, kind: "bug" as const, context: "team" } },
                   ];
                   return (
                     <SidebarMenuItem key={team.id}>
-                      <SidebarMenuButton
-                        onClick={() =>
-                          setExpandedTeams((prev) => ({ ...prev, [team.id]: !expanded }))
-                        }
-                      >
+                      {/* Equipes sempre abertas: sem accordion, os itens ficam sempre visíveis */}
+                      <div className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium">
                         <span
                           className="h-2.5 w-2.5 shrink-0 rounded-sm"
                           style={{ backgroundColor: team.color || "#6366f1" }}
                         />
                         <span className="truncate">{team.name}</span>
-                        {expanded ? (
-                          <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
-                        ) : (
-                          <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                      </SidebarMenuButton>
-                      {expanded && (
-                        <div className="ml-4 border-l border-border/60 pl-2">
-                          {teamLinks.map((link) => {
-                            const active =
-                              path === link.to &&
-                              currentSearch.team === team.id &&
-                              (currentSearch.kind || "") === ((link.search as { kind?: string }).kind || "");
-                            return (
-                              <Link
-                                key={link.label}
-                                to={link.to}
-                                search={link.search}
-                                className={`block rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted/40 hover:text-foreground ${
-                                  active ? "bg-muted/50 font-medium text-foreground" : "text-muted-foreground"
-                                }`}
-                              >
-                                {link.label}
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
+                      </div>
+                      <div className="ml-4 border-l border-border/60 pl-2">
+                        {teamLinks.map((link) => {
+                          const active =
+                            inTeamContext &&
+                            path === link.to &&
+                            currentSearch.team === team.id &&
+                            (currentSearch.kind || "") === ((link.search as { kind?: string }).kind || "");
+                          return (
+                            <Link
+                              key={link.label}
+                              to={link.to}
+                              search={link.search}
+                              className={`block rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted/40 hover:text-foreground ${
+                                active ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground"
+                              }`}
+                            >
+                              {link.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </SidebarMenuItem>
                   );
                 })}

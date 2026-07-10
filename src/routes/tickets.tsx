@@ -109,7 +109,12 @@ import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/tickets")({
   head: () => ({ meta: [{ title: "Chamados · NimbusDesk" }] }),
-  validateSearch: (s) => ({ team: (s.team as string) || "" }),
+  validateSearch: (s): { team?: string; context?: string } => {
+    const out: { team?: string; context?: string } = {};
+    if (s.team) out.team = String(s.team);
+    if (s.context) out.context = String(s.context);
+    return out;
+  },
   component: TicketsPage,
 });
 

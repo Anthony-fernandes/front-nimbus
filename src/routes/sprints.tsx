@@ -19,7 +19,12 @@ function pct(sprint: Sprint) {
 
 export const Route = createFileRoute("/sprints")({
   head: () => ({ meta: [{ title: "Sprints · NimbusDesk" }] }),
-  validateSearch: (s) => ({ team: (s.team as string) || "" }),
+  validateSearch: (s): { team?: string; context?: string } => {
+    const out: { team?: string; context?: string } = {};
+    if (s.team) out.team = String(s.team);
+    if (s.context) out.context = String(s.context);
+    return out;
+  },
   component: SprintsPage,
 });
 
