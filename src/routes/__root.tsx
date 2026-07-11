@@ -13,8 +13,6 @@ import { toast } from "sonner";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/app/ErrorBoundary";
-import { ItemDrawerProvider } from "@/context/ItemDrawerContext";
-import { ItemDrawer } from "@/components/app/ItemDrawer";
 import { PersistentAppShell } from "@/components/app/AppShell";
 import { API_BASE_URL } from "@/services/api";
 import { getAccessToken, getStoredUser, isAuthenticated } from "@/services/session";
@@ -239,14 +237,11 @@ function RootComponent() {
   return (
     <ThemeContext.Provider value={{ config: themeConfig, setConfig: handleSetConfig }}>
       <QueryClientProvider client={queryClient}>
-        <ItemDrawerProvider>
-          <GlobalNotificationSocket />
-          <ErrorBoundary>
-            <PersistentAppShell />
-          </ErrorBoundary>
-          <ItemDrawer />
-          <Toaster richColors position="top-right" theme={toasterTheme} />
-        </ItemDrawerProvider>
+        <GlobalNotificationSocket />
+        <ErrorBoundary>
+          <PersistentAppShell />
+        </ErrorBoundary>
+        <Toaster richColors position="top-right" theme={toasterTheme} />
       </QueryClientProvider>
     </ThemeContext.Provider>
   );

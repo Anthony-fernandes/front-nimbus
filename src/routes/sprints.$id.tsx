@@ -20,10 +20,6 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app/AppShell";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
-import {
-  WorkItemUpdatesDialog,
-  type WorkItemUpdatesDialogItem,
-} from "@/components/app/WorkItemUpdatesDialog";
 import { WorkItemModal } from "@/components/workitem/WorkItemModal";
 import { WorkItemBlockDialog } from "@/components/workitem/WorkItemDialogs";
 import type { WorkItemRef } from "@/lib/workItem";
@@ -885,7 +881,6 @@ function SprintDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const [updatesDialogItem, setUpdatesDialogItem] = useState<WorkItemUpdatesDialogItem | null>(null);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<SprintActivityPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
@@ -1255,57 +1250,20 @@ function SprintDetail() {
     return [...base, ...extras];
   }, [kanbanCards]);
 
-  const openTicketUpdates = (ticket: PlanningTicketItem | Ticket, plan?: SprintTicketPlan) => {
-    const fullTicket = ticket as Ticket;
-    const responsibleNames = getResponsibleNamesFromIds(plan?.responsibleIds);
-    const fallbackResponsibleNames = getUniqueNames([
-      fullTicket.responsible_technician_name,
-      ...(fullTicket.technician_names || []),
-    ]);
-
-    setUpdatesDialogItem({
-      type: "ticket",
-      id: ticket.id,
-      code: fullTicket.code,
-      title: fullTicket.title,
-      status: fullTicket.status,
-      priority: plan?.priority || fullTicket.priority,
-      typeLabel: fullTicket.type || "Chamado",
-      description: fullTicket.description,
-      responsibleNames: responsibleNames.length ? responsibleNames : fallbackResponsibleNames,
-      plannedHours: plan?.plannedHours ?? fullTicket.est_hours,
-      doneHours: fullTicket.done_hours,
-      storyPoints: plan?.storyPoints,
-      sprintName: sprint?.name,
-      plannedEndDate: plan?.plannedEndDate || fullTicket.due_at || undefined,
-      subtitle: fullTicket.client_name || fullTicket.organization_name || "Chamado",
-    });
+  // Planejamento abre o MESMO WorkItemModal do kanban/lista — superfície única
+  // de resposta/ação para o item, em vez de um popup próprio da sprint.
+  const openTicketUpdates = (ticket: PlanningTicketItem | Ticket, _plan?: SprintTicketPlan) => {
+    setWiTab("conversa");
+    setWiRef({ type: "ticket", id: ticket.id });
   };
 
-  const openActivityUpdates = (activity: Activity, plan?: SprintActivityPlan, realizedHours?: number) => {
-    const responsibleNames = getResponsibleNamesFromIds(plan?.responsibleIds);
-    const fallbackResponsibleNames = getUniqueNames([
-      activity.assignee_name,
-      ...(activity.assignee_names || []),
-    ]);
-
-    setUpdatesDialogItem({
-      type: "activity",
-      id: activity.id,
-      code: activity.ticket_code || activity.id.slice(0, 8),
-      title: activity.title,
-      status: activity.status,
-      priority: plan?.priority || activity.priority,
-      typeLabel: activity.type || "Atividade",
-      description: activity.description,
-      responsibleNames: responsibleNames.length ? responsibleNames : fallbackResponsibleNames,
-      plannedHours: plan?.plannedHours ?? activity.est_hours,
-      doneHours: realizedHours ?? activity.done_hours,
-      storyPoints: plan?.storyPoints ?? activity.story_points,
-      sprintName: sprint?.name,
-      plannedEndDate: plan?.plannedEndDate || activity.due_at || undefined,
-      subtitle: activity.project_name || activity.ticket_code || "Atividade",
-    });
+  const openActivityUpdates = (
+    activity: Activity,
+    _plan?: SprintActivityPlan,
+    _realizedHours?: number,
+  ) => {
+    setWiTab("conversa");
+    setWiRef({ type: "sprint_activity", id: activity.id });
   };
 
   // Todo card do kanban da sprint abre o mesmo popup unificado de atendimento.
@@ -2384,15 +2342,6 @@ function SprintDetail() {
           </Tabs>
       </div>
 
-
-      {/* ─── 3-step planning wizard ─── */}
-      <WorkItemUpdatesDialog
-        open={Boolean(updatesDialogItem)}
-        item={updatesDialogItem}
-        onOpenChange={(open) => {
-          if (!open) setUpdatesDialogItem(null);
-        }}
-      />
 
       {/* Popup unificado de atendimento (chamados e atividades da sprint) */}
       <WorkItemModal
