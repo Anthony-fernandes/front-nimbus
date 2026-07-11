@@ -33,6 +33,7 @@ type ClientTicketRequestPayload = {
   category?: TicketCategory | null;
   type: string;
   urgency: string;
+  impact?: string;
   attachments?: TicketAttachment[];
 };
 
@@ -271,7 +272,7 @@ export async function createClientTicketRequest(payload: ClientTicketRequestPayl
     category_id: payload.category?.id || payload.categoryId || null,
     type: payload.type || categoryDefaults.type,
     priority: categoryDefaults.priority,
-    impact: categoryDefaults.impact,
+    impact: payload.impact || categoryDefaults.impact,
     urgency: payload.urgency || "Media",
     status: resolveTicketStatusForApi(resolveTicketOpeningStatus(payload.category)),
     team: categoryDefaults.team,

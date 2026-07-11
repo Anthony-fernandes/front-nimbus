@@ -1,14 +1,16 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, RotateCcw, Ticket } from "lucide-react";
+import { CheckCircle2, Clock, RotateCcw, Send, Ticket } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ClientScopeNotice } from "@/components/client/ClientScopeNotice";
 import { TicketStatusTimeline } from "@/components/tickets/TicketStatusTimeline";
-import { TicketTimeline } from "@/components/tickets/TicketTimeline";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import type { TicketTimelineEvent } from "@/lib/types";
 import { buildTicketTimeline, getTicketPriorityClass, getTicketStatusClass } from "@/lib/tickets";
 import type { User } from "@/lib/types";
 import { getUserClientId } from "@/lib/auth";
@@ -112,7 +114,6 @@ function ClientTicketDetailPage() {
   };
 
   const canValidate = ticket.status === "Validacao / Avaliacao";
-  const canRespond = ticket.status === "Aguardando cliente" || canValidate;
 
   return (
     <AppShell>
@@ -195,13 +196,24 @@ function ClientTicketDetailPage() {
               </div>
             </section>
 
-            <TicketTimeline
-              events={timeline}
-              allowComposer={canRespond}
-              composerLabel="Enviar retorno para a equipe"
-              onCommentSubmit={canRespond ? publishComment : undefined}
-              emptyText="Ainda não há histórico publicado para este chamado."
-            />
+            {(ticket.resolution_description || ticket.status === "Finalizado") && (
+              <section className="glass rounded-2xl p-5 shadow-card space-y-2">
+                <header className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <h3 className="text-sm font-semibold">Resolução do chamado</h3>
+                </header>
+                <p className="rounded-xl border border-success/30 bg-success/5 p-4 text-sm leading-relaxed">
+                  {ticket.resolution_description || "A equipe finalizou o chamado, mas não registrou uma descrição de resolução."}
+                </p>
+                {ticket.finished_at && (
+                  <p className="text-xs text-muted-foreground">Finalizado em {formatDateTime(ticket.finished_at)}</p>
+                )}
+              </section>
+            )}
+
+            <HistoryTable events={timeline} />
+
+            <ClientChat onSend={(message) => publishComment({ message, visibility: "client" })} />
           </div>
 
           <aside className="space-y-4">
@@ -263,5 +275,109 @@ function DataRow({ label, value }: { label: string; value: string }) {
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-right text-sm">{value || "-"}</dd>
     </div>
+  );
+}
+
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  created: "Abertura",
+  status: "Status",
+  comment: "Mensagem",
+  response: "Resposta",
+  system: "Sistema",
+};
+
+function eventKindLabel(type?: string) {
+  const key = (type || "").toLowerCase();
+  return EVENT_TYPE_LABEL[key] || (type ? type : "Evento");
+}
+
+function HistoryTable({ events }: { events: TicketTimelineEvent[] }) {
+  const rows = [...events].sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+  );
+
+  return (
+    <section className="glass overflow-hidden rounded-2xl shadow-card">
+      <header className="border-b border-border px-5 py-3">
+        <h3 className="text-sm font-semibold">Histórico e conversa</h3>
+        <p className="text-xs text-muted-foreground">Todas as interações públicas deste chamado.</p>
+      </header>
+      {rows.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+          Ainda não há histórico publicado para este chamado.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-muted/20 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2.5">Autor</th>
+                <th className="px-4 py-2.5">Data/Hora</th>
+                <th className="px-4 py-2.5">Tipo</th>
+                <th className="px-4 py-2.5">Mensagem</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {rows.map((event) => (
+                <tr key={event.id} className="align-top transition-colors hover:bg-muted/20">
+                  <td className="whitespace-nowrap px-4 py-2.5 font-medium">{event.author_name || "Sistema"}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
+                    {event.created_at ? formatDateTime(event.created_at) : "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2.5">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                      {eventKindLabel(event.type)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 leading-relaxed">{event.message || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ClientChat({ onSend }: { onSend: (message: string) => Promise<void> | void }) {
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const send = async () => {
+    const text = message.trim();
+    if (!text) return;
+    setSending(true);
+    try {
+      await onSend(text);
+      setMessage("");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <section className="glass rounded-2xl p-5 shadow-card space-y-3">
+      <h3 className="text-sm font-semibold">Fale com a equipe</h3>
+      <Textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Escreva uma mensagem para a equipe de atendimento..."
+        className="min-h-24"
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+            e.preventDefault();
+            void send();
+          }
+        }}
+      />
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">Ctrl/⌘ + Enter para enviar</span>
+        <Button type="button" onClick={() => void send()} disabled={sending || !message.trim()} className="gap-1.5">
+          <Send className="h-4 w-4" />
+          {sending ? "Enviando..." : "Enviar mensagem"}
+        </Button>
+      </div>
+    </section>
   );
 }
