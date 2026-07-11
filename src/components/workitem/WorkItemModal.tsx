@@ -42,11 +42,23 @@ import { WorkItemResolution } from "./WorkItemResolution";
 import { WorkItemHistoryTimeline } from "./WorkItemHistoryTimeline";
 import { WorkItemContextPanel } from "./WorkItemContextPanel";
 import { WorkItemBlockDialog, WorkItemReopenDialog } from "./WorkItemDialogs";
+import { TicketWorkflowDialog } from "@/components/tickets/TicketWorkflowDialog";
+import { useTicketWorkflow } from "@/hooks/useTicketWorkflow";
+import { getTicketWorkflowActionLabel, type TicketWorkflowActionId } from "@/lib/ticketWorkflow";
 
 type TabId = "descricao" | "conversa" | "notas" | "internos" | "execucao" | "historico";
 
 // Ações de comentário não entram no histórico — ele guarda só eventos automáticos.
 const HISTORY_EXCLUDED_ACTIONS = ["comment"];
+
+// Ações específicas de chamado que o header genérico NÃO cobre (triagem/aprovação/
+// categorização/aguardar cliente). O header já trata iniciar/pausar/finalizar/reabrir.
+const TICKET_EXTRA_ACTIONS = new Set<TicketWorkflowActionId>([
+  "categorize",
+  "approve",
+  "reject",
+  "wait_customer",
+]);
 
 export function WorkItemModal({
   workRef,
@@ -122,6 +134,15 @@ export function WorkItemModal({
   const item = itemQuery.data;
   const comments = commentsQuery.data ?? [];
   const subTickets = subTicketsQuery.data ?? [];
+
+  // Fluxo de chamado (mesma orquestração da tela de Chamados). Surge as ações
+  // específicas de chamado que o header genérico não cobre (triagem/aprovação/
+  // categorização/aguardar cliente), reusando o TicketWorkflowDialog.
+  const ticketWorkflow = useTicketWorkflow();
+  const ticketRaw = item?.backend === "ticket" ? (item.raw as Ticket) : null;
+  const ticketExtraActions = ticketRaw
+    ? ticketWorkflow.availableActions(ticketRaw).filter((a) => TICKET_EXTRA_ACTIONS.has(a.id))
+    : [];
   // Só subchamados marcados como bloqueantes impedem a finalização do pai.
   const openSubTickets = subTickets.filter((s) => s.blocksParent && !isSubTicketFinished(s)).length;
 
@@ -234,6 +255,25 @@ export function WorkItemModal({
                 void changeStatus(status);
               }}
             />
+
+            {/* Ações específicas de chamado (triagem/aprovação/categorização/aguardar
+                cliente) — mesmas regras/formulários da tela de Chamados. */}
+            {ticketRaw && ticketExtraActions.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-5 pb-3">
+                {ticketExtraActions.map((action) => (
+                  <Button
+                    key={action.id}
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs"
+                    disabled={mutating || ticketWorkflow.saving}
+                    onClick={() => ticketWorkflow.requestAction(ticketRaw, action.id)}
+                  >
+                    {getTicketWorkflowActionLabel(action.id)}
+                  </Button>
+                ))}
+              </div>
+            )}
 
             {/* Corpo: abas + painel lateral */}
             <div className="flex min-h-0 flex-1">
@@ -408,6 +448,27 @@ export function WorkItemModal({
             void changeStatus(pauseStatus, reason, `${pauseStatus} com motivo registrado.`)
               .then(() => setPauseOpen(false))
               .catch(() => undefined);
+          }}
+        />
+
+        {/* Formulários específicos de chamado (categorizar/aguardar cliente/aprovar/
+            reprovar) — mesmos do fluxo da tela de Chamados. */}
+        <TicketWorkflowDialog
+          open={Boolean(ticketWorkflow.dialogState)}
+          actionId={ticketWorkflow.dialogState?.actionId || null}
+          ticket={ticketWorkflow.dialogState?.ticket || null}
+          categories={ticketWorkflow.categories}
+          users={ticketWorkflow.technicianUsers}
+          saving={ticketWorkflow.saving}
+          onOpenChange={(o) => { if (!o) ticketWorkflow.setDialogState(null); }}
+          onSubmit={async (formData) => {
+            if (!ticketWorkflow.dialogState) return;
+            await ticketWorkflow.runAction(
+              ticketWorkflow.dialogState.ticket,
+              ticketWorkflow.dialogState.actionId,
+              formData,
+            );
+            onChanged?.();
           }}
         />
       </DialogContent>
