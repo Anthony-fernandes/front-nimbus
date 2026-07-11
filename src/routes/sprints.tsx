@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Plus, Rocket, Target, Zap } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Can } from "@/components/app/Can";
 import { TablePagination } from "@/components/app/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { Input } from "@/components/ui/input";
@@ -121,14 +122,16 @@ function SprintsPage() {
               {isLoading ? "Carregando planejamento..." : `${sprints.length} sprints cadastradas`}
             </p>
           </div>
-          <Button
-            asChild
-            className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-          >
-            <a href="/sprints/new">
-              <Plus className="h-4 w-4" /> Nova sprint
-            </a>
-          </Button>
+          <Can permission="sprints.create">
+            <Button
+              asChild
+              className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+            >
+              <a href="/sprints/new">
+                <Plus className="h-4 w-4" /> Nova sprint
+              </a>
+            </Button>
+          </Can>
         </div>
 
         {!isLoading && sprints.length === 0 ? (
@@ -366,9 +369,11 @@ function SprintsPage() {
                 ))}
               </select>
             </div>
-            <a href="/sprints/new" className="text-xs text-primary hover:underline">
-              + Nova sprint
-            </a>
+            <Can permission="sprints.create">
+              <a href="/sprints/new" className="text-xs text-primary hover:underline">
+                + Nova sprint
+              </a>
+            </Can>
           </div>
 
           <table className="w-full text-sm">

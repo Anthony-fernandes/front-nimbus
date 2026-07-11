@@ -5,6 +5,7 @@ import { AlertCircle, Check, CheckCircle2, Circle, Clock, Pause, Plus, Timer, X 
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Can } from "@/components/app/Can";
 import { TablePagination } from "@/components/app/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { WorkItemModal } from "@/components/workitem/WorkItemModal";
@@ -286,14 +287,16 @@ function ActivitiesPage() {
               : `${rows.length} ${itemNoun}${teamParam ? ` da equipe ${selectedTeam?.name || ""}` : " cadastradas entre backlog e projetos"}`
           }
           actions={
-            <Button
-              asChild
-              className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-            >
-              <a href="/activities/new">
-                <Plus className="h-4 w-4" /> Nova atividade
-              </a>
-            </Button>
+            <Can permission="activities.create">
+              <Button
+                asChild
+                className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+              >
+                <a href="/activities/new">
+                  <Plus className="h-4 w-4" /> Nova atividade
+                </a>
+              </Button>
+            </Can>
           }
         />
 

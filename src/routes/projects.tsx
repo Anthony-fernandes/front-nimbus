@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Clock, Plus } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Can } from "@/components/app/Can";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -129,14 +130,16 @@ function ProjectsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              asChild
-              className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-            >
-              <a href="/projects/new">
-                <Plus className="h-4 w-4" /> Novo projeto
-              </a>
-            </Button>
+            <Can permission="projects.create">
+              <Button
+                asChild
+                className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+              >
+                <a href="/projects/new">
+                  <Plus className="h-4 w-4" /> Novo projeto
+                </a>
+              </Button>
+            </Can>
             <div className="flex gap-1.5 text-xs">
               <button
                 type="button"
