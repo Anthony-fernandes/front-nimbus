@@ -15,6 +15,10 @@ export type TicketCustomField = {
   field_type: "text" | "number" | "date" | "select" | "boolean";
   required: boolean;
   is_active: boolean;
+  options?: string[];
+  category?: string | null;
+  category_name?: string;
+  visible_to_client?: boolean;
 };
 
 export async function listCustomFields() {

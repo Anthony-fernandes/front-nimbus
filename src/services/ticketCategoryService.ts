@@ -28,6 +28,8 @@ function normalizeCategoryPayload(payload: Partial<TicketCategory>) {
     color: payload.color || "",
     icon: payload.icon || "",
     subcategories: payload.subcategories || [],
+    subcategory_required: Boolean(payload.subcategory_required),
+    attachment_required: Boolean(payload.attachment_required),
   };
 }
 

@@ -61,6 +61,7 @@ import {
 } from "@/services/customFieldService";
 import { getPortalFormConfig, updatePortalFormConfig } from "@/services/ticketService";
 import { Switch } from "@/components/ui/switch";
+import { listTicketCategories } from "@/services/ticketCategoryService";
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/settings")({
@@ -954,8 +955,20 @@ function CustomFieldsTab({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const emptyForm = { name: "", label: "", field_type: "text" as TicketCustomField["field_type"], required: false, is_active: true };
+  const emptyForm = {
+    name: "",
+    label: "",
+    field_type: "text" as TicketCustomField["field_type"],
+    required: false,
+    is_active: true,
+    category: "" as string,
+    visible_to_client: false,
+  };
   const [form, setForm] = useState(emptyForm);
+  const { data: ticketCategories = [] } = useQuery({
+    queryKey: ["ticket-categories"],
+    queryFn: () => listTicketCategories().catch(() => []),
+  });
 
   const handleCreate = async () => {
     if (!form.label.trim() || !form.name.trim()) {
@@ -964,7 +977,7 @@ function CustomFieldsTab({
     }
     setSaving(true);
     try {
-      await createCustomField(form);
+      await createCustomField({ ...form, category: form.category || null });
       toast.success("Campo criado.");
       setForm(emptyForm);
       setShowForm(false);
@@ -979,7 +992,7 @@ function CustomFieldsTab({
   const handleUpdate = async (id: string) => {
     setSaving(true);
     try {
-      await updateCustomField(id, form);
+      await updateCustomField(id, { ...form, category: form.category || null });
       toast.success("Campo atualizado.");
       setEditingId(null);
       onRefresh();
@@ -1013,7 +1026,15 @@ function CustomFieldsTab({
   const startEdit = (field: TicketCustomField) => {
     setEditingId(field.id);
     setShowForm(false);
-    setForm({ name: field.name, label: field.label, field_type: field.field_type, required: field.required, is_active: field.is_active });
+    setForm({
+      name: field.name,
+      label: field.label,
+      field_type: field.field_type,
+      required: field.required,
+      is_active: field.is_active,
+      category: field.category || "",
+      visible_to_client: Boolean(field.visible_to_client),
+    });
   };
 
   return (
@@ -1080,6 +1101,31 @@ function CustomFieldsTab({
                     className="h-4 w-4 rounded border border-border"
                   />
                   <label htmlFor="new-required" className="text-sm cursor-pointer">Obrigatório</label>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Categoria vinculada</Label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">Todas as categorias</option>
+                  {ticketCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                  <input
+                    id="new-visible-client"
+                    type="checkbox"
+                    checked={form.visible_to_client}
+                    onChange={(e) => setForm((p) => ({ ...p, visible_to_client: e.target.checked }))}
+                    className="h-4 w-4 rounded border border-border"
+                  />
+                  <label htmlFor="new-visible-client" className="text-sm cursor-pointer">Visível no Portal do Cliente</label>
                 </div>
               </div>
             </div>
@@ -1165,6 +1211,31 @@ function CustomFieldsTab({
                             <label htmlFor={`edit-required-${field.id}`} className="text-sm cursor-pointer">Obrigatório</label>
                           </div>
                         </div>
+                      <div className="space-y-1">
+                        <Label>Categoria vinculada</Label>
+                        <select
+                          value={form.category}
+                          onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+                          className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+                        >
+                          <option value="">Todas as categorias</option>
+                          {ticketCategories.map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-end">
+                        <div className="flex h-9 items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                          <input
+                            id={`edit-visible-${field.id}`}
+                            type="checkbox"
+                            checked={form.visible_to_client}
+                            onChange={(e) => setForm((p) => ({ ...p, visible_to_client: e.target.checked }))}
+                            className="h-4 w-4 rounded border border-border"
+                          />
+                          <label htmlFor={`edit-visible-${field.id}`} className="text-sm cursor-pointer">Visível no Portal do Cliente</label>
+                        </div>
+                      </div>
                       </div>
                       <div className="flex gap-2">
                         <Button

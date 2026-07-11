@@ -102,6 +102,8 @@ export type TicketCategory = {
   color?: string;
   icon?: string;
   subcategories?: string[];
+  subcategory_required?: boolean;
+  attachment_required?: boolean;
   created_at?: string;
   updated_at?: string;
 };

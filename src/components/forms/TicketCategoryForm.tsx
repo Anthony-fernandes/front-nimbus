@@ -33,6 +33,8 @@ export type TicketCategoryFormData = {
   color: string;
   icon: string;
   subcategoriesText: string;
+  subcategoryRequired: boolean;
+  attachmentRequired: boolean;
 };
 
 const empty: TicketCategoryFormData = {
@@ -52,6 +54,8 @@ const empty: TicketCategoryFormData = {
   color: "",
   icon: "",
   subcategoriesText: "",
+  subcategoryRequired: false,
+  attachmentRequired: false,
 };
 
 export function toTicketCategoryFormData(
@@ -74,6 +78,8 @@ export function toTicketCategoryFormData(
     color: category?.color || "",
     icon: category?.icon || "",
     subcategoriesText: (category?.subcategories || []).join("\n"),
+    subcategoryRequired: Boolean(category?.subcategory_required),
+    attachmentRequired: Boolean(category?.attachment_required),
   };
 }
 
@@ -234,6 +240,16 @@ export function TicketCategoryForm({
             label="Exige aprovação"
             checked={data.approvalRequired}
             onCheckedChange={(value) => set("approvalRequired", value)}
+          />
+          <ToggleField
+            label="Subcategoria obrigatória no portal"
+            checked={data.subcategoryRequired}
+            onCheckedChange={(value) => set("subcategoryRequired", value)}
+          />
+          <ToggleField
+            label="Anexo obrigatório no portal"
+            checked={data.attachmentRequired}
+            onCheckedChange={(value) => set("attachmentRequired", value)}
           />
           <ToggleField
             label="Permite virar atividade de projeto"

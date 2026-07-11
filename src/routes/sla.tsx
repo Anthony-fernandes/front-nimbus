@@ -273,6 +273,9 @@ function SLAPage() {
                     </span>
                     <span className="text-sm font-medium">{policy.name}</span>
                     {policy.category && <span className="text-xs text-muted-foreground">· {policy.category}</span>}
+                    {(policy as { subcategory?: string }).subcategory && (
+                      <span className="text-xs text-muted-foreground">· {(policy as { subcategory?: string }).subcategory}</span>
+                    )}
                     {(policy as { client?: string | null; client_name?: string }).client_name && (
                       <span className="text-xs bg-violet-500/10 text-violet-400 rounded px-1.5 py-0.5">{(policy as { client_name?: string }).client_name}</span>
                     )}
@@ -432,6 +435,7 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
   const [name, setName] = useState(editing?.name ?? "");
   const [priority, setPriority] = useState(editing?.priority ?? "");
   const [category, setCategory] = useState(editing?.category ?? "");
+  const [subcategory, setSubcategory] = useState((editing as { subcategory?: string } | null)?.subcategory ?? "");
   const [responseTime, setResponseTime] = useState(editing?.response_time ?? "8h");
   const [client, setClient] = useState((editing as { client?: string } | null)?.client ?? "");
 
@@ -439,6 +443,7 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
     setName(editing?.name ?? "");
     setPriority(editing?.priority ?? "");
     setCategory(editing?.category ?? "");
+    setSubcategory((editing as { subcategory?: string } | null)?.subcategory ?? "");
     setResponseTime(editing?.response_time ?? "8h");
     setClient((editing as { client?: string } | null)?.client ?? "");
   }, [editing]);
@@ -456,6 +461,7 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
         name,
         priority,
         category,
+        subcategory,
         response_time: responseTime.trim().toLowerCase(),
         active: true,
         client: client && client !== "__all__" ? client : null,
@@ -492,6 +498,11 @@ function PolicyDialog({ open, onOpenChange, editing, onSaved }: {
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Categoria (opcional)</label>
             <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Infraestrutura" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Subcategoria (opcional)</label>
+            <Input value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Ex: Bloqueio de usuário" />
+            <p className="text-[11px] text-muted-foreground">Política com subcategoria vence a política geral da categoria.</p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Prazo de resposta</label>

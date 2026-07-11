@@ -97,6 +97,8 @@ function TicketCategoriesPage() {
             .split("\n")
             .map((item) => item.trim())
             .filter(Boolean),
+          subcategory_required: data.subcategoryRequired,
+          attachment_required: data.attachmentRequired,
         },
         selectedCategory ? "edit" : "create",
         selectedCategory?.id,

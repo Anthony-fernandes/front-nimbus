@@ -41,6 +41,7 @@ type ClientTicketRequestPayload = {
   impact?: string;
   attachments?: TicketAttachment[];
   hasAttachments?: boolean;
+  customValues?: Record<string, string>;
 };
 
 /** Configuração admin do formulário de abertura no Portal do Cliente. */
@@ -296,6 +297,7 @@ export async function createClientTicketRequest(payload: ClientTicketRequestPayl
     preferred_contact_time: payload.preferredContactTime || "",
     preferred_contact_channel: payload.preferredContactChannel || "",
     has_attachments: Boolean(payload.hasAttachments || (payload.attachments || []).length),
+    custom_values: payload.customValues || undefined,
     type: payload.type || categoryDefaults.type,
     priority: categoryDefaults.priority,
     impact: payload.impact || categoryDefaults.impact,

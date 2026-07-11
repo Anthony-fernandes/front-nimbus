@@ -15,14 +15,25 @@ import { api } from "@/services/api";
 import { createClientTicketRequest, uploadTicketAttachment, type PortalFormConfig } from "@/services/ticketService";
 import { parseApiError } from "@/services/utils";
 
+type PortalExtraField = {
+  id: string;
+  label: string;
+  field_type: "text" | "number" | "date" | "select" | "boolean";
+  options?: string[];
+  required?: boolean;
+};
+
 type PortalCategory = {
   id: string;
   name: string;
   description?: string;
   subcategories?: string[];
+  subcategory_required?: boolean;
+  attachment_required?: boolean;
   default_type?: string;
   approval_required?: boolean;
   sla?: string;
+  extra_fields?: PortalExtraField[];
 };
 
 type PortalDepartment = { id: string; name: string; manager_name?: string };
@@ -93,6 +104,7 @@ export function ClientTicketRequestForm() {
   const [contactTime, setContactTime] = useState("");
   const [contactChannel, setContactChannel] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [extraValues, setExtraValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   // Config admin + catálogos (categorias com subcategorias e departamentos com responsável)
@@ -114,6 +126,11 @@ export function ClientTicketRequestForm() {
 
   const selectedCategory = categories.find((c) => String(c.id) === categoryId) || null;
   const subcategories = selectedCategory?.subcategories || [];
+  const extraFields = selectedCategory?.extra_fields || [];
+  const subcategoryRequired =
+    required("subcategory") || Boolean(selectedCategory?.subcategory_required);
+  const attachmentRequired =
+    required("attachments") || Boolean(selectedCategory?.attachment_required);
   const selectedDepartment = departments.find((d) => String(d.id) === departmentId) || null;
 
   const descriptionPlaceholder =
@@ -136,7 +153,7 @@ export function ClientTicketRequestForm() {
     if (!title.trim()) return "Informe o título.";
     if (!description.trim()) return "Descreva a solicitação.";
     if (required("category") && !categoryId) return "Selecione a categoria.";
-    if (required("subcategory") && subcategories.length > 0 && !subcategory)
+    if (subcategoryRequired && subcategories.length > 0 && !subcategory)
       return "Selecione a subcategoria.";
     if (required("department") && !departmentId) return "Selecione o setor/departamento.";
     if (required("request_type") && !requestType) return "Selecione o tipo de solicitação.";
@@ -147,7 +164,11 @@ export function ClientTicketRequestForm() {
       return "Informe o melhor horário para contato.";
     if (required("preferred_contact_channel") && !contactChannel)
       return "Selecione o canal preferencial de contato.";
-    if (required("attachments") && files.length === 0) return "Anexe pelo menos um arquivo.";
+    if (attachmentRequired && files.length === 0) return "Anexe pelo menos um arquivo.";
+    for (const field of extraFields) {
+      if (field.required && !String(extraValues[field.id] || "").trim())
+        return `Preencha o campo "${field.label}".`;
+    }
     return null;
   };
 
@@ -187,6 +208,7 @@ export function ClientTicketRequestForm() {
         urgency,
         impact,
         hasAttachments: files.length > 0,
+        customValues: extraValues,
       });
 
       const createdId = (created as { id?: string })?.id;
@@ -261,6 +283,7 @@ export function ClientTicketRequestForm() {
                   onChange={(e) => {
                     setCategoryId(e.target.value);
                     setSubcategory("");
+                    setExtraValues({});
                   }}
                   className={selectCls}
                 >
@@ -273,9 +296,9 @@ export function ClientTicketRequestForm() {
             )}
 
             {show("subcategory") && categoryId && subcategories.length > 0 && (
-              <Field label="Subcategoria" required={reqMark("subcategory")}>
+              <Field label="Subcategoria" required={subcategoryRequired || undefined}>
                 <select value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className={selectCls}>
-                  <option value="">{required("subcategory") ? "Selecione" : "Selecione (opcional)"}</option>
+                  <option value="">{subcategoryRequired ? "Selecione" : "Selecione (opcional)"}</option>
                   {subcategories.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -292,6 +315,39 @@ export function ClientTicketRequestForm() {
                 />
               </Field>
             )}
+
+            {extraFields.map((field) => (
+              <Field key={field.id} label={field.label} required={field.required || undefined}>
+                {field.field_type === "select" ? (
+                  <select
+                    value={extraValues[field.id] || ""}
+                    onChange={(e) => setExtraValues((v) => ({ ...v, [field.id]: e.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">Selecione</option>
+                    {(field.options || []).map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : field.field_type === "boolean" ? (
+                  <select
+                    value={extraValues[field.id] || ""}
+                    onChange={(e) => setExtraValues((v) => ({ ...v, [field.id]: e.target.value }))}
+                    className={selectCls}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="Sim">Sim</option>
+                    <option value="Não">Não</option>
+                  </select>
+                ) : (
+                  <Input
+                    type={field.field_type === "number" ? "number" : field.field_type === "date" ? "date" : "text"}
+                    value={extraValues[field.id] || ""}
+                    onChange={(e) => setExtraValues((v) => ({ ...v, [field.id]: e.target.value }))}
+                  />
+                )}
+              </Field>
+            ))}
           </div>
         </FormSection>
 
@@ -386,7 +442,7 @@ export function ClientTicketRequestForm() {
             )}
 
             {show("attachments") && (
-              <Field label={required("attachments") ? "Anexos (obrigatório)" : "Anexos"} className="sm:col-span-2">
+              <Field label={attachmentRequired ? "Anexos (obrigatório)" : "Anexos"} className="sm:col-span-2">
                 <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-muted/10 px-4 py-4 transition-colors hover:border-primary/40">
                   <Paperclip className="h-4 w-4 text-muted-foreground" />
                   <div className="flex-1 text-sm">
