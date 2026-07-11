@@ -290,8 +290,9 @@ export function WorkItemModal({
                     <TabsTrigger value="historico">Histórico</TabsTrigger>
                   </TabsList>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-                    <TabsContent value="descricao" className="m-0">
+                  {/* Cada aba controla o próprio scroll — evita scroll duplo na Conversa */}
+                  <div className="min-h-0 flex-1 overflow-hidden px-5 py-4">
+                    <TabsContent value="descricao" className="m-0 h-full overflow-y-auto">
                       <WorkItemDescription item={item} />
                     </TabsContent>
 
@@ -322,7 +323,7 @@ export function WorkItemModal({
                       />
                     </TabsContent>
 
-                    <TabsContent value="execucao" className="m-0 space-y-4">
+                    <TabsContent value="execucao" className="m-0 h-full space-y-4 overflow-y-auto">
                       <WorkItemExecution
                         item={item}
                         timeLogs={timeLogsQuery.data ?? []}
@@ -354,7 +355,7 @@ export function WorkItemModal({
                       />
                     </TabsContent>
 
-                    <TabsContent value="historico" className="m-0">
+                    <TabsContent value="historico" className="m-0 h-full overflow-y-auto">
                       <WorkItemHistoryTimeline
                         events={historyEvents}
                         loading={historyQuery.isLoading}
