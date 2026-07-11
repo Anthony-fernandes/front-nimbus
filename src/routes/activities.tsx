@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatHoursLabel } from "@/lib/activityFlow";
-import { formatActivityStatusLabel, formatPriorityLabel } from "@/lib/labels";
+import { formatActivityStatusLabel, formatPriorityLabel, getActivityStatusClass } from "@/lib/labels";
 import type { Activity } from "@/lib/types";
 import { listActivities, updateActivity } from "@/services/activityService";
 import { listActivityTimeEntries, saveActivityTimeEntry } from "@/services/activityTimeEntryService";
@@ -46,17 +46,6 @@ export const Route = createFileRoute("/activities")({
 function isBugActivity(a: Activity) {
   return (a.type || "").toLowerCase().includes("bug");
 }
-
-const statusMap: Record<string, { cls: string; Icon: typeof Circle }> = {
-  "A fazer": { cls: "text-muted-foreground", Icon: Circle },
-  Backlog: { cls: "text-muted-foreground", Icon: Circle },
-  "Em progresso": { cls: "text-info", Icon: AlertCircle },
-  "Em revisao": { cls: "text-accent", Icon: AlertCircle },
-  Bloqueado: { cls: "text-warning", Icon: Pause },
-  Concluido: { cls: "text-success", Icon: CheckCircle2 },
-  "Concluída": { cls: "text-success", Icon: CheckCircle2 },
-  "Concluído": { cls: "text-success", Icon: CheckCircle2 },
-};
 
 const STATUS_FILTER_OPTIONS = [
   "Todos",
@@ -363,8 +352,6 @@ function ActivitiesPage() {
           </div>
 
           {pag.pageRows.map((row: Activity, index) => {
-            const status = statusMap[row.status || "Backlog"] || statusMap.Backlog;
-
             return (
               <div
                 key={row.id}
@@ -397,9 +384,10 @@ function ActivitiesPage() {
                 <div className="col-span-2 truncate text-muted-foreground">{row.project_name || "—"}</div>
                 <div className="col-span-1 text-xs text-muted-foreground">{row.sprint_name || "—"}</div>
                 <div className="col-span-1 text-xs">{row.assignee_name || "—"}</div>
-                <div className={`col-span-2 flex items-center gap-1.5 ${status.cls}`}>
-                  <status.Icon className="h-3.5 w-3.5" />
-                  <span className="text-xs">{formatActivityStatusLabel(row.status || "Backlog")}</span>
+                <div className="col-span-2">
+                  <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium ${getActivityStatusClass(row.status || "Backlog")}`}>
+                    {formatActivityStatusLabel(row.status || "Backlog")}
+                  </span>
                 </div>
                 <div className="col-span-1 text-right font-mono text-xs text-primary">
                   {formatHoursLabel(Number(row.est_hours || 0))}

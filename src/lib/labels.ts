@@ -75,6 +75,36 @@ export function formatActivityStatusLabel(value?: string | null) {
   });
 }
 
+/** Badge pill de status de atividade — mesmo visual dos chamados (getTicketStatusClass). */
+export function getActivityStatusClass(value?: string | null) {
+  switch (normalizeLabelValue(value)) {
+    case "BACKLOG":
+    case "A FAZER":
+      return "bg-muted/60 text-muted-foreground";
+    case "EM PROGRESSO":
+    case "EM ANDAMENTO":
+      return "bg-primary/15 text-primary";
+    case "EM REVISAO":
+    case "EM VALIDACAO":
+      return "bg-accent/15 text-accent";
+    case "PAUSADO":
+    case "PAUSADA":
+      return "bg-muted text-muted-foreground";
+    case "BLOQUEADO":
+    case "BLOQUEADA":
+      return "bg-warning/15 text-warning";
+    case "CANCELADO":
+    case "CANCELADA":
+      return "bg-destructive/15 text-destructive";
+    case "CONCLUIDO":
+    case "CONCLUIDA":
+    case "DONE":
+      return "bg-success/15 text-success";
+    default:
+      return "bg-muted/60 text-muted-foreground";
+  }
+}
+
 export function formatProjectStatusLabel(value?: string | null) {
   return resolveLabel(value, {
     CONCLUIDO: "Concluido",
