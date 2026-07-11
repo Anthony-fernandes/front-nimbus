@@ -40,7 +40,7 @@ import { TablePagination } from "@/components/app/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { TableSkeleton } from "@/components/app/TableSkeleton";
 import { EmptyState } from "@/components/app/EmptyState";
-import { TicketWorkflowDialog, type TicketWorkflowDialogSubmitData } from "@/components/tickets/TicketWorkflowDialog";
+import { TicketWorkflowDialog } from "@/components/tickets/TicketWorkflowDialog";
 import { WorkItemModal } from "@/components/workitem/WorkItemModal";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +60,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { isClientUser } from "@/lib/auth";
 import { formatPriorityLabel, formatTicketStatusLabel } from "@/lib/labels";
 import {
   applyTicketListView,
@@ -77,17 +76,12 @@ import {
   type TicketSortBy,
 } from "@/lib/ticketList";
 import {
-  canApproveTickets,
-  canCategorizeTickets,
-  canFinalizeTickets,
   hasAnyPermission,
   hasPermission,
 } from "@/lib/permissions";
 import {
-  canTransitionTicket,
   getAvailableTicketActions,
   isTicketSlaPaused,
-  prepareTicketWorkflowAction,
   type TicketWorkflowActionId,
   type TicketWorkflowActionDefinition,
 } from "@/lib/ticketWorkflow";
@@ -100,12 +94,9 @@ import {
 import type { Ticket, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getStoredUser } from "@/services/authService";
-import { listTicketCategories } from "@/services/ticketCategoryService";
-import { listTickets, transitionTicket } from "@/services/ticketService";
+import { listTickets } from "@/services/ticketService";
 import { listTeams } from "@/services/teamService";
-import { listTicketWorkflowStatuses } from "@/services/ticketWorkflowService";
-import { listUsers } from "@/services/userService";
-import { parseApiError } from "@/services/utils";
+import { useTicketWorkflow } from "@/hooks/useTicketWorkflow";
 
 export const Route = createFileRoute("/tickets")({
   head: () => ({ meta: [{ title: "Chamados · NimbusDesk" }] }),
@@ -133,19 +124,6 @@ const QUICK_FILTER_CARDS: Array<{
   { value: "finished", label: "Finalizados", color: "bg-success" },
 ];
 
-const MODAL_ACTIONS = new Set<TicketWorkflowActionId>([
-  "categorize",
-  "pause",
-  "wait_customer",
-  "finish",
-  "cancel",
-]);
-
-type TicketWorkflowDialogState = {
-  ticket: Ticket;
-  actionId: TicketWorkflowActionId;
-} | null;
-
 type BulkActionType = "technician" | "status" | "priority" | "category" | null;
 
 const TICKET_PRIORITY_BULK_OPTIONS = ["Critica", "Alta", "Media", "Baixa", "Pendente"];
@@ -161,8 +139,6 @@ function TicketsPage() {
   const [sortBy, setSortBy] = useState<TicketSortBy>("recent_desc");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
-  const [dialogState, setDialogState] = useState<TicketWorkflowDialogState>(null);
-  const [workflowSaving, setWorkflowSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailTicketId, setDetailTicketId] = useState<string | null>(null);
   const [bulkAction, setBulkAction] = useState<BulkActionType>(null);
@@ -223,34 +199,12 @@ function TicketsPage() {
     queryFn: () => listTickets(),
     enabled: canViewTickets,
   });
-  const { data: categories = [] } = useQuery({
-    queryKey: ["ticket-categories"],
-    queryFn: () => listTicketCategories(),
-  });
-  const { data: users = [] } = useQuery({
-    queryKey: ["workflow-users"],
-    queryFn: () => listUsers(),
-  });
-  const { data: statusConfigs = [] } = useQuery({
-    queryKey: ["ticket-workflow-status-configs"],
-    queryFn: () => listTicketWorkflowStatuses(),
-  });
-
-  const canApprove = canApproveTickets(currentUser);
-  const canCategorize = canCategorizeTickets(currentUser);
-  const canFinalize = canFinalizeTickets(currentUser);
+  // Orquestração ÚNICA do workflow de chamado (mesma usada pelo WorkItemModal).
+  const ticketWorkflow = useTicketWorkflow();
+  const { statusConfigs, categories, technicianUsers, workflowPermissions, dialogState } = ticketWorkflow;
+  const workflowSaving = ticketWorkflow.saving;
   const canCreateTickets = hasPermission(currentUser, "tickets.create");
   const canEditTickets = hasPermission(currentUser, "tickets.edit");
-  const workflowPermissions = {
-    canApprove,
-    canCategorize,
-    canFinalize,
-    canEdit: canEditTickets,
-  };
-  const technicianUsers = useMemo(
-    () => users.filter((user) => !isClientUser(user)),
-    [users],
-  );
 
   // Contexto de equipe: escopa a lista real de chamados pela equipe selecionada
   // (chamado da equipe, ou técnico responsável/atribuído é membro da equipe).
@@ -394,73 +348,8 @@ function TicketsPage() {
     }));
   };
 
-  const runWorkflowAction = async (
-    ticket: Ticket,
-    actionId: TicketWorkflowActionId,
-    formData?: TicketWorkflowDialogSubmitData,
-  ) => {
-    const targetStatus = getAvailableTicketActions(
-      ticket,
-      statusConfigs,
-      workflowPermissions,
-    ).find((action) => action.id === actionId)?.targetStatus;
-    if (!targetStatus) {
-      return;
-    }
-
-    if (!canTransitionTicket(ticket, targetStatus, statusConfigs)) {
-      toast.error("Essa transição não é permitida para o status atual do chamado.");
-      return;
-    }
-
-    const preparedAction = prepareTicketWorkflowAction({
-      ticket,
-      actionId,
-      input: formData,
-      statusConfigs,
-      categories,
-      users: technicianUsers,
-      currentUser,
-    });
-
-    try {
-      setWorkflowSaving(true);
-      await transitionTicket(ticket.id, preparedAction.transitionPayload);
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tickets"] }),
-        queryClient.invalidateQueries({ queryKey: ["ticket", ticket.id] }),
-        queryClient.invalidateQueries({ queryKey: ["ticket-timeline", ticket.id] }),
-      ]);
-
-      toast.success(preparedAction.successMessage);
-      setDialogState(null);
-    } catch (error) {
-      toast.error(parseApiError(error, "Não foi possível atualizar o chamado."));
-    } finally {
-      setWorkflowSaving(false);
-    }
-  };
-
-  const handleActionRequest = (ticket: Ticket, actionId: TicketWorkflowActionId) => {
-    const actionDefinition = getAvailableTicketActions(
-      ticket,
-      statusConfigs,
-      workflowPermissions,
-    ).find((action) => action.id === actionId);
-
-    if (!actionDefinition) {
-      toast.error("Essa ação não está disponível para o status atual.");
-      return;
-    }
-
-    if (MODAL_ACTIONS.has(actionId)) {
-      setDialogState({ ticket, actionId });
-      return;
-    }
-
-    void runWorkflowAction(ticket, actionId);
-  };
+  // Orquestração agora vem do hook central useTicketWorkflow (mesma do WorkItemModal).
+  const handleActionRequest = ticketWorkflow.requestAction;
 
   return (
     <AppShell>
@@ -1236,7 +1125,7 @@ function TicketsPage() {
         saving={workflowSaving}
         onOpenChange={(open) => {
           if (!open) {
-            setDialogState(null);
+            ticketWorkflow.setDialogState(null);
           }
         }}
         onSubmit={async (formData) => {
@@ -1244,7 +1133,7 @@ function TicketsPage() {
             return;
           }
 
-          await runWorkflowAction(dialogState.ticket, dialogState.actionId, formData);
+          await ticketWorkflow.runAction(dialogState.ticket, dialogState.actionId, formData);
         }}
       />
     </AppShell>
