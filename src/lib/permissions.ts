@@ -767,6 +767,18 @@ function canAccessInternalPath(user: Partial<User> | null | undefined, pathname:
     };
   }
 
+  // Equipes (grupos técnicos). Criar/editar exige gerenciar equipes; ver é liberado
+  // para perfis internos. Backend confirma com ["users.manage","users.managePermissions","teams.manage"].
+  if (pathname.startsWith("/equipes")) {
+    if (pathname.endsWith("/nova") || pathname.endsWith("/editar") || pathname.endsWith("/edit")) {
+      return {
+        allowed: hasAnyPermission(user, ["users.manage", "users.managePermissions"]),
+        fallbackTo: getDeniedFallback(user),
+      };
+    }
+    return { allowed: getUserRole(user) !== "CLIENT", fallbackTo: getDeniedFallback(user) };
+  }
+
   if (pathname.startsWith("/reports")) {
     return { allowed: hasPermission(user, "reports.view"), fallbackTo: getDeniedFallback(user) };
   }

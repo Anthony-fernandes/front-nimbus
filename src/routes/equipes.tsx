@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Plus, Users, Zap } from "lucide-react";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Can } from "@/components/app/Can";
 import { Button } from "@/components/ui/button";
 import { listTeams } from "@/services/teamService";
 
@@ -31,9 +32,11 @@ function EquipesPage() {
               {isLoading ? "Carregando equipes…" : `${teams.length} equipe${teams.length !== 1 ? "s" : ""} cadastrada${teams.length !== 1 ? "s" : ""}`}
             </p>
           </div>
-          <Button asChild className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
-            <Link to="/equipes/nova"><Plus className="h-4 w-4" /> Nova equipe</Link>
-          </Button>
+          <Can anyOf={["users.manage", "users.managePermissions"]}>
+            <Button asChild className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
+              <Link to="/equipes/nova"><Plus className="h-4 w-4" /> Nova equipe</Link>
+            </Button>
+          </Can>
         </div>
 
         {/* Stats */}
