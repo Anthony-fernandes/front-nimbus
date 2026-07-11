@@ -261,10 +261,21 @@ export function AppSidebar({ user: externalUser }: { user?: User | null }) {
   const displayName = getUserDisplayName(user);
   const initials = getUserInitials(user);
   const clientName = getUserClientName(user);
+  // Detecção de rota ativa por MATCH MAIS ESPECÍFICO: entre todas as URLs do
+  // menu que casam com o path, só a mais longa fica ativa. Evita que rotas-pai
+  // (ex.: /client, /client/tickets) fiquem ativas quando estou em /client/tickets/new.
+  const navUrls = [
+    ...clientMenu.map((m) => m.url),
+    ...internalMenu.workspace.map((m) => m.url),
+    ...internalMenu.management.map((m) => m.url),
+    "/help", "/knowledge", "/doubts", "/forum", "/chat", "/superadmin",
+  ].filter(Boolean) as string[];
+  const matchesPath = (u: string) =>
+    u === "/" ? path === "/" : path === u || path.startsWith(`${u}/`);
+  const activeUrl = navUrls.filter(matchesPath).sort((a, b) => b.length - a.length)[0] ?? "";
   // Item global só fica ativo fora do contexto de equipe. Assim, /sprints?context=team
   // (Equipe > Sprints) NÃO acende "Workspace > Sprints".
-  const isActive = (url: string) =>
-    !inTeamContext && (url === "/" ? path === "/" : path.startsWith(url));
+  const isActive = (url: string) => !inTeamContext && url === activeUrl;
 
   const teamsQ = useQuery({
     queryKey: ["teams"],
