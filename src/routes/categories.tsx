@@ -5,6 +5,7 @@ import { FolderOpen, Layers, Pencil, Plus, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Can } from "@/components/app/Can";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -141,9 +142,11 @@ function ForumTab() {
         <div>
           <p className="text-sm text-muted-foreground">{categories.length} categoria(s)</p>
         </div>
-        <Button size="sm" className="gap-1.5" onClick={openCreate}>
-          <Plus className="h-3.5 w-3.5" /> Nova categoria
-        </Button>
+        <Can permission="communication.moderate">
+          <Button size="sm" className="gap-1.5" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" /> Nova categoria
+          </Button>
+        </Can>
       </div>
 
       <div className="glass overflow-hidden rounded-2xl shadow-card">
@@ -177,16 +180,18 @@ function ForumTab() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="outline" className="gap-1" onClick={() => openEdit(cat)}>
-                        <Pencil className="h-3 w-3" /> Editar
-                      </Button>
-                      <ConfirmDelete
-                        title="Excluir categoria?"
-                        description={`A categoria "${cat.name}" será removida permanentemente.`}
-                        onConfirm={() => deleteMutation.mutate(cat.id)}
-                      />
-                    </div>
+                    <Can anyOf={["communication.moderate", "knowledge.manage"]}>
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => openEdit(cat)}>
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <ConfirmDelete
+                          title="Excluir categoria?"
+                          description={`A categoria "${cat.name}" será removida permanentemente.`}
+                          onConfirm={() => deleteMutation.mutate(cat.id)}
+                        />
+                      </div>
+                    </Can>
                   </td>
                 </tr>
               ))
@@ -344,9 +349,11 @@ function KnowledgeTab() {
     <>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-muted-foreground">{categories.length} categoria(s)</p>
-        <Button size="sm" className="gap-1.5" onClick={openCreate}>
-          <Plus className="h-3.5 w-3.5" /> Nova categoria
-        </Button>
+        <Can permission="knowledge.manage">
+          <Button size="sm" className="gap-1.5" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" /> Nova categoria
+          </Button>
+        </Can>
       </div>
 
       <div className="glass overflow-hidden rounded-2xl shadow-card">
@@ -382,16 +389,18 @@ function KnowledgeTab() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="outline" className="gap-1" onClick={() => openEdit(cat)}>
-                        <Pencil className="h-3 w-3" /> Editar
-                      </Button>
-                      <ConfirmDelete
-                        title="Excluir categoria?"
-                        description={`A categoria "${cat.name}" será removida permanentemente.`}
-                        onConfirm={() => deleteMutation.mutate(cat.id)}
-                      />
-                    </div>
+                    <Can anyOf={["communication.moderate", "knowledge.manage"]}>
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => openEdit(cat)}>
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <ConfirmDelete
+                          title="Excluir categoria?"
+                          description={`A categoria "${cat.name}" será removida permanentemente.`}
+                          onConfirm={() => deleteMutation.mutate(cat.id)}
+                        />
+                      </div>
+                    </Can>
                   </td>
                 </tr>
               ))

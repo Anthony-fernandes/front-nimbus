@@ -197,16 +197,18 @@ function TicketCategoriesPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5"
-                            onClick={() => openEdit(category)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Editar
-                          </Button>
+                          {canManage && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={() => openEdit(category)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Editar
+                            </Button>
+                          )}
                           {canManage && (
                             <Button
                               type="button"

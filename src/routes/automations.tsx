@@ -5,6 +5,7 @@ import { Bot, Copy, Mail, Plus, Trash2, ToggleLeft, ToggleRight, Zap } from "luc
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { useCan } from "@/components/app/Can";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,6 +116,8 @@ const EMPTY_FORM: RuleForm = {
 
 function AutomationsPage() {
   const qc = useQueryClient();
+  const { can } = useCan();
+  const canManage = can("settings.edit");
   const { data: rules = [], isLoading: loadingRules } = useQuery({ queryKey: ["automation-rules"], queryFn: listAutomationRules });
   const { data: mailboxes = [], isLoading: loadingMailboxes } = useQuery({ queryKey: ["mailboxes"], queryFn: listMailboxes });
 
@@ -221,9 +224,11 @@ function AutomationsPage() {
               <h2 className="font-semibold">Regras de Automação</h2>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{rules.length}</span>
             </div>
-            <Button size="sm" onClick={openNew} className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
-              <Plus className="h-3.5 w-3.5" /> Nova regra
-            </Button>
+            {canManage && (
+              <Button size="sm" onClick={openNew} className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
+                <Plus className="h-3.5 w-3.5" /> Nova regra
+              </Button>
+            )}
           </div>
 
           {loadingRules ? (
@@ -232,17 +237,20 @@ function AutomationsPage() {
             <div className="glass rounded-2xl p-10 text-center shadow-card space-y-3">
               <Bot className="mx-auto h-10 w-10 text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">Nenhuma regra de automação configurada.</p>
-              <Button size="sm" onClick={openNew} className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
-                <Plus className="h-3.5 w-3.5 mr-1" /> Criar primeira regra
-              </Button>
+              {canManage && (
+                <Button size="sm" onClick={openNew} className="bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Criar primeira regra
+                </Button>
+              )}
             </div>
           ) : (
             <div className="glass rounded-2xl shadow-card overflow-hidden">
               {rules.map((rule, idx) => (
                 <div key={rule.id} className={`flex items-center gap-4 px-5 py-4 ${idx > 0 ? "border-t border-border" : ""}`}>
                   <button
-                    onClick={() => toggleRuleMutation.mutate({ id: rule.id, active: !rule.active })}
-                    className="shrink-0 text-muted-foreground hover:text-foreground transition"
+                    onClick={() => canManage && toggleRuleMutation.mutate({ id: rule.id, active: !rule.active })}
+                    disabled={!canManage}
+                    className="shrink-0 text-muted-foreground hover:text-foreground transition disabled:cursor-default disabled:hover:text-muted-foreground"
                   >
                     {rule.active
                       ? <ToggleRight className="h-5 w-5 text-success" />
@@ -258,17 +266,19 @@ function AutomationsPage() {
                       {rule.action_value && <> "{rule.action_value}"</>}
                     </p>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(rule)}>
-                      <Bot className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteMutation.mutate(rule.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {canManage && (
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(rule)}>
+                        <Bot className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteMutation.mutate(rule.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -283,9 +293,11 @@ function AutomationsPage() {
               <h2 className="font-semibold">Caixas de Entrada</h2>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{mailboxes.length}</span>
             </div>
-            <Button size="sm" onClick={() => setMailboxDialog(true)} className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
-              <Plus className="h-3.5 w-3.5" /> Nova caixa
-            </Button>
+            {canManage && (
+              <Button size="sm" onClick={() => setMailboxDialog(true)} className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90">
+                <Plus className="h-3.5 w-3.5" /> Nova caixa
+              </Button>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
             E-mails enviados para um endereço configurado criam chamados automaticamente via webhook POST.
@@ -303,8 +315,9 @@ function AutomationsPage() {
               {mailboxes.map((mb, idx) => (
                 <div key={mb.id} className={`flex items-start gap-4 px-5 py-4 ${idx > 0 ? "border-t border-border" : ""}`}>
                   <button
-                    onClick={() => toggleMailboxMutation.mutate({ id: mb.id, active: !mb.active })}
-                    className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground transition"
+                    onClick={() => canManage && toggleMailboxMutation.mutate({ id: mb.id, active: !mb.active })}
+                    disabled={!canManage}
+                    className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground transition disabled:cursor-default disabled:hover:text-muted-foreground"
                   >
                     {mb.active ? <ToggleRight className="h-5 w-5 text-success" /> : <ToggleLeft className="h-5 w-5" />}
                   </button>
@@ -326,12 +339,14 @@ function AutomationsPage() {
                       </button>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                    onClick={() => deleteMailboxMutation.mutate(mb.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {canManage && (
+                    <Button
+                      variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => deleteMailboxMutation.mutate(mb.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

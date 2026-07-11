@@ -5,6 +5,7 @@ import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Can } from "@/components/app/Can";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -135,6 +136,7 @@ function ForumCategoriesPage() {
           title="Categorias do Fórum"
           subtitle="Gerencie as categorias disponíveis para os tópicos do fórum."
           actions={
+            <Can permission="communication.moderate">
             <Button
               type="button"
               className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
@@ -143,6 +145,7 @@ function ForumCategoriesPage() {
               <Plus className="h-4 w-4" />
               Nova categoria
             </Button>
+            </Can>
           }
         />
 
@@ -199,7 +202,7 @@ function ForumCategoriesPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
+                        <Can permission="communication.moderate"><div className="flex justify-end gap-2">
                           <Button
                             type="button"
                             size="sm"
@@ -215,7 +218,7 @@ function ForumCategoriesPage() {
                             description={`A categoria "${category.name}" será removida permanentemente.`}
                             onConfirm={() => deleteMutation.mutate(category.id)}
                           />
-                        </div>
+                        </div></Can>
                       </td>
                     </tr>
                   ))

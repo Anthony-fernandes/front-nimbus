@@ -89,6 +89,19 @@ export type PermissionMap = {
     manage?: PermissionLeaf;
     delete?: PermissionLeaf;
   };
+  knowledge?: {
+    view?: PermissionLeaf;
+    create?: PermissionLeaf;
+    edit?: PermissionLeaf;
+    manage?: PermissionLeaf;
+    delete?: PermissionLeaf;
+    publish?: PermissionLeaf;
+  };
+  communication?: {
+    view?: PermissionLeaf;
+    create?: PermissionLeaf;
+    moderate?: PermissionLeaf;
+  };
 };
 
 export type PermissionOption = {
@@ -358,6 +371,19 @@ export const defaultRolePermissions: Record<AppUserRole, PermissionMap> = {
       manage: true,
       delete: true,
     },
+    knowledge: {
+      view: true,
+      create: true,
+      edit: true,
+      manage: true,
+      delete: true,
+      publish: true,
+    },
+    communication: {
+      view: true,
+      create: true,
+      moderate: true,
+    },
   },
   TECHNICIAN: {
     tickets: {
@@ -390,6 +416,15 @@ export const defaultRolePermissions: Record<AppUserRole, PermissionMap> = {
     },
     categories: {
       view: true,
+    },
+    knowledge: {
+      view: true,
+      create: true,
+      edit: true,
+    },
+    communication: {
+      view: true,
+      create: true,
     },
   },
   CLIENT: {

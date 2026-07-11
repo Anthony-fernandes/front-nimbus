@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock, Plus, ShieldCheck, Trash2 } from "l
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Can } from "@/components/app/Can";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -252,9 +253,11 @@ function SLAPage() {
         <div className="glass rounded-2xl p-5 shadow-card space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">Políticas de SLA</p>
-            <Button size="sm" className="gap-1.5" onClick={openNew}>
-              <Plus className="h-3.5 w-3.5" /> Nova política
-            </Button>
+            <Can permission="settings.edit">
+              <Button size="sm" className="gap-1.5" onClick={openNew}>
+                <Plus className="h-3.5 w-3.5" /> Nova política
+              </Button>
+            </Can>
           </div>
           {policiesQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">Carregando...</p>
@@ -276,11 +279,13 @@ function SLAPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-mono text-primary">{policy.response_time}</span>
-                    <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openEdit(policy)}>Editar</Button>
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive"
-                      onClick={() => deleteMutation.mutate(policy.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <Can permission="settings.edit">
+                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openEdit(policy)}>Editar</Button>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive"
+                        onClick={() => deleteMutation.mutate(policy.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </Can>
                   </div>
                 </div>
               ))}
@@ -311,18 +316,20 @@ function SLAPage() {
                     </span>
                     <span className="text-sm font-mono">{bh.start_time} – {bh.end_time}</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-destructive hover:text-destructive"
-                    onClick={async () => {
-                      await deleteBusinessHours(bh.id);
-                      void queryClient.invalidateQueries({ queryKey: ["business-hours"] });
-                      toast.success("Horário removido.");
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <Can permission="settings.edit">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-destructive hover:text-destructive"
+                      onClick={async () => {
+                        await deleteBusinessHours(bh.id);
+                        void queryClient.invalidateQueries({ queryKey: ["business-hours"] });
+                        toast.success("Horário removido.");
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </Can>
                 </div>
               );
             })}
@@ -345,22 +352,25 @@ function SLAPage() {
                   <span className="font-mono text-sm text-muted-foreground">{h.date}</span>
                   <span className="text-sm">{h.name}</span>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-destructive hover:text-destructive"
-                  onClick={async () => {
-                    await deleteCompanyHoliday(h.id);
-                    void queryClient.invalidateQueries({ queryKey: ["company-holidays"] });
-                    toast.success("Feriado removido.");
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <Can permission="settings.edit">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      await deleteCompanyHoliday(h.id);
+                      void queryClient.invalidateQueries({ queryKey: ["company-holidays"] });
+                      toast.success("Feriado removido.");
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </Can>
               </div>
             ))}
           </div>
         )}
+        <Can permission="settings.edit">
         <div className="flex gap-2">
           <input
             type="date"
@@ -397,6 +407,7 @@ function SLAPage() {
             {addingHoliday ? "..." : <><Plus className="h-3.5 w-3.5" /> Adicionar</>}
           </Button>
         </div>
+        </Can>
       </div>
 
       <PolicyDialog

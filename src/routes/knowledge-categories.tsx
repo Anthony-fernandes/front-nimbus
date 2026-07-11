@@ -5,6 +5,7 @@ import { FolderOpen, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app/AppShell";
+import { Can } from "@/components/app/Can";
 import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -155,6 +156,7 @@ function KnowledgeCategoriesPage() {
             </span>
           }
           actions={
+            <Can permission="knowledge.manage">
             <Button
               type="button"
               className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
@@ -163,6 +165,7 @@ function KnowledgeCategoriesPage() {
               <Plus className="h-4 w-4" />
               Nova categoria
             </Button>
+            </Can>
           }
         />
 
@@ -207,7 +210,7 @@ function KnowledgeCategoriesPage() {
                         {category.parent_name || "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
+                        <Can permission="knowledge.manage"><div className="flex justify-end gap-2">
                           <Button
                             type="button"
                             size="sm"
@@ -223,7 +226,7 @@ function KnowledgeCategoriesPage() {
                             description={`A categoria "${category.name}" será removida permanentemente.`}
                             onConfirm={() => deleteMutation.mutate(category.id)}
                           />
-                        </div>
+                        </div></Can>
                       </td>
                     </tr>
                   ))
