@@ -38,7 +38,7 @@ import { ConfirmDelete } from "@/components/app/ConfirmDelete";
 import { PageHeader } from "@/components/app/PageHeader";
 import { TicketApprovalPanel } from "@/components/tickets/TicketApprovalPanel";
 import { TicketRatingPanel } from "@/components/tickets/TicketRatingPanel";
-import { TicketWorkflowDialog, type TicketWorkflowDialogSubmitData } from "@/components/tickets/TicketWorkflowDialog";
+import { TicketWorkflowDialog } from "@/components/tickets/TicketWorkflowDialog";
 import { TicketTimeline } from "@/components/tickets/TicketTimeline";
 import {
   AlertDialog,
@@ -70,11 +70,9 @@ import {
   getTicketStatusClass,
 } from "@/lib/tickets";
 import {
-  canTransitionTicket,
   getAvailableTicketActions,
   getTicketStatusConfig,
   isTicketSlaPaused,
-  prepareTicketWorkflowAction,
   type TicketWorkflowActionDefinition,
   type TicketWorkflowActionId,
 } from "@/lib/ticketWorkflow";
@@ -90,28 +88,17 @@ import { listTicketTimeline, createTicketTimelineComment } from "@/services/tick
 import { listTicketRelations, createTicketRelation, deleteTicketRelation, listTicketStatusHistory, reopenTicket } from "@/services/ticketRelationService";
 import type { TicketRelation, TicketStatusHistoryEntry } from "@/lib/types";
 import { convertTicketToKb, listKnowledgeArticles, listKnowledgeCategories } from "@/services/knowledgeService";
-import { deleteTicket, getTicket, listTicketAttachments, transitionTicket, uploadTicketAttachment } from "@/services/ticketService";
+import { deleteTicket, getTicket, listTicketAttachments, uploadTicketAttachment } from "@/services/ticketService";
 import { listTicketWorkflowStatuses } from "@/services/ticketWorkflowService";
 import { listUsers } from "@/services/userService";
-import { formatDate, formatDateTime , parseApiError} from "@/services/utils";
+import { useTicketWorkflow } from "@/hooks/useTicketWorkflow";
+import { formatDate, formatDateTime } from "@/services/utils";
 
 export const Route = createFileRoute("/tickets/$id")({
   head: () => ({ meta: [{ title: "Detalhes do chamado - NimbusDesk" }] }),
   component: TicketDetail,
 });
 
-const MODAL_ACTIONS = new Set<TicketWorkflowActionId>([
-  "categorize",
-  "pause",
-  "wait_customer",
-  "finish",
-  "cancel",
-]);
-
-type TicketWorkflowDialogState = {
-  ticket: Ticket;
-  actionId: TicketWorkflowActionId;
-} | null;
 
 function TicketDetail() {
   const { id } = Route.useParams();
@@ -119,8 +106,8 @@ function TicketDetail() {
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const currentUser = getStoredUser<User>();
-  const [dialogState, setDialogState] = useState<TicketWorkflowDialogState>(null);
-  const [workflowSaving, setWorkflowSaving] = useState(false);
+  const ticketWorkflow = useTicketWorkflow();
+  const { dialogState } = ticketWorkflow;
   const [confirmGenerateActivityOpen, setConfirmGenerateActivityOpen] = useState(false);
   const [convertKbOpen, setConvertKbOpen] = useState(false);
   const [convertKbCategory, setConvertKbCategory] = useState<string>("");
@@ -319,64 +306,10 @@ function TicketDetail() {
       backlogItems.some((item) => item.item_type === "ticket" && item.item_id === ticket.id),
     );
 
-  const runWorkflowAction = async (
-    actionId: TicketWorkflowActionId,
-    formData?: TicketWorkflowDialogSubmitData,
-  ) => {
-    const actionDefinition = workflowTransitionActions.find((action) => action.id === actionId);
-    if (!actionDefinition?.targetStatus) {
-      toast.error("Essa ação não está disponível para o status atual.");
-      return;
-    }
-
-    if (!canTransitionTicket(ticket, actionDefinition.targetStatus, statusConfigs)) {
-      toast.error("Essa transição não é permitida para o status atual do chamado.");
-      return;
-    }
-
-    const preparedAction = prepareTicketWorkflowAction({
-      ticket,
-      actionId,
-      input: formData,
-      statusConfigs,
-      categories,
-      users: technicianUsers,
-      currentUser,
-    });
-
-    try {
-      setWorkflowSaving(true);
-      await transitionTicket(ticket.id, preparedAction.transitionPayload);
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["ticket", id] }),
-        queryClient.invalidateQueries({ queryKey: ["tickets"] }),
-        queryClient.invalidateQueries({ queryKey: ["ticket-timeline", id] }),
-      ]);
-
-      toast.success(preparedAction.successMessage);
-      setDialogState(null);
-    } catch (error) {
-      toast.error(parseApiError(error, "Não foi possível atualizar o chamado."));
-    } finally {
-      setWorkflowSaving(false);
-    }
-  };
-
-  const requestWorkflowAction = (actionId: TicketWorkflowActionId) => {
-    const actionDefinition = workflowTransitionActions.find((action) => action.id === actionId);
-    if (!actionDefinition) {
-      toast.error("Essa ação não está disponível para o status atual.");
-      return;
-    }
-
-    if (MODAL_ACTIONS.has(actionId)) {
-      setDialogState({ ticket, actionId });
-      return;
-    }
-
-    void runWorkflowAction(actionId);
-  };
+  // Orquestração vinda do hook central useTicketWorkflow (mesma da lista de
+  // Chamados e do WorkItemModal): decide entre abrir formulário ou executar.
+  const requestWorkflowAction = (actionId: TicketWorkflowActionId) =>
+    ticketWorkflow.requestAction(ticket, actionId);
 
   const publishComment = async ({
     message,
@@ -1101,10 +1034,10 @@ function TicketDetail() {
         ticket={dialogState?.ticket || null}
         categories={categories}
         users={technicianUsers}
-        saving={workflowSaving}
+        saving={ticketWorkflow.saving}
         onOpenChange={(open) => {
           if (!open) {
-            setDialogState(null);
+            ticketWorkflow.setDialogState(null);
           }
         }}
         onSubmit={async (formData) => {
@@ -1112,7 +1045,7 @@ function TicketDetail() {
             return;
           }
 
-          await runWorkflowAction(dialogState.actionId, formData);
+          await ticketWorkflow.runAction(dialogState.ticket, dialogState.actionId, formData);
         }}
       />
 
