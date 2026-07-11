@@ -39,6 +39,10 @@ import { cn } from "@/lib/utils";
 import { API_BASE_URL } from "@/services/api";
 import {
   archiveConversation,
+  assumeConversation,
+  closeConversation,
+  markConversationRead,
+  startSupportConversation,
   convertConversationToTicket,
   createChatConversation,
   deleteChatMessage,
@@ -46,7 +50,6 @@ import {
   listChatConversations,
   listChatMessages,
   markConversationUnread,
-  markMessageRead,
   pinChatMessage,
   reactToMessage,
   sendChatFile,
@@ -55,6 +58,7 @@ import {
 } from "@/services/chatService";
 import { getAccessToken, getStoredUser } from "@/services/session";
 import { listUsers } from "@/services/userService";
+import { parseApiError } from "@/services/utils";
 import { getUserDisplayName } from "@/lib/auth";
 import type { ChatMessage } from "@/lib/types";
 
@@ -127,8 +131,31 @@ function avatarColor(label: string) {
 }
 
 const EMOJI_QUICK = ["👍", "❤️", "😂", "😮", "😢", "👏"];
-const FILTER_LABELS = ["Todos", "Não lidos", "Arquivados"] as const;
+const FILTER_LABELS = ["Todos", "Não lidos", "Atendimento", "Arquivados"] as const;
 type FilterKey = (typeof FILTER_LABELS)[number];
+
+const CONV_STATUS_LABELS: Record<string, string> = {
+  aberta: "Aberta",
+  aguardando_atendente: "Aguardando atendente",
+  em_atendimento: "Em atendimento",
+  aguardando_cliente: "Aguardando cliente",
+  encerrada: "Encerrada",
+};
+
+const CONV_STATUS_CLASSES: Record<string, string> = {
+  aguardando_atendente: "bg-warning/15 text-warning",
+  em_atendimento: "bg-primary/15 text-primary",
+  aguardando_cliente: "bg-info/15 text-info",
+  encerrada: "bg-muted text-muted-foreground",
+  aberta: "bg-success/15 text-success",
+};
+
+const CONV_TIPO_LABELS: Record<string, string> = {
+  suporte: "Atendimento",
+  chamado: "Chamado",
+  grupo: "Grupo",
+  direto: "Conversa",
+};
 
 /* ─── sub-components ─── */
 function ConvAvatar({ label, size = 40 }: { label: string; size?: number }) {
@@ -173,6 +200,7 @@ function ChatPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const user = getStoredUser();
+  const isClientUser = String((user as { role?: string } | null)?.role || "").toUpperCase() === "CLIENT";
   const isStaff =
     !!(user as { is_staff?: boolean } | null)?.is_staff ||
     !!(user as { is_superuser?: boolean } | null)?.is_superuser;
@@ -184,6 +212,9 @@ function ChatPage() {
   /* sidebar */
   const [sidebarSearch, setSidebarSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("Todos");
+  const [newConvTipo, setNewConvTipo] = useState<"direto" | "grupo">("direto");
+  const [newConvName, setNewConvName] = useState("");
+  const [newConvMessage, setNewConvMessage] = useState("");
 
   /* new conversation dialog */
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -267,14 +298,17 @@ function ChatPage() {
     if (messagesQuery.data) setMessages(messagesQuery.data);
   }, [messagesQuery.data]);
 
-  /* mark messages read */
+  /* mark messages read — uma chamada por conversa, não por mensagem */
   useEffect(() => {
-    if (!user || !messages.length) return;
-    const unread = messages.filter(
-      (m) => m.author !== user.id && !(m.read_by_ids ?? []).includes(String(user.id)),
+    if (!user || !selectedConversationId || !messages.length) return;
+    const hasUnread = messages.some(
+      (m) => m.author && m.author !== user.id && !(m.read_by_ids ?? []).includes(String(user.id)),
     );
-    for (const msg of unread) markMessageRead(msg.id).catch(() => null);
-  }, [messages, user]);
+    if (!hasUnread) return;
+    markConversationRead(selectedConversationId)
+      .then(() => queryClient.invalidateQueries({ queryKey: ["chat-conversations"] }))
+      .catch(() => null);
+  }, [messages, user, selectedConversationId, queryClient]);
 
   const appendMessage = useCallback((msg: ChatMessage) => {
     setMessages((prev) => {
@@ -369,17 +403,57 @@ function ChatPage() {
 
   /* mutations */
   const createConvMutation = useMutation({
-    mutationFn: (participantIds: string[]) => createChatConversation(participantIds),
+    mutationFn: (input: { ids: string[]; tipo: "direto" | "grupo"; name?: string; initialMessage?: string }) =>
+      createChatConversation(input.ids, {
+        tipo: input.tipo,
+        name: input.name,
+        initialMessage: input.initialMessage,
+      }),
     onSuccess: (conv) => {
-      toast.success("Conversa criada.");
+      if (conv.duplicate) toast.info("Já existia uma conversa com estes participantes — abrindo a existente.");
+      else toast.success("Conversa criada.");
       setDialogOpen(false);
       setSelectedParticipants([]);
       setParticipantSearch("");
+      setNewConvTipo("direto");
+      setNewConvName("");
+      setNewConvMessage("");
       void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
       setSelectedConversationId(conv.id);
     },
-    onError: () => toast.error("Não foi possível criar a conversa."),
+    onError: (error) => toast.error(parseApiError(error, "Não foi possível criar a conversa.")),
   });
+
+  const startSupportMutation = useMutation({
+    mutationFn: () => startSupportConversation(),
+    onSuccess: (conv) => {
+      if (conv.duplicate) toast.info("Você já tem um atendimento aberto — abrindo a conversa.");
+      else toast.success("Atendimento iniciado. Aguarde um atendente assumir.");
+      void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
+      setSelectedConversationId(conv.id);
+    },
+    onError: () => toast.error("Não foi possível iniciar o atendimento."),
+  });
+
+  async function handleAssume(convId: string) {
+    try {
+      await assumeConversation(convId);
+      void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
+      toast.success("Atendimento assumido.");
+    } catch (error) {
+      toast.error(parseApiError(error, "Não foi possível assumir o atendimento."));
+    }
+  }
+
+  async function handleCloseConv(convId: string) {
+    try {
+      await closeConversation(convId);
+      void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] });
+      toast.success("Conversa encerrada.");
+    } catch (error) {
+      toast.error(parseApiError(error, "Não foi possível encerrar a conversa."));
+    }
+  }
 
   const sendFileMutation = useMutation({
     mutationFn: (file: File) => sendChatFile(selectedConversationId!, file),
@@ -508,20 +582,28 @@ function ChatPage() {
   const allConversations = conversationsQuery.data ?? [];
 
   function getConvLabel(conv: (typeof allConversations)[number]) {
-    if (conv.participant_names?.length) {
-      return (
-        conv.participant_names
-          .filter((n) => n !== (user as { display_name?: string } | null)?.display_name)
-          .join(", ") || conv.participant_names.join(", ")
-      );
+    const myName = (user as { display_name?: string } | null)?.display_name;
+    const others = (conv.participant_names || []).filter((n) => n !== myName);
+    if (conv.tipo === "chamado" || conv.ticket_code) {
+      return `${conv.ticket_code || "Chamado"}${conv.ticket_title ? ` — ${conv.ticket_title}` : ""}`;
     }
-    return `Conversa ${conv.id.slice(0, 8)}`;
+    if (conv.tipo === "suporte") {
+      return `Atendimento — ${conv.client_name || conv.created_by_name || others[0] || "Cliente"}`;
+    }
+    if (conv.tipo === "grupo") {
+      return conv.name || `Grupo com ${(conv.participant_names || []).length} participantes`;
+    }
+    if (conv.name) return conv.name;
+    if (others.length === 1) return others[0];
+    if (others.length > 1) return `Grupo com ${others.length + 1} participantes`;
+    return conv.participant_names?.[0] || `Conversa ${conv.id.slice(0, 8)}`;
   }
 
   const filteredConversations = allConversations.filter((conv) => {
     if (filter === "Arquivados") return !!conv.is_archived;
     if (conv.is_archived) return false;
     if (filter === "Não lidos") return (conv.unread_count ?? 0) > 0;
+    if (filter === "Atendimento") return conv.tipo === "suporte";
     if (sidebarSearch.trim().length >= 2)
       return getConvLabel(conv).toLowerCase().includes(sidebarSearch.toLowerCase());
     return true;
@@ -558,7 +640,10 @@ function ChatPage() {
                 </div>
               </div>
             </div>
-            <IconBtn title="Nova conversa" onClick={() => setDialogOpen(true)}>
+            <IconBtn
+              title={isClientUser ? "Falar com suporte" : "Nova conversa"}
+              onClick={() => (isClientUser ? startSupportMutation.mutate() : setDialogOpen(true))}
+            >
               <Plus size={18} />
             </IconBtn>
           </div>
@@ -650,8 +735,20 @@ function ChatPage() {
                           </span>
                         </div>
                         <div className="mt-0.5 flex items-center justify-between gap-2">
-                          <span className="truncate text-xs text-muted-foreground">
-                            {conv.is_archived ? "Arquivada" : ""}
+                          <span className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
+                            {conv.tipo && conv.tipo !== "direto" && (
+                              <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                                {CONV_TIPO_LABELS[conv.tipo] || conv.tipo}
+                              </span>
+                            )}
+                            {conv.tipo === "suporte" && conv.status && (
+                              <span className={cn("shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold", CONV_STATUS_CLASSES[conv.status] || "bg-muted")}>
+                                {CONV_STATUS_LABELS[conv.status] || conv.status}
+                              </span>
+                            )}
+                            <span className="truncate">
+                              {conv.is_archived ? "Arquivada" : conv.last_message_preview || ""}
+                            </span>
                           </span>
                           {unread > 0 && (
                             <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
@@ -716,8 +813,12 @@ function ChatPage() {
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
               <div className="grid h-16 w-16 place-items-center rounded-2xl bg-muted text-4xl">💬</div>
               <p className="text-sm">Selecione uma conversa para começar</p>
-              <Button size="sm" onClick={() => setDialogOpen(true)} className="gap-1.5">
-                <Plus size={14} /> Nova conversa
+              <Button
+                size="sm"
+                onClick={() => (isClientUser ? startSupportMutation.mutate() : setDialogOpen(true))}
+                className="gap-1.5"
+              >
+                <Plus size={14} /> {isClientUser ? "Falar com suporte" : "Nova conversa"}
               </Button>
             </div>
           ) : (
@@ -727,10 +828,31 @@ function ChatPage() {
                 <div className="flex min-w-0 items-center gap-3">
                   <ConvAvatar label={activeConvLabel} size={40} />
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{activeConvLabel}</div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold">{activeConvLabel}</span>
+                      {activeConv?.tipo === "suporte" && activeConv.status && (
+                        <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold", CONV_STATUS_CLASSES[activeConv.status] || "bg-muted")}>
+                          {CONV_STATUS_LABELS[activeConv.status] || activeConv.status}
+                        </span>
+                      )}
+                      {activeConv?.ticket_code && (
+                        <button
+                          type="button"
+                          onClick={() => void navigate({ to: "/chamados/$id", params: { id: String(activeConv.ticket) } })}
+                          className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20"
+                          title="Abrir o chamado vinculado"
+                        >
+                          {activeConv.ticket_code}
+                        </button>
+                      )}
+                    </div>
+                    <div className="truncate text-[11px] text-muted-foreground">
                       {peerTyping ? (
                         <span className="italic text-primary">{peerTyping} está digitando…</span>
+                      ) : activeConv?.tipo === "suporte" && activeConv.assigned_to_name ? (
+                        `Atendente: ${activeConv.assigned_to_name}`
+                      ) : (activeConv?.participant_names?.length ?? 0) > 1 ? (
+                        `${activeConv?.participant_names?.length} participantes`
                       ) : activeIsRecent ? (
                         "ativo recentemente"
                       ) : (
@@ -740,12 +862,28 @@ function ChatPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <IconBtn
-                    title="Abrir chamado"
-                    onClick={() => void navigate({ to: "/tickets/new" })}
-                  >
-                    <Ticket size={18} />
-                  </IconBtn>
+                  {!isClientUser && activeConv?.tipo === "suporte" && !activeConv.assigned_to && activeConv.status !== "encerrada" && (
+                    <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => void handleAssume(activeConv.id)}>
+                      Assumir atendimento
+                    </Button>
+                  )}
+                  {activeConv && activeConv.status !== "encerrada" && activeConv.tipo === "suporte" && !isClientUser && (
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => void handleCloseConv(activeConv.id)}>
+                      Encerrar
+                    </Button>
+                  )}
+                  {!isClientUser && (
+                    <IconBtn
+                      title={activeConv?.ticket_code ? "Ver chamado vinculado" : "Criar chamado desta conversa"}
+                      onClick={() =>
+                        activeConv?.ticket_code
+                          ? void navigate({ to: "/chamados/$id", params: { id: String(activeConv?.ticket) } })
+                          : void handleConvertToTicket(selectedConversationId!)
+                      }
+                    >
+                      <Ticket size={18} />
+                    </IconBtn>
+                  )}
                   <IconBtn
                     title={messageSearchVisible ? "Fechar busca" : "Buscar mensagens"}
                     onClick={() => { setMessageSearchVisible((v) => !v); setMessageSearch(""); }}
@@ -1078,6 +1216,36 @@ function ChatPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
+              <Label>Tipo de conversa</Label>
+              <div className="flex gap-1.5">
+                {(["direto", "grupo"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setNewConvTipo(t)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium transition",
+                      newConvTipo === t
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-accent",
+                    )}
+                  >
+                    {t === "direto" ? "Conversa direta" : "Grupo"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {newConvTipo === "grupo" && (
+              <div className="space-y-1">
+                <Label>Nome do grupo (opcional)</Label>
+                <Input
+                  value={newConvName}
+                  onChange={(e) => setNewConvName(e.target.value)}
+                  placeholder="Ex.: Equipe de Suporte"
+                />
+              </div>
+            )}
+            <div className="space-y-1">
               <Label>Buscar participantes</Label>
               <Input
                 value={participantSearch}
@@ -1089,6 +1257,12 @@ function ChatPage() {
             <ScrollArea className="h-48 rounded-md border">
               <div className="space-y-0.5 p-1">
                 {(usersQuery.data || [])
+                  .filter((u) => {
+                    const role = String((u as { role?: string }).role || "").toUpperCase();
+                    if (role === "CLIENT") return false;
+                    if ((u as { is_active?: boolean }).is_active === false) return false;
+                    return true;
+                  })
                   .filter((u) => {
                     if (!participantSearch.trim()) return true;
                     const q = participantSearch.toLowerCase();
@@ -1138,6 +1312,14 @@ function ChatPage() {
                 {selectedParticipants.length} participante(s) selecionado(s)
               </p>
             )}
+            <div className="space-y-1">
+              <Label>Mensagem inicial (opcional)</Label>
+              <Input
+                value={newConvMessage}
+                onChange={(e) => setNewConvMessage(e.target.value)}
+                placeholder="Escreva a primeira mensagem..."
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
@@ -1146,11 +1328,16 @@ function ChatPage() {
             <Button
               onClick={() => {
                 if (selectedParticipants.length === 0) return;
-                createConvMutation.mutate(selectedParticipants);
+                createConvMutation.mutate({
+                  ids: selectedParticipants,
+                  tipo: selectedParticipants.length > 1 ? "grupo" : newConvTipo,
+                  name: newConvName,
+                  initialMessage: newConvMessage,
+                });
               }}
               disabled={createConvMutation.isPending || selectedParticipants.length === 0}
             >
-              Criar
+              {createConvMutation.isPending ? "Criando..." : "Criar conversa"}
             </Button>
           </DialogFooter>
         </DialogContent>

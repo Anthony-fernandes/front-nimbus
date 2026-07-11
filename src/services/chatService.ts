@@ -6,11 +6,44 @@ export function listChatConversations() {
   return listResource<ChatConversation>("/communication/chat-conversations");
 }
 
-export async function createChatConversation(participantIds: string[]) {
-  const response = await api.post<ChatConversation>("/communication/chat-conversations/", {
-    participants: participantIds,
-  });
+export async function createChatConversation(
+  participantIds: string[],
+  options?: { tipo?: "direto" | "grupo"; name?: string; initialMessage?: string },
+) {
+  const response = await api.post<ChatConversation & { duplicate?: boolean }>(
+    "/communication/chat-conversations/",
+    {
+      participants: participantIds,
+      tipo: options?.tipo || "direto",
+      name: options?.name || "",
+      initial_message: options?.initialMessage || "",
+    },
+  );
   return response.data;
+}
+
+/** Cliente abre (ou reabre) atendimento com a fila de suporte. */
+export async function startSupportConversation(initialMessage?: string) {
+  const r = await api.post<ChatConversation & { duplicate?: boolean }>(
+    "/communication/chat-conversations/start-support/",
+    { initial_message: initialMessage || "" },
+  );
+  return r.data;
+}
+
+export async function assumeConversation(id: string, force = false) {
+  const r = await api.post<ChatConversation>(`/communication/chat-conversations/${id}/assume/`, { force });
+  return r.data;
+}
+
+export async function closeConversation(id: string) {
+  const r = await api.post<ChatConversation>(`/communication/chat-conversations/${id}/close/`);
+  return r.data;
+}
+
+/** Marca todas as mensagens da conversa como lidas (uma chamada só). */
+export async function markConversationRead(id: string) {
+  await api.post(`/communication/chat-conversations/${id}/mark-read/`);
 }
 
 export function listChatMessages(conversationId: string) {
