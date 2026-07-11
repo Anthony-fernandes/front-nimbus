@@ -101,6 +101,7 @@ export type TicketCategory = {
   requires_client_validation?: boolean;
   color?: string;
   icon?: string;
+  subcategories?: string[];
   created_at?: string;
   updated_at?: string;
 };
@@ -356,6 +357,10 @@ export type Ticket = {
   category_id?: string;
   category_name?: string;
   subcategory?: string;
+  affected_service?: string;
+  preferred_contact_time?: string;
+  preferred_contact_channel?: string;
+  classification_pending?: boolean;
   type?: string;
   priority?: string;
   impact?: string;

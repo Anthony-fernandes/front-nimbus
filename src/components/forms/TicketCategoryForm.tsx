@@ -32,6 +32,7 @@ export type TicketCategoryFormData = {
   requiresClientValidation: boolean;
   color: string;
   icon: string;
+  subcategoriesText: string;
 };
 
 const empty: TicketCategoryFormData = {
@@ -50,6 +51,7 @@ const empty: TicketCategoryFormData = {
   requiresClientValidation: true,
   color: "",
   icon: "",
+  subcategoriesText: "",
 };
 
 export function toTicketCategoryFormData(
@@ -71,6 +73,7 @@ export function toTicketCategoryFormData(
     requiresClientValidation: Boolean(category?.requires_client_validation ?? true),
     color: category?.color || "",
     icon: category?.icon || "",
+    subcategoriesText: (category?.subcategories || []).join("\n"),
   };
 }
 
@@ -203,6 +206,18 @@ export function TicketCategoryForm({
               value={data.icon}
               onChange={(event) => set("icon", event.target.value)}
               placeholder="Ex.: wrench"
+            />
+          </Field>
+          <Field
+            label="Subcategorias"
+            hint="Uma por linha. Aparecem no Portal do Cliente quando esta categoria é selecionada."
+            className="sm:col-span-2"
+          >
+            <Textarea
+              value={data.subcategoriesText}
+              onChange={(event) => set("subcategoriesText", event.target.value)}
+              placeholder={"Ex.:\nErro de acesso\nLentidão\nPermissão"}
+              className="min-h-24"
             />
           </Field>
         </div>

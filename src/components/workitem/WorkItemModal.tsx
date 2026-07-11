@@ -230,6 +230,24 @@ export function WorkItemModal({
               </div>
             )}
 
+            {/* Chamado do portal ainda sem categoria — precisa de triagem */}
+            {ticketRaw?.classification_pending && (
+              <div className="flex items-center justify-between gap-3 border-b border-warning/30 bg-warning/10 px-5 py-2 text-xs text-warning">
+                <span>
+                  Este chamado precisa ser classificado — defina categoria, setor e prioridade na triagem.
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 shrink-0 gap-1 border-warning/40 text-xs text-warning hover:bg-warning/10"
+                  disabled={mutating || ticketWorkflow.saving}
+                  onClick={() => ticketWorkflow.requestAction(ticketRaw, "categorize")}
+                >
+                  Classificar agora
+                </Button>
+              </div>
+            )}
+
             {/* Aviso de status sem regras configuradas no workflow */}
             {availableActionsQuery.data && availableActionsQuery.data.configured === false && (
               <div className="border-b border-warning/30 bg-warning/10 px-5 py-2 text-xs text-warning">

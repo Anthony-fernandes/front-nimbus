@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FileText } from "lucide-react";
 
+import type { Ticket } from "@/lib/types";
 import type { WorkItem } from "@/lib/workItem";
 
 const COLLAPSE_THRESHOLD = 700;
@@ -10,6 +11,8 @@ export function WorkItemDescription({ item }: { item: WorkItem }) {
   const description = item.description || "";
   const isLong = description.length > COLLAPSE_THRESHOLD;
   const shown = !isLong || expanded ? description : `${description.slice(0, COLLAPSE_THRESHOLD)}…`;
+
+  const ticket = item.backend === "ticket" ? (item.raw as Ticket) : null;
 
   return (
     <div className="space-y-3">
@@ -42,13 +45,23 @@ export function WorkItemDescription({ item }: { item: WorkItem }) {
           { label: "Projeto", value: item.projectName },
           { label: "Sprint", value: item.sprintName },
           { label: "Categoria", value: item.category },
+          { label: "Subcategoria", value: ticket?.subcategory },
+          { label: "Setor/Departamento", value: ticket?.department_name },
+          { label: "Serviço afetado", value: ticket?.affected_service },
+          { label: "Tipo", value: ticket?.type },
+          { label: "Urgência", value: ticket?.urgency },
+          { label: "Impacto", value: ticket?.impact },
+          { label: "Telefone de contato", value: ticket?.contact_responsible_phone },
+          { label: "Horário p/ contato", value: ticket?.preferred_contact_time },
+          { label: "Canal preferencial", value: ticket?.preferred_contact_channel },
+          { label: "Origem", value: ticket?.source === "portal" ? "Portal do Cliente" : ticket?.source },
           { label: "Código", value: item.code },
         ]
           .filter((f) => f.value)
           .map((f) => (
             <div key={f.label} className="rounded-xl border border-border bg-muted/10 px-3 py-2">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{f.label}</p>
-              <p className="mt-0.5 truncate text-sm font-medium" title={f.value}>{f.value}</p>
+              <p className="mt-0.5 truncate text-sm font-medium" title={String(f.value)}>{f.value}</p>
             </div>
           ))}
       </div>

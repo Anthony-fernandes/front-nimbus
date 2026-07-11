@@ -59,6 +59,8 @@ import {
   deleteCustomField,
   type TicketCustomField,
 } from "@/services/customFieldService";
+import { getPortalFormConfig, updatePortalFormConfig } from "@/services/ticketService";
+import { Switch } from "@/components/ui/switch";
 import { parseApiError } from "@/services/utils";
 
 export const Route = createFileRoute("/settings")({
@@ -78,7 +80,7 @@ function SettingsPage() {
   const canManageWorkflow =
     hasAnyPermission(currentUser, ["settings.edit", "categories.manage", "categories.edit"])
     || canManageTicketCategories(currentUser);
-  const [activeTab, setActiveTab] = useState<"workflow" | "empresa" | "campos" | "departamentos" | "cargos" | "permissoes">("workflow");
+  const [activeTab, setActiveTab] = useState<"workflow" | "empresa" | "campos" | "portal" | "departamentos" | "cargos" | "permissoes">("workflow");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -298,16 +300,18 @@ function SettingsPage() {
 
         {/* Tab navigation */}
         <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
-          {(["workflow", "empresa", "campos"] as const).map((tab) => {
+          {(["workflow", "empresa", "campos", "portal"] as const).map((tab) => {
             const labels = {
               workflow: "Workflow",
               empresa: "Empresa",
               campos: "Campos",
+              portal: "Portal do Cliente",
             };
             const icons = {
               workflow: <Workflow className="h-3.5 w-3.5" />,
               empresa: <Building2 className="h-3.5 w-3.5" />,
               campos: <SlidersHorizontal className="h-3.5 w-3.5" />,
+              portal: <SlidersHorizontal className="h-3.5 w-3.5" />,
             };
             return (
               <button
@@ -772,8 +776,136 @@ function SettingsPage() {
           />
         ) : null}
 
+        {activeTab === "portal" ? (
+          <PortalFormConfigTab canManage={canManageWorkflow} />
+        ) : null}
+
       </div>
     </AppShell>
+  );
+}
+
+const PORTAL_FIELD_LABELS: Record<string, string> = {
+  title: "Título",
+  description: "Descrição",
+  category: "Categoria",
+  subcategory: "Subcategoria",
+  department: "Setor/Departamento",
+  request_type: "Tipo de solicitação",
+  affected_service: "Serviço/módulo afetado",
+  urgency: "Urgência",
+  impact: "Impacto",
+  contact_phone: "Telefone de contato",
+  preferred_contact_time: "Melhor horário para contato",
+  preferred_contact_channel: "Canal preferencial",
+  attachments: "Anexos",
+};
+
+/** Configura visibilidade/obrigatoriedade dos campos da abertura no Portal do Cliente. */
+function PortalFormConfigTab({ canManage }: { canManage: boolean }) {
+  const queryClient = useQueryClient();
+  const configQuery = useQuery({
+    queryKey: ["portal-form-config-admin"],
+    queryFn: getPortalFormConfig,
+  });
+  const [draft, setDraft] = useState<Record<string, { visible: boolean; required: boolean }> | null>(null);
+  const [savingPortal, setSavingPortal] = useState(false);
+
+  const fields = draft ?? configQuery.data ?? {};
+
+  const toggle = (key: string, prop: "visible" | "required") => {
+    if (!canManage) return;
+    setDraft((current) => {
+      const base = current ?? configQuery.data ?? {};
+      const rule = { ...(base[key] || { visible: false, required: false }) };
+      rule[prop] = !rule[prop];
+      if (prop === "required" && rule.required) rule.visible = true;
+      if (prop === "visible" && !rule.visible) rule.required = false;
+      return { ...base, [key]: rule };
+    });
+  };
+
+  const save = async () => {
+    if (!draft) return;
+    setSavingPortal(true);
+    try {
+      const saved = await updatePortalFormConfig(draft);
+      queryClient.setQueryData(["portal-form-config-admin"], saved);
+      queryClient.invalidateQueries({ queryKey: ["portal-form-config"] });
+      setDraft(null);
+      toast.success("Configuração do portal salva.");
+    } catch (error) {
+      toast.error(parseApiError(error, "Não foi possível salvar a configuração."));
+    } finally {
+      setSavingPortal(false);
+    }
+  };
+
+  return (
+    <div className="glass max-w-3xl space-y-4 rounded-2xl p-6 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Formulário de abertura — Portal do Cliente</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Defina quais campos o cliente vê e quais são obrigatórios. Campos obrigatórios são validados
+            também no backend. Título, descrição, urgência e impacto são sempre visíveis.
+          </p>
+        </div>
+        {canManage && (
+          <Button size="sm" disabled={!draft || savingPortal} onClick={() => void save()}>
+            {savingPortal ? "Salvando..." : "Salvar"}
+          </Button>
+        )}
+      </div>
+
+      {configQuery.isLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
+                <th className="px-2 py-2 text-left font-medium">Campo</th>
+                <th className="px-2 py-2 text-center font-medium">Visível para cliente</th>
+                <th className="px-2 py-2 text-center font-medium">Obrigatório</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(PORTAL_FIELD_LABELS).map(([key, label]) => {
+                const rule = fields[key] || { visible: false, required: false };
+                const alwaysVisible = ["title", "description", "urgency", "impact"].includes(key);
+                const alwaysRequired = ["title", "description"].includes(key);
+                return (
+                  <tr key={key} className="border-b border-border/60 last:border-0">
+                    <td className="px-2 py-2.5 font-medium">{label}</td>
+                    <td className="px-2 py-2.5 text-center">
+                      <Switch
+                        checked={alwaysVisible ? true : Boolean(rule.visible)}
+                        disabled={alwaysVisible || !canManage}
+                        onCheckedChange={() => toggle(key, "visible")}
+                      />
+                    </td>
+                    <td className="px-2 py-2.5 text-center">
+                      <Switch
+                        checked={alwaysRequired ? true : Boolean(rule.required)}
+                        disabled={alwaysRequired || !canManage}
+                        onCheckedChange={() => toggle(key, "required")}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="space-y-1 rounded-xl border border-border bg-muted/10 p-3 text-xs text-muted-foreground">
+        <p>• Se categoria/subcategoria não forem obrigatórias e o cliente não informar, o chamado entra como <span className="font-medium text-foreground">Triagem</span> com classificação pendente.</p>
+        <p>• As subcategorias são cadastradas em cada categoria (Categorias de chamado).</p>
+        <p>• O responsável do setor exibido no portal é o gerente do departamento na Estrutura Organizacional.</p>
+      </div>
+    </div>
   );
 }
 

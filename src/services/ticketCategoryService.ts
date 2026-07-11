@@ -27,6 +27,7 @@ function normalizeCategoryPayload(payload: Partial<TicketCategory>) {
     requires_client_validation: Boolean(payload.requires_client_validation),
     color: payload.color || "",
     icon: payload.icon || "",
+    subcategories: payload.subcategories || [],
   };
 }
 

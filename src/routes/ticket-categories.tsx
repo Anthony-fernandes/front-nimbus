@@ -93,6 +93,10 @@ function TicketCategoriesPage() {
           requires_client_validation: data.requiresClientValidation,
           color: data.color,
           icon: data.icon,
+          subcategories: data.subcategoriesText
+            .split("\n")
+            .map((item) => item.trim())
+            .filter(Boolean),
         },
         selectedCategory ? "edit" : "create",
         selectedCategory?.id,

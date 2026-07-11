@@ -31,11 +31,31 @@ type ClientTicketRequestPayload = {
   categoryId?: string;
   categoryName?: string;
   category?: TicketCategory | null;
+  subcategory?: string;
+  department?: string;
+  affectedService?: string;
+  preferredContactTime?: string;
+  preferredContactChannel?: string;
   type: string;
   urgency: string;
   impact?: string;
   attachments?: TicketAttachment[];
+  hasAttachments?: boolean;
 };
+
+/** Configuração admin do formulário de abertura no Portal do Cliente. */
+export type PortalFormFieldRule = { visible: boolean; required: boolean };
+export type PortalFormConfig = Record<string, PortalFormFieldRule>;
+
+export async function getPortalFormConfig(): Promise<PortalFormConfig> {
+  const { data } = await api.get<{ fields: PortalFormConfig }>("/tickets/portal-form-config/");
+  return data.fields || {};
+}
+
+export async function updatePortalFormConfig(fields: PortalFormConfig): Promise<PortalFormConfig> {
+  const { data } = await api.put<{ fields: PortalFormConfig }>("/tickets/portal-form-config/", { fields });
+  return data.fields || {};
+}
 
 function getStatusCode(error: unknown) {
   return (error as { response?: { status?: number } })?.response?.status;
@@ -268,8 +288,14 @@ export async function createClientTicketRequest(payload: ClientTicketRequestPayl
     requester_user: payload.requesterUser || null,
     contact_responsible_name: payload.requesterContactName || payload.requester || "",
     contact_responsible_phone: payload.requesterContactPhone || "",
-    category: payload.category?.name || payload.categoryName || payload.categoryId || "",
+    category: payload.category?.name || payload.categoryName || "",
     category_id: payload.category?.id || payload.categoryId || null,
+    subcategory: payload.subcategory || "",
+    department: payload.department || null,
+    affected_service: payload.affectedService || "",
+    preferred_contact_time: payload.preferredContactTime || "",
+    preferred_contact_channel: payload.preferredContactChannel || "",
+    has_attachments: Boolean(payload.hasAttachments || (payload.attachments || []).length),
     type: payload.type || categoryDefaults.type,
     priority: categoryDefaults.priority,
     impact: payload.impact || categoryDefaults.impact,
@@ -289,7 +315,7 @@ export async function createClientTicketRequest(payload: ClientTicketRequestPayl
     description: extendedPayload.description,
     client: extendedPayload.client,
     requester: extendedPayload.requester,
-    category: extendedPayload.category || "Suporte geral",
+    category: extendedPayload.category,
     type: extendedPayload.type || "Incidente",
     priority: extendedPayload.priority || "Pendente",
     impact: extendedPayload.impact || "Pendente",
